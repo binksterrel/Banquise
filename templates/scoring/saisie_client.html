@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Simulateur de Prêt - Banquise{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Custom Input Styling - Glass Effect */
+    .form-control {
+        background-color: rgba(255, 255, 255, 0.8);
+        border: 1px solid #e2e8f0;
+        padding: 0.875rem 1rem;
+        border-radius: 1rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        width: 100%;
+        font-weight: 500;
+        color: #0f172a;
+    }
+
+    .form-control:focus {
+        background-color: #ffffff;
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
+        outline: none;
+    }
+
+    label {
+        font-family: 'Outfit', sans-serif;
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: #475569;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    /* Animation Blob héritée de base.html */
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="relative min-h-screen overflow-hidden">
+
+    <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+        <div
+            class="absolute top-0 right-0 w-[600px] h-[600px] bg-ice-500/10 rounded-full blur-[100px] mix-blend-multiply animate-blob">
+        </div>
+        <div
+            class="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-[100px] mix-blend-multiply animate-blob animation-delay-2000">
+        </div>
+    </div>
+
+    <div class="relative z-10 max-w-4xl mx-auto py-12 px-4">
+
+        <div class="text-center mb-12">
+            <div
+                class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-700 text-white text-3xl mb-6 shadow-lg shadow-slate-900/20">
+                <i class="bi bi-calculator-fill"></i>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-display font-bold text-slate-900 mb-4">Simulateur de Crédit IA</h1>
+            <p class="text-slate-500 text-lg max-w-xl mx-auto">Remplissez vos informations financières et laissez notre
+                algorithme calculer votre score de solvabilité en temps réel.</p>
+        </div>
+
+        <div class="glass-premium p-8 md:p-12 rounded-[2rem]">
+            <form method="POST" class="space-y-8">
+                {% csrf_token %}
+
+                <div class="grid md:grid-cols-2 gap-8">
+                    {{ form|crispy }}
+                </div>
+
+                <div class="pt-8 border-t border-slate-200/50">
+                    <button type="submit"
+                        class="w-full py-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white font-bold rounded-xl text-lg shadow-lg hover:shadow-ice-500/25 transition-all duration-300 transform hover:-translate-y-1 flex items-center justify-center gap-3 group">
+                        <span>Lancer la simulation</span>
+                        <i class="bi bi-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </button>
+                    <p
+                        class="text-center text-slate-400 text-xs font-medium mt-4 flex items-center justify-center gap-2">
+                        <i class="bi bi-lock-fill text-ice-500"></i> Vos données sont cryptées et analysées anonymement.
+                    </p>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

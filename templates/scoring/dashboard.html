@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Banquise{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Réutilisation des animations et styles de l'accueil */
+    @keyframes blob {
+        0% {
+            transform: translate(0px, 0px) scale(1);
+        }
+
+        33% {
+            transform: translate(30px, -50px) scale(1.1);
+        }
+
+        66% {
+            transform: translate(-20px, 20px) scale(0.9);
+        }
+
+        100% {
+            transform: translate(0px, 0px) scale(1);
+        }
+    }
+
+    .animate-blob {
+        animation: blob 7s infinite;
+    }
+
+    .animation-delay-2000 {
+        animation-delay: 2s;
+    }
+
+    .animation-delay-4000 {
+        animation-delay: 4s;
+    }
+
+    /* Effet Glassmorphism Premium */
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    }
+
+    .glass-card-hover:hover {
+        transform: translateY(-2px);
+        background: rgba(255, 255, 255, 0.85);
+        border-color: rgba(14, 165, 233, 0.3);
+        box-shadow: 0 10px 30px rgba(14, 165, 233, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('spendingChart').getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, 'rgba(14, 165, 233, 0.4)');
+    gradient.addColorStop(1, 'rgba(14, 165, 233, 0.0)');
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'],
+            datasets: [{
+                label: 'Dépenses',
+                data: [1200, 1900, 1500, 2200, 1800, 2500],
+                borderColor: '#0ea5e9',
+                backgroundColor: gradient,
+                borderWidth: 3,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#0ea5e9',
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { display: false, grid: { display: false } },
+                x: { grid: { display: false }, ticks: { font: { family: "'Plus Jakarta Sans', sans-serif" }, color: '#94a3b8' } }
+            },
+            interaction: { intersect: false, mode: 'index' },
+        }
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="relative min-h-screen overflow-hidden bg-slate-50/50">
+
+    <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+        <div
+            class="absolute top-10 left-10 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-60 animate-blob">
+        </div>
+        <div
+            class="absolute top-10 right-10 w-96 h-96 bg-ice-200 rounded-full mix-blend-multiply filter blur-3xl opacity-60 animate-blob animation-delay-2000">
+        </div>
+        <div
+            class="absolute -bottom-20 left-1/2 w-96 h-96 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-60 animate-blob animation-delay-4000">
+        </div>
+    </div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <div class="flex flex-col md:flex-row justify-between items-end mb-10 gap-4">
+            <div>
+                <p class="text-slate-500 text-sm font-medium mb-1">{% now "l d F Y" %}</p>
+                <h1 class="text-3xl md:text-4xl font-display font-bold text-slate-900">
+                    Bonjour, <span class="text-transparent bg-clip-text bg-gradient-to-r from-ice-600 to-blue-600">{{
+                        user.first_name|default:user.username }}</span> 👋
+                </h1>
+            </div>
+            <div>
+                <a href="{% url 'simulation' %}"
+                    class="group px-6 py-3 rounded-xl bg-slate-900 text-white font-bold shadow-lg hover:shadow-slate-900/30 hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2">
+                    <i class="bi bi-plus-lg group-hover:rotate-90 transition-transform"></i>
+                    <span>Nouveau Projet</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="flex flex-col lg:flex-row gap-8">
+
+            <div class="lg:w-2/3 space-y-8">
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {% for compte in comptes %}
+                    <div
+                        class="glass-panel p-6 rounded-3xl glass-card-hover transition-all duration-300 flex flex-col justify-between h-40 relative overflow-hidden group">
+
+                        <div
+                            class="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-ice-100 to-transparent rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500">
+                        </div>
+
+                        <a href="{% url 'fermer_compte' compte.id %}"
+                            class="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/60 text-slate-400 hover:bg-red-100 hover:text-red-500 flex items-center justify-center transition-all z-20"
+                            title="Gérer / Clôturer ce compte">
+                            <i class="bi bi-gear-fill text-xs"></i>
+                        </a>
+
+                        <div>
+                            <p class="text-sm text-slate-500 font-medium">{{ compte.get_type_compte_display }}</p>
+                            <h3 class="text-2xl font-display font-bold text-slate-900 mt-1">{{ compte.solde }} €</h3>
+                        </div>
+
+                        <div class="flex justify-between items-end">
+                            <p class="text-xs text-slate-400 font-mono bg-white/50 px-2 py-1 rounded-lg">{{
+                                compte.numero_compte }}</p>
+                            <div
+                                class="w-8 h-8 rounded-full {% if compte.solde >= 0 %}bg-green-100 text-green-600{% else %}bg-red-100 text-red-600{% endif %} flex items-center justify-center text-xs">
+                                <i
+                                    class="bi {% if compte.solde >= 0 %}bi-arrow-up-right{% else %}bi-arrow-down-right{% endif %}"></i>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-span-3 p-8 text-center border-2 border-dashed border-slate-200 rounded-3xl">
+                        <p class="text-slate-400">Aucun compte actif pour le moment.</p>
+                    </div>
+                    {% endfor %}
+
+                    <a href="{% url 'ouvrir_compte' %}"
+                        class="border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center text-slate-400 hover:border-ice-300 hover:text-ice-500 hover:bg-ice-50/50 transition-all duration-300 h-40 gap-2 group cursor-pointer">
+                        <div
+                            class="w-10 h-10 rounded-full bg-slate-50 group-hover:bg-ice-100 flex items-center justify-center transition-colors">
+                            <i class="bi bi-plus-lg text-2xl group-hover:text-ice-600 transition-colors"></i>
+                        </div>
+                        <span class="font-bold text-sm">Ouvrir un compte</span>
+                    </a>
+                </div>
+
+                <div class="glass-panel p-6 md:p-8 rounded-3xl">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h3 class="font-display font-bold text-slate-900 text-lg">Analyse des dépenses</h3>
+                            <p class="text-xs text-slate-500">Vos sorties d'argent sur 6 mois</p>
+                        </div>
+                        <select
+                            class="bg-slate-50 border-none text-sm font-bold rounded-xl px-4 py-2 text-slate-600 focus:ring-2 focus:ring-ice-200 cursor-pointer hover:bg-slate-100 transition-colors">
+                            <option>6 derniers mois</option>
+                            <option>Cette année</option>
+                        </select>
+                    </div>
+                    <div class="h-72 w-full">
+                        <canvas id="spendingChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="glass-panel rounded-3xl overflow-hidden">
+                    <div class="p-6 md:p-8 border-b border-slate-100 flex justify-between items-center bg-white/40">
+                        <h3 class="font-display font-bold text-slate-900 text-lg">Transactions Récentes</h3>
+                        <a href="#"
+                            class="text-ice-600 text-sm font-bold hover:text-ice-700 hover:underline decoration-2 underline-offset-4">Tout
+                            voir</a>
+                    </div>
+                    <div class="divide-y divide-slate-100/80">
+                        {% for tx in transactions_recentes %}
+                        <div class="p-5 flex items-center justify-between hover:bg-white/60 transition-colors">
+                            <div class="flex items-center gap-4">
+                                <div
+                                    class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center text-xl">
+                                    {% if tx.type == 'CREDIT' %}
+                                    <i class="bi bi-arrow-down-left text-green-500"></i>
+                                    {% else %}
+                                    <i class="bi bi-bag text-slate-400"></i>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <p class="font-bold text-slate-800">{{ tx.libelle }}</p>
+                                    <p class="text-xs text-slate-500 font-medium">{{ tx.date_execution|date:"d F, H:i"
+                                        }}</p>
+                                </div>
+                            </div>
+                            <span
+                                class="font-bold font-mono text-lg {% if tx.montant > 0 %}text-green-600{% else %}text-slate-900{% endif %}">
+                                {% if tx.montant > 0 %}+{% endif %}{{ tx.montant }} €
+                            </span>
+                        </div>
+                        {% empty %}
+                        <div class="p-12 text-center">
+                            <div
+                                class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
+                                <i class="bi bi-receipt text-2xl"></i>
+                            </div>
+                            <p class="text-slate-500 font-medium">Aucune transaction récente.</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:w-1/3 space-y-8">
+
+                <div
+                    class="relative h-56 w-full rounded-3xl p-6 text-white shadow-2xl shadow-slate-900/20 overflow-hidden group transform hover:scale-105 transition-all duration-500 cursor-pointer">
+                    <div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"></div>
+                    <div
+                        class="absolute -inset-full top-0 block h-full w-1/2 -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-10 group-hover:animate-shine">
+                    </div>
+
+                    <div class="relative z-10 flex flex-col justify-between h-full">
+                        <div class="flex justify-between items-start">
+                            <i class="bi bi-wifi text-2xl opacity-80 rotate-90"></i>
+                            <span class="font-display font-bold tracking-widest italic text-lg">BANQUISE</span>
+                        </div>
+
+                        <div class="space-y-2">
+                            <div
+                                class="w-12 h-8 bg-gradient-to-br from-yellow-200 to-yellow-500 rounded-md relative overflow-hidden opacity-90">
+                                <div class="absolute border border-yellow-600/30 w-full h-full rounded-md"></div>
+                            </div>
+                            {% if cartes %}
+                            <p class="font-mono text-xl tracking-widest drop-shadow-md text-slate-100">**** **** **** {{
+                                cartes.0.numero_visible }}</p>
+                            {% else %}
+                            <p class="font-mono text-xl tracking-widest drop-shadow-md text-slate-100">**** **** ****
+                                0000</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">
+                                    Titulaire</p>
+                                <p class="font-bold tracking-wide uppercase text-sm shadow-black drop-shadow-md">{{
+                                    user.last_name }} {{ user.first_name }}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Validité
+                                </p>
+                                <p class="font-mono font-bold text-sm">{% if cartes %}{{
+                                    cartes.0.date_expiration|date:"m/y" }}{% else %}12/28{% endif %}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-6 rounded-3xl">
+                    <h3 class="font-display font-bold text-slate-900 mb-6">Actions Rapides</h3>
+                    <div class="grid grid-cols-2 gap-4">
+
+                        <a href="{% url 'virement' %}"
+                            class="p-4 rounded-2xl bg-white border border-slate-100 hover:border-ice-200 hover:shadow-lg hover:shadow-ice-500/10 transition-all duration-300 flex flex-col items-center gap-3 group">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-ice-50 text-ice-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
+                                <i class="bi bi-send-fill"></i>
+                            </div>
+                            <span class="text-sm font-bold text-slate-600 group-hover:text-ice-700">Virement</span>
+                        </a>
+
+                        <a href="{% url 'simulation' %}"
+                            class="p-4 rounded-2xl bg-white border border-slate-100 hover:border-purple-200 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300 flex flex-col items-center gap-3 group">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
+                                <i class="bi bi-calculator-fill"></i>
+                            </div>
+                            <span class="text-sm font-bold text-slate-600 group-hover:text-purple-700">Simuler</span>
+                        </a>
+
+                        <a href="{% url 'cartes' %}"
+                            class="p-4 rounded-2xl bg-white border border-slate-100 hover:border-orange-200 hover:shadow-lg hover:shadow-orange-500/10 transition-all duration-300 flex flex-col items-center gap-3 group">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
+                                <i class="bi bi-credit-card-2-front-fill"></i>
+                            </div>
+                            <span class="text-sm font-bold text-slate-600 group-hover:text-orange-700">Cartes</span>
+                        </a>
+
+                        <a href="{% url 'support' %}"
+                            class="p-4 rounded-2xl bg-white border border-slate-100 hover:border-green-200 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300 flex flex-col items-center gap-3 group">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-green-50 text-green-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
+                                <i class="bi bi-chat-dots-fill"></i>
+                            </div>
+                            <span class="text-sm font-bold text-slate-600 group-hover:text-green-700">Aide</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="relative rounded-3xl overflow-hidden bg-slate-900 p-6 text-white shadow-xl">
+                    <div
+                        class="absolute top-0 right-0 w-40 h-40 bg-ice-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3">
+                    </div>
+                    <div class="relative z-10">
+                        <div
+                            class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mb-4 backdrop-blur-sm">
+                            <i class="bi bi-house-heart-fill text-ice-300"></i>
+                        </div>
+                        <h3 class="font-display font-bold text-lg mb-2">Projet Immobilier ?</h3>
+                        <p class="text-slate-400 text-sm mb-6 leading-relaxed">Profitez de nos taux préférentiels pour
+                            les membres Banquise.</p>
+                        <a href="#"
+                            class="block w-full py-3 bg-white text-slate-900 font-bold text-center rounded-xl text-sm hover:bg-ice-50 transition-colors">
+                            Découvrir l'offre
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}Aide & Support - Banquise{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Accordéon FAQ */
+    details>summary {
+        list-style: none;
+    }
+
+    details>summary::-webkit-details-marker {
+        display: none;
+    }
+
+    details[open] summary~* {
+        animation: slideDown 0.3s ease-in-out;
+    }
+
+    @keyframes slideDown {
+        0% {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        100% {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Styles Formulaire Clean */
+    .input-glass {
+        background-color: rgba(255, 255, 255, 0.6);
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .input-glass:hover {
+        background-color: rgba(255, 255, 255, 0.9);
+        border-color: #cbd5e1;
+    }
+
+    .input-glass:focus {
+        background-color: #ffffff;
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
+        outline: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="relative min-h-screen overflow-hidden">
+
+    <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+        <div
+            class="absolute top-0 left-1/4 w-[800px] h-[800px] bg-ice-200 rounded-full mix-blend-multiply filter blur-[120px] opacity-60 animate-blob">
+        </div>
+        <div
+            class="absolute bottom-0 right-0 w-[600px] h-[600px] bg-purple-200 rounded-full mix-blend-multiply filter blur-[120px] opacity-60 animate-blob animation-delay-2000">
+        </div>
+    </div>
+
+    <div class="relative z-10 max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
+
+        <div class="text-center max-w-3xl mx-auto mb-16">
+            <div
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 border border-white/50 text-ice-600 font-bold text-sm mb-6 backdrop-blur-md shadow-sm">
+                <span class="relative flex h-2.5 w-2.5">
+                    <span
+                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-ice-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-ice-500"></span>
+                </span>
+                Support 24/7
+            </div>
+            <h1 class="text-5xl md:text-6xl font-display font-bold text-slate-900 mb-6 tracking-tight">
+                Comment pouvons-nous <br> <span
+                    class="text-transparent bg-clip-text bg-gradient-to-r from-ice-500 to-blue-600">vous aider ?</span>
+            </h1>
+
+            <div class="relative max-w-xl mx-auto group">
+                <div
+                    class="absolute inset-0 bg-gradient-to-r from-ice-400 to-blue-500 rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-1000">
+                </div>
+                <div class="relative">
+                    <i class="bi bi-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-xl"></i>
+                    <input type="text" placeholder="Rechercher une réponse (ex: virement, carte...)"
+                        class="w-full py-4 pl-14 pr-6 rounded-2xl border border-white/50 bg-white/80 backdrop-blur-xl shadow-xl text-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-ice-400 focus:outline-none transition-all">
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-20">
+            <a href="#"
+                class="group p-6 rounded-[2rem] bg-white/60 border border-white/50 backdrop-blur-md shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center gap-3">
+                <div
+                    class="w-14 h-14 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                    <i class="bi bi-credit-card-2-front-fill"></i></div>
+                <span class="font-bold text-slate-700">Opposition Carte</span>
+            </a>
+            <a href="#"
+                class="group p-6 rounded-[2rem] bg-white/60 border border-white/50 backdrop-blur-md shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center gap-3">
+                <div
+                    class="w-14 h-14 rounded-2xl bg-ice-50 text-ice-500 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                    <i class="bi bi-shield-lock-fill"></i></div>
+                <span class="font-bold text-slate-700">Sécurité & Accès</span>
+            </a>
+            <a href="#"
+                class="group p-6 rounded-[2rem] bg-white/60 border border-white/50 backdrop-blur-md shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center gap-3">
+                <div
+                    class="w-14 h-14 rounded-2xl bg-purple-50 text-purple-500 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                    <i class="bi bi-arrow-left-right"></i></div>
+                <span class="font-bold text-slate-700">Problème Virement</span>
+            </a>
+            <a href="#"
+                class="group p-6 rounded-[2rem] bg-white/60 border border-white/50 backdrop-blur-md shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center gap-3">
+                <div
+                    class="w-14 h-14 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                    <i class="bi bi-file-earmark-text-fill"></i></div>
+                <span class="font-bold text-slate-700">Attestations</span>
+            </a>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-12">
+
+            <div class="lg:col-span-2">
+                <h2 class="text-3xl font-display font-bold text-slate-900 mb-8">Questions Fréquentes</h2>
+                <div class="space-y-4">
+                    <details class="group glass-premium rounded-2xl overflow-hidden cursor-pointer">
+                        <summary
+                            class="p-6 flex justify-between items-center font-bold text-slate-800 text-lg hover:bg-white/50 transition-colors">
+                            Comment augmenter mes plafonds ?
+                            <span
+                                class="w-8 h-8 rounded-full bg-ice-100 text-ice-600 flex items-center justify-center transition-transform group-open:rotate-180"><i
+                                    class="bi bi-chevron-down"></i></span>
+                        </summary>
+                        <div class="px-6 pb-6 text-slate-500 leading-relaxed">
+                            Vous pouvez modifier vos plafonds de paiement et de retrait instantanément depuis l'onglet
+                            <strong>"Mes Cartes"</strong>. Sélectionnez la carte concernée, puis ajustez les curseurs
+                            selon vos besoins. La validation se fait par code SMS.
+                        </div>
+                    </details>
+
+                    <details class="group glass-premium rounded-2xl overflow-hidden cursor-pointer">
+                        <summary
+                            class="p-6 flex justify-between items-center font-bold text-slate-800 text-lg hover:bg-white/50 transition-colors">
+                            Combien de temps prend un virement ?
+                            <span
+                                class="w-8 h-8 rounded-full bg-ice-100 text-ice-600 flex items-center justify-center transition-transform group-open:rotate-180"><i
+                                    class="bi bi-chevron-down"></i></span>
+                        </summary>
+                        <div class="px-6 pb-6 text-slate-500 leading-relaxed">
+                            Entre comptes Banquise, c'est immédiat. Pour les virements SEPA classiques, comptez 24 à 48h
+                            ouvrées. Si vous avez choisi l'option <strong>Virement Instantané</strong>, les fonds sont
+                            disponibles en moins de 10 secondes chez le bénéficiaire.
+                        </div>
+                    </details>
+
+                    <details class="group glass-premium rounded-2xl overflow-hidden cursor-pointer">
+                        <summary
+                            class="p-6 flex justify-between items-center font-bold text-slate-800 text-lg hover:bg-white/50 transition-colors">
+                            Comment contester un prélèvement ?
+                            <span
+                                class="w-8 h-8 rounded-full bg-ice-100 text-ice-600 flex items-center justify-center transition-transform group-open:rotate-180"><i
+                                    class="bi bi-chevron-down"></i></span>
+                        </summary>
+                        <div class="px-6 pb-6 text-slate-500 leading-relaxed">
+                            Allez dans l'historique de vos transactions, cliquez sur le prélèvement concerné et
+                            sélectionnez "Signaler un problème".
+                        </div>
+                    </details>
+
+                    <details class="group glass-premium rounded-2xl overflow-hidden cursor-pointer">
+                        <summary
+                            class="p-6 flex justify-between items-center font-bold text-slate-800 text-lg hover:bg-white/50 transition-colors">
+                            J'ai oublié mon code secret
+                            <span
+                                class="w-8 h-8 rounded-full bg-ice-100 text-ice-600 flex items-center justify-center transition-transform group-open:rotate-180"><i
+                                    class="bi bi-chevron-down"></i></span>
+                        </summary>
+                        <div class="px-6 pb-6 text-slate-500 leading-relaxed">
+                            Pour des raisons de sécurité, nous ne pouvons pas vous l'envoyer. Cependant, vous pouvez le
+                            visualiser temporairement dans l'application mobile ou sur le site via la section
+                            <strong>"Mes Cartes" > "Voir le code"</strong> après authentification biométrique.
+                        </div>
+                    </details>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+
+                <div class="glass-premium p-8 rounded-[2rem] relative overflow-hidden">
+                    <div
+                        class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-ice-100 to-transparent rounded-full opacity-50 pointer-events-none">
+                    </div>
+
+                    <div class="relative z-10">
+                        <div class="mb-8">
+                            <h3 class="font-display font-bold text-slate-900 text-2xl">Contactez-nous</h3>
+                            <p class="text-slate-500 text-sm mt-1">Une réponse vous sera apportée sous 24h.</p>
+                        </div>
+
+                        <form action="#" method="POST" class="space-y-5">
+                            {% csrf_token %}
+
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Sujet
+                                    de votre demande</label>
+                                <div class="relative">
+                                    <div
+                                        class="absolute left-0 top-0 bottom-0 w-12 flex items-center justify-center text-slate-400 pointer-events-none">
+                                        <i class="bi bi-tag-fill"></i>
+                                    </div>
+                                    <select
+                                        class="w-full pl-12 pr-4 py-3.5 rounded-xl input-glass text-slate-700 font-medium appearance-none cursor-pointer">
+                                        <option>Question générale</option>
+                                        <option>Problème technique</option>
+                                        <option>Réclamation</option>
+                                        <option>Urgence sécurité</option>
+                                    </select>
+                                    <div
+                                        class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                                        <i class="bi bi-chevron-down text-xs"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Votre
+                                    message</label>
+                                <div class="relative">
+                                    <div
+                                        class="absolute left-0 top-4 w-12 flex justify-center text-slate-400 pointer-events-none">
+                                        <i class="bi bi-chat-left-text-fill"></i>
+                                    </div>
+                                    <textarea rows="5"
+                                        class="w-full pl-12 pr-4 py-3.5 rounded-xl input-glass text-slate-700 font-medium resize-none placeholder:text-slate-400"
+                                        placeholder="Bonjour, je vous contacte car..."></textarea>
+                                </div>
+                            </div>
+
+                            <button
+                                class="w-full py-4 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 text-white font-bold shadow-lg hover:shadow-ice-500/25 hover:from-ice-600 hover:to-ice-700 transition-all transform hover:-translate-y-0.5 flex justify-center items-center gap-3 group mt-2">
+                                <span>Envoyer le message</span>
+                                <i class="bi bi-send-fill group-hover:translate-x-1 transition-transform"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div
+                    class="bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-40 h-40 bg-ice-500/20 rounded-full blur-3xl"></div>
+                    <h3 class="font-display font-bold text-lg mb-6 flex items-center gap-2"><i
+                            class="bi bi-headset"></i> Autres moyens</h3>
+                    <div class="space-y-6">
+                        <div class="flex items-start gap-4">
+                            <div
+                                class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+                                <i class="bi bi-telephone-fill"></i></div>
+                            <div>
+                                <p class="text-xs text-slate-400 font-bold uppercase">Service Client</p>
+                                <p class="font-bold text-lg">01 23 45 67 89</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div
+                                class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+                                <i class="bi bi-chat-dots-fill"></i></div>
+                            <div>
+                                <p class="text-xs text-slate-400 font-bold uppercase">Chat en direct</p><a href="#"
+                                    class="text-xs text-ice-400 hover:text-white font-bold underline decoration-2 underline-offset-2 mt-1 block">Démarrer
+                                    une conversation</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

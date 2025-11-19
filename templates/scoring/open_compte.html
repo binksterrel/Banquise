@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Ouvrir un Compte - Banquise{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 py-12 px-4">
+    <div class="max-w-2xl mx-auto">
+        <a href="{% url 'dashboard' %}" class="text-slate-500 hover:text-slate-900 font-bold mb-6 inline-block"><i
+                class="bi bi-arrow-left"></i> Retour</a>
+
+        <div
+            class="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl shadow-slate-200 border border-slate-100 relative overflow-hidden">
+            <div
+                class="absolute top-0 right-0 w-64 h-64 bg-ice-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2">
+            </div>
+
+            <div class="relative z-10">
+                <div
+                    class="w-16 h-16 bg-ice-100 text-ice-600 rounded-2xl flex items-center justify-center text-3xl mb-6">
+                    <i class="bi bi-bank2"></i>
+                </div>
+                <h1 class="text-3xl font-display font-bold text-slate-900 mb-2">Ouvrir un nouveau compte</h1>
+                <p class="text-slate-500 mb-8">Choisissez le type de produit bancaire adapté à vos besoins.</p>
+
+                <form method="POST" class="space-y-6">
+                    {% csrf_token %}
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">Type de compte</label>
+                        {{ form.type_compte }}
+                    </div>
+
+                    <div class="p-4 bg-blue-50 rounded-xl flex gap-4 items-start text-blue-700 text-sm">
+                        <i class="bi bi-info-circle-fill text-lg mt-0.5"></i>
+                        <p>L'ouverture est immédiate. Vous recevrez un IBAN provisoire et pourrez commander votre carte
+                            physique ultérieurement.</p>
+                    </div>
+
+                    <button type="submit"
+                        class="w-full py-4 bg-slate-900 hover:bg-ice-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-slate-900/20">
+                        Valider l'ouverture
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
