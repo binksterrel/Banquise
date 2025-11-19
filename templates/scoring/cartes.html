@@ -3,63 +3,87 @@
 {% block title %}Mes Cartes - Banquise{% endblock %}
 
 {% block content %}
-<div class="relative min-h-screen overflow-hidden">
+<div class="relative min-h-screen bg-slate-50/50 overflow-hidden">
     <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
         <div class="absolute top-20 right-0 w-[500px] h-[500px] bg-blue-100 rounded-full blur-[100px] opacity-50"></div>
+        <div class="absolute bottom-0 left-0 w-[500px] h-[500px] bg-ice-100 rounded-full blur-[100px] opacity-50"></div>
     </div>
 
-    <div class="relative z-10 max-w-5xl mx-auto py-12 px-4">
+    <div class="relative z-10 max-w-7xl mx-auto py-12 px-4">
 
-        <div class="mb-12">
-            <h1 class="text-4xl font-display font-bold text-slate-900">Mes Cartes</h1>
-            <p class="text-slate-500 text-lg mt-2">Gérez vos plafonds et la sécurité de vos moyens de paiement.</p>
+        <div class="mb-10 flex flex-col md:flex-row justify-between items-end gap-4">
+            <div>
+                <h1 class="text-4xl font-display font-bold text-slate-900">Mes Cartes</h1>
+                <p class="text-slate-500 text-lg mt-2">Glissez pour voir vos différentes cartes.</p>
+            </div>
+            <a href="{% url 'dashboard' %}"
+                class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors">
+                <i class="bi bi-arrow-left mr-2"></i> Retour
+            </a>
         </div>
 
-        <div class="grid lg:grid-cols-2 gap-10">
+        <div class="flex overflow-x-auto pb-10 gap-8 snap-x snap-mandatory no-scrollbar"
+            style="scroll-padding-left: 1rem;">
 
-            <div class="space-y-8">
-                {% for carte in cartes %}
-                <div class="perspective-1000 group">
-                    <div
-                        class="relative h-64 w-full rounded-[2rem] p-8 text-white shadow-2xl shadow-slate-900/30 overflow-hidden transform transition-all duration-500 group-hover:rotate-1 group-hover:scale-[1.02] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 border border-white/10">
+            {% for carte in cartes %}
+            <div class="min-w-[340px] md:min-w-[400px] snap-center space-y-6">
+
+                <div class="perspective-1000 group cursor-pointer">
+                    <div class="relative h-64 w-full rounded-[2rem] p-8 text-white shadow-2xl shadow-slate-900/20 overflow-hidden transform transition-all duration-500 group-hover:scale-[1.02] border border-white/10 
+                        {% if carte.compte.type_compte == 'EPARGNE' %}
+                            bg-gradient-to-br from-ice-500 via-blue-500 to-blue-700
+                        {% elif carte.compte.type_compte == 'PRO' %}
+                            bg-gradient-to-br from-indigo-900 via-purple-800 to-slate-900
+                        {% else %}
+                            bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950
+                        {% endif %}">
+
                         <div
-                            class="absolute inset-0 opacity-30 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
+                            class="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
                         </div>
+
                         <div
-                            class="absolute -top-24 -right-24 w-64 h-64 bg-ice-500 rounded-full filter blur-[80px] opacity-20 group-hover:opacity-40 transition-opacity duration-500">
+                            class="absolute -top-24 -right-24 w-64 h-64 bg-white rounded-full filter blur-[80px] opacity-20 group-hover:opacity-30 transition-opacity duration-500">
                         </div>
 
                         <div class="relative z-10 flex flex-col justify-between h-full">
                             <div class="flex justify-between items-start">
-                                <i class="bi bi-wifi text-3xl opacity-70 rotate-90"></i>
+                                <i class="bi bi-wifi text-3xl opacity-80 rotate-90"></i>
                                 <span
-                                    class="font-display font-bold text-xl tracking-widest italic text-ice-100">BANQUISE</span>
+                                    class="font-display font-bold text-xl tracking-widest italic opacity-90">BANQUISE</span>
                             </div>
+
                             <div class="space-y-3">
                                 <div
                                     class="w-14 h-10 bg-gradient-to-br from-yellow-200 to-yellow-500 rounded-lg shadow-sm opacity-90">
                                 </div>
-                                <p class="font-mono text-2xl tracking-widest drop-shadow-lg text-slate-50">
+                                <p class="font-mono text-2xl tracking-widest drop-shadow-lg text-white/90">
                                     **** **** **** {{ carte.numero_visible }}
                                 </p>
                             </div>
+
                             <div class="flex justify-between items-end">
                                 <div>
                                     <p class="text-[10px] opacity-60 uppercase font-bold tracking-wider mb-1">Titulaire
                                     </p>
-                                    <p class="font-medium tracking-wide uppercase text-lg">{{ user.last_name }} {{
-                                        user.first_name }}</p>
+                                    <p
+                                        class="font-medium tracking-wide uppercase text-sm md:text-base truncate max-w-[150px]">
+                                        {{ user.first_name }} {{ user.last_name }}
+                                    </p>
                                 </div>
                                 <div class="text-right">
-                                    <p class="text-[10px] opacity-60 uppercase font-bold tracking-wider mb-1">Expire</p>
-                                    <p class="font-mono font-medium text-lg">{{ carte.date_expiration|date:"m/y" }}</p>
+                                    <p class="text-[10px] font-bold tracking-widest uppercase opacity-80 mb-1">
+                                        {{ carte.compte.get_type_compte_display }}
+                                    </p>
+                                    <p class="font-mono font-medium text-sm opacity-60">{{
+                                        carte.date_expiration|date:"m/y" }}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-3">
                     <form method="POST" class="contents">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="toggle_lock">
@@ -67,169 +91,114 @@
 
                         {% if carte.est_bloquee %}
                         <button type="submit"
-                            class="p-5 rounded-2xl font-bold border shadow-sm hover:shadow-md transition-all flex flex-col items-center gap-2 group bg-green-50 text-green-600 border-green-100">
-                            <div
-                                class="w-10 h-10 rounded-full flex items-center justify-center transition-colors bg-green-100">
-                                <i class="bi bi-unlock-fill text-xl"></i>
-                            </div>
-                            <span class="text-sm">Déverrouiller</span>
+                            class="py-3 px-4 rounded-xl font-bold border shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 bg-green-50 text-green-600 border-green-100">
+                            <i class="bi bi-unlock-fill"></i> <span>Débloquer</span>
                         </button>
                         {% else %}
                         <button type="submit"
-                            class="p-5 rounded-2xl font-bold border shadow-sm hover:shadow-md transition-all flex flex-col items-center gap-2 group bg-white border-slate-200 text-slate-600">
-                            <div
-                                class="w-10 h-10 rounded-full flex items-center justify-center transition-colors bg-slate-100 group-hover:bg-red-50 group-hover:text-red-500">
-                                <i class="bi bi-lock-fill text-xl"></i>
-                            </div>
-                            <span class="text-sm">Verrouiller</span>
+                            class="py-3 px-4 rounded-xl font-bold border shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 bg-white border-slate-200 text-slate-600 hover:text-red-500 hover:bg-red-50">
+                            <i class="bi bi-lock-fill"></i> <span>Bloquer</span>
                         </button>
                         {% endif %}
                     </form>
 
                     <button type="button" onclick="showCode('{{ carte.numero_visible }}')"
-                        class="p-5 rounded-2xl bg-white border border-slate-200 text-slate-600 font-bold shadow-sm hover:shadow-md transition-all flex flex-col items-center gap-2 group">
-                        <div
-                            class="w-10 h-10 rounded-full bg-slate-100 group-hover:bg-ice-50 group-hover:text-ice-600 flex items-center justify-center transition-colors">
-                            <i class="bi bi-eye-fill text-xl"></i>
-                        </div>
-                        <span class="text-sm">Voir le code</span>
+                        class="py-3 px-4 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2">
+                        <i class="bi bi-eye-fill"></i> <span>Code PIN</span>
                     </button>
                 </div>
-                {% endfor %}
-            </div>
 
-            {% if cartes %}
-            {% with carte=cartes.0 %}
-            <div class="space-y-8">
+                <details class="group glass-panel rounded-2xl border border-slate-200 overflow-hidden">
+                    <summary
+                        class="flex justify-between items-center font-bold cursor-pointer list-none p-4 bg-white/50 hover:bg-white transition-colors text-slate-700">
+                        <span>Paramètres & Plafonds</span>
+                        <span class="transition group-open:rotate-180">
+                            <i class="bi bi-chevron-down"></i>
+                        </span>
+                    </summary>
 
-                <div class="glass-premium p-8 rounded-[2rem]">
-                    <h3 class="font-display font-bold text-slate-900 mb-6 text-lg">Paramètres</h3>
-                    <div class="space-y-6">
+                    <div class="p-4 space-y-6 border-t border-slate-100 bg-white/30">
 
-                        <form method="POST" class="contents">
-                            {% csrf_token %}
-                            <input type="hidden" name="action" value="toggle_contactless">
-                            <input type="hidden" name="carte_id" value="{{ carte.id }}">
+                        <div class="space-y-3">
+                            <form method="POST">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="toggle_contactless">
+                                <input type="hidden" name="carte_id" value="{{ carte.id }}">
+                                <button type="submit" class="flex justify-between items-center w-full group/btn">
+                                    <span class="text-sm font-medium text-slate-600 flex items-center gap-2">
+                                        <i class="bi bi-wifi"></i> Sans contact
+                                    </span>
+                                    <div
+                                        class="w-10 h-6 rounded-full relative transition-colors {% if carte.sans_contact_actif %}bg-ice-500{% else %}bg-slate-200{% endif %}">
+                                        <div
+                                            class="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all {% if carte.sans_contact_actif %}right-1{% else %}left-1{% endif %}">
+                                        </div>
+                                    </div>
+                                </button>
+                            </form>
 
-                            <button type="submit"
-                                class="w-full flex items-center justify-between group cursor-pointer text-left">
-                                {% if carte.sans_contact_actif %}
-                                <div class="flex items-center gap-4">
+                            <form method="POST">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="toggle_foreign">
+                                <input type="hidden" name="carte_id" value="{{ carte.id }}">
+                                <button type="submit" class="flex justify-between items-center w-full group/btn">
+                                    <span class="text-sm font-medium text-slate-600 flex items-center gap-2">
+                                        <i class="bi bi-globe"></i> Paiements étranger
+                                    </span>
                                     <div
-                                        class="w-12 h-12 rounded-2xl bg-ice-50 text-ice-600 flex items-center justify-center text-xl transition-colors">
-                                        <i class="bi bi-wifi"></i>
+                                        class="w-10 h-6 rounded-full relative transition-colors {% if carte.paiement_etranger_actif %}bg-ice-500{% else %}bg-slate-200{% endif %}">
+                                        <div
+                                            class="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all {% if carte.paiement_etranger_actif %}right-1{% else %}left-1{% endif %}">
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p class="font-bold text-slate-800">Sans contact</p>
-                                        <p class="text-xs text-slate-500">Activé</p>
-                                    </div>
-                                </div>
-                                <div class="w-12 h-7 rounded-full relative transition-colors bg-ice-600">
-                                    <div
-                                        class="absolute top-1 w-5 h-5 rounded-full shadow-sm bg-white transition-all right-1">
-                                    </div>
-                                </div>
-                                {% else %}
-                                <div class="flex items-center gap-4">
-                                    <div
-                                        class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center text-xl transition-colors">
-                                        <i class="bi bi-wifi"></i>
-                                    </div>
-                                    <div>
-                                        <p class="font-bold text-slate-800">Sans contact</p>
-                                        <p class="text-xs text-slate-500">Désactivé</p>
-                                    </div>
-                                </div>
-                                <div class="w-12 h-7 rounded-full relative transition-colors bg-slate-200">
-                                    <div
-                                        class="absolute top-1 w-5 h-5 rounded-full shadow-sm bg-white transition-all left-1">
-                                    </div>
-                                </div>
-                                {% endif %}
-                            </button>
-                        </form>
-
-                        <form method="POST" class="contents">
-                            {% csrf_token %}
-                            <input type="hidden" name="action" value="toggle_foreign">
-                            <input type="hidden" name="carte_id" value="{{ carte.id }}">
-
-                            <button type="submit"
-                                class="w-full flex items-center justify-between group cursor-pointer text-left">
-                                {% if carte.paiement_etranger_actif %}
-                                <div class="flex items-center gap-4">
-                                    <div
-                                        class="w-12 h-12 rounded-2xl bg-ice-50 text-ice-600 flex items-center justify-center text-xl transition-colors">
-                                        <i class="bi bi-globe"></i>
-                                    </div>
-                                    <div>
-                                        <p class="font-bold text-slate-800">Paiements étranger</p>
-                                        <p class="text-xs text-slate-500">Autorisé</p>
-                                    </div>
-                                </div>
-                                <div class="w-12 h-7 rounded-full relative transition-colors bg-ice-600">
-                                    <div
-                                        class="absolute top-1 w-5 h-5 rounded-full shadow-sm bg-white transition-all right-1">
-                                    </div>
-                                </div>
-                                {% else %}
-                                <div class="flex items-center gap-4">
-                                    <div
-                                        class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center text-xl transition-colors">
-                                        <i class="bi bi-globe"></i>
-                                    </div>
-                                    <div>
-                                        <p class="font-bold text-slate-800">Paiements étranger</p>
-                                        <p class="text-xs text-slate-500">Bloqué</p>
-                                    </div>
-                                </div>
-                                <div class="w-12 h-7 rounded-full relative transition-colors bg-slate-200">
-                                    <div
-                                        class="absolute top-1 w-5 h-5 rounded-full shadow-sm bg-white transition-all left-1">
-                                    </div>
-                                </div>
-                                {% endif %}
-                            </button>
-                        </form>
-
-                    </div>
-                </div>
-
-                <div class="glass-premium p-8 rounded-[2rem]">
-                    <div class="flex justify-between items-end mb-6">
-                        <h3 class="font-display font-bold text-slate-900 text-lg">Plafonds</h3>
-                        <a href="{% url 'gestion_plafonds' carte.id %}"
-                            class="text-xs font-bold text-ice-600 hover:underline decoration-2 underline-offset-4">Modifier</a>
-                    </div>
-                    <div class="space-y-8">
-                        <div>
-                            <div class="flex justify-between text-sm mb-3">
-                                <span class="font-bold text-slate-600 flex gap-2 items-center"><i
-                                        class="bi bi-cash-stack text-purple-500"></i> Retraits (7j)</span>
-                                <span class="font-bold text-slate-900">{{ carte.plafond_retrait }} €</span>
-                            </div>
-                            <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                                <div class="bg-purple-500 h-full rounded-full relative" style="width: 30%"></div>
-                            </div>
+                                </button>
+                            </form>
                         </div>
-                        <div>
-                            <div class="flex justify-between text-sm mb-3">
-                                <span class="font-bold text-slate-600 flex gap-2 items-center"><i
-                                        class="bi bi-bag-check-fill text-ice-500"></i> Paiements (30j)</span>
-                                <span class="font-bold text-slate-900">{{ carte.plafond_paiement }} €</span>
+
+                        <div class="pt-2 space-y-4">
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="font-bold text-slate-500">Retraits (7j)</span>
+                                    <span class="font-bold text-slate-900">{{ carte.plafond_retrait }} €</span>
+                                </div>
+                                <div class="w-full bg-slate-200 rounded-full h-2">
+                                    <div class="bg-purple-500 h-2 rounded-full" style="width: 35%"></div>
+                                </div>
                             </div>
-                            <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                                <div class="bg-ice-500 h-full rounded-full relative" style="width: 60%"></div>
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="font-bold text-slate-500">Paiements (30j)</span>
+                                    <span class="font-bold text-slate-900">{{ carte.plafond_paiement }} €</span>
+                                </div>
+                                <div class="w-full bg-slate-200 rounded-full h-2">
+                                    <div class="bg-ice-500 h-2 rounded-full" style="width: 65%"></div>
+                                </div>
+                            </div>
+                            <div class="text-center pt-2">
+                                <a href="{% url 'gestion_plafonds' carte.id %}"
+                                    class="text-xs font-bold text-ice-600 hover:underline">Modifier les plafonds</a>
                             </div>
                         </div>
                     </div>
-                </div>
-
+                </details>
             </div>
-            {% endwith %}
-            {% endif %}
+            {% empty %}
+            <div class="col-span-full text-center py-12 w-full">
+                <div
+                    class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
+                    <i class="bi bi-credit-card text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900">Aucune carte</h3>
+                <p class="text-slate-500 mb-6">Vous n'avez pas encore de carte active.</p>
+                <a href="{% url 'ouvrir_compte' %}"
+                    class="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold shadow-lg hover:bg-slate-800 transition-all">Commander
+                    une carte</a>
+            </div>
+            {% endfor %}
 
+            <div class="min-w-[20px] snap-center"></div>
         </div>
+
     </div>
 </div>
 
@@ -239,10 +208,21 @@
         const fakePin = Math.floor(1000 + Math.random() * 9000);
         Swal.fire({
             title: 'Code confidentiel',
-            html: `<p class="text-slate-500 mb-4">Pour la carte terminant par <b>${lastDigits}</b></p><div class="text-4xl font-mono font-bold tracking-widest text-slate-900 mb-2">${fakePin}</div><p class="text-xs text-red-500 mt-2"><i class="bi bi-exclamation-triangle"></i> Ne l'écrivez pas.</p>`,
-            icon: 'info',
-            confirmButtonColor: '#0ea5e9',
-            confirmButtonText: 'Masquer'
+            html: `<div class="flex flex-col items-center gap-4">
+                    <p class="text-slate-500">Carte terminant par <b>${lastDigits}</b></p>
+                    <div class="py-4 px-8 bg-slate-100 rounded-xl border border-slate-200">
+                        <span class="text-5xl font-mono font-bold tracking-[0.5em] text-slate-900">${fakePin}</span>
+                    </div>
+                    <p class="text-xs text-red-500 font-bold flex items-center gap-1"><i class="bi bi-shield-exclamation"></i> Mémorisez-le, ne l'écrivez pas.</p>
+                   </div>`,
+            showConfirmButton: true,
+            confirmButtonColor: '#0f172a',
+            confirmButtonText: 'Masquer',
+            buttonsStyling: false,
+            customClass: {
+                popup: 'rounded-3xl p-6',
+                confirmButton: 'px-6 py-3 rounded-xl bg-slate-900 text-white font-bold shadow-lg hover:bg-slate-800 transition-all'
+            }
         });
     }
 </script>

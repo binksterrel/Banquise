@@ -80,6 +80,34 @@
             transform: translateY(0);
         }
     }
+
+    .animate-shake {
+        animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+    }
+
+    @keyframes shake {
+
+        10%,
+        90% {
+            transform: translate3d(-1px, 0, 0);
+        }
+
+        20%,
+        80% {
+            transform: translate3d(2px, 0, 0);
+        }
+
+        30%,
+        50%,
+        70% {
+            transform: translate3d(-4px, 0, 0);
+        }
+
+        40%,
+        60% {
+            transform: translate3d(4px, 0, 0);
+        }
+    }
 </style>
 {% endblock %}
 
@@ -122,7 +150,8 @@
                 class="flex items-center gap-5 p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors group hover:border-white/20">
                 <div
                     class="w-12 h-12 rounded-xl bg-green-500/20 border border-green-500/30 flex items-center justify-center text-green-400 text-xl shrink-0 group-hover:scale-105 transition-transform">
-                    <i class="bi bi-cash-coin"></i></div>
+                    <i class="bi bi-cash-coin"></i>
+                </div>
                 <div>
                     <h3 class="font-bold text-lg text-white">100€ Offerts</h3>
                     <p class="text-slate-400 text-sm">Crédités sur votre compte dès validation.</p>
@@ -132,20 +161,11 @@
                 class="flex items-center gap-5 p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors group hover:border-white/20">
                 <div
                     class="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 text-xl shrink-0 group-hover:scale-105 transition-transform">
-                    <i class="bi bi-fingerprint"></i></div>
+                    <i class="bi bi-fingerprint"></i>
+                </div>
                 <div>
                     <h3 class="font-bold text-lg text-white">Sécurité Biométrique</h3>
                     <p class="text-slate-400 text-sm">Vos données sont chiffrées de bout en bout.</p>
-                </div>
-            </div>
-            <div
-                class="flex items-center gap-5 p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors group hover:border-white/20">
-                <div
-                    class="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400 text-xl shrink-0 group-hover:scale-105 transition-transform">
-                    <i class="bi bi-globe-americas"></i></div>
-                <div>
-                    <h3 class="font-bold text-lg text-white">Zéro Frais à l'Étranger</h3>
-                    <p class="text-slate-400 text-sm">Payez partout dans le monde, sans commission.</p>
                 </div>
             </div>
         </div>
@@ -153,10 +173,12 @@
 
     <div class="lg:w-7/12 bg-white flex flex-col justify-center items-center p-6 lg:p-12 relative">
         <div class="w-full max-w-md relative z-20">
+
             <div class="mb-10">
-                <div class="flex justify-between text-sm font-bold text-slate-500 mb-2"><span id="step-label"
-                        class="text-slate-900">Identité</span><span id="step-count" class="text-ice-600">Étape
-                        1/3</span></div>
+                <div class="flex justify-between text-sm font-bold text-slate-500 mb-2">
+                    <span id="step-label" class="text-slate-900">Identité</span>
+                    <span id="step-count" class="text-ice-600">Étape 1/3</span>
+                </div>
                 <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div id="progress-bar"
                         class="h-full bg-gradient-to-r from-ice-400 to-blue-600 w-1/3 transition-all duration-500 ease-out">
@@ -166,11 +188,25 @@
 
             <form method="POST" id="registerForm" class="relative" onsubmit="handleSubmit(event)">
                 {% csrf_token %}
-                {% if form.non_field_errors %}
-                <div
-                    class="mb-6 p-4 text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 animate-fade-in-up">
-                    <i class="bi bi-exclamation-circle-fill text-lg"></i>
-                    <div>{{ form.non_field_errors }}</div>
+
+                {% if form.errors %}
+                <div class="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl animate-fade-in-up">
+                    <div class="flex items-center gap-3 mb-2">
+                        <i class="bi bi-exclamation-circle-fill text-red-500 text-lg"></i>
+                        <h4 class="font-bold text-red-700 text-sm">Veuillez corriger les erreurs :</h4>
+                    </div>
+                    <ul class="list-disc list-inside text-sm text-red-600 space-y-1 ml-2">
+                        {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                        <li>
+                            {% if field != '__all__' %}
+                            <strong>{{ field|title }} :</strong>
+                            {% endif %}
+                            {{ error }}
+                        </li>
+                        {% endfor %}
+                        {% endfor %}
+                    </ul>
                 </div>
                 {% endif %}
 
@@ -180,34 +216,44 @@
                         <p class="text-slate-500 mt-2">Qui sera le futur propriétaire de ce compte ?</p>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
-                        <div><label class="label-ice">Prénom</label>
+                        <div>
+                            <label class="label-ice">Prénom</label>
                             <div class="input-group-ice">
-                                <div class="input-icon"><i class="bi bi-person"></i></div><input type="text"
-                                    name="first_name" class="form-control-ice" placeholder="Jean" required>
+                                <div class="input-icon"><i class="bi bi-person"></i></div>
+                                <input type="text" name="first_name" class="form-control-ice" placeholder="Jean"
+                                    required value="{{ form.first_name.value|default:'' }}">
                             </div>
                         </div>
-                        <div><label class="label-ice">Nom</label>
+                        <div>
+                            <label class="label-ice">Nom</label>
                             <div class="input-group-ice">
-                                <div class="input-icon"><i class="bi bi-person-fill"></i></div><input type="text"
-                                    name="last_name" class="form-control-ice" placeholder="Dupont" required>
+                                <div class="input-icon"><i class="bi bi-person-fill"></i></div>
+                                <input type="text" name="last_name" class="form-control-ice" placeholder="Dupont"
+                                    required value="{{ form.last_name.value|default:'' }}">
                             </div>
                         </div>
                     </div>
-                    <div><label class="label-ice">Email professionnel ou personnel</label>
+                    <div>
+                        <label class="label-ice">Email professionnel ou personnel</label>
                         <div class="input-group-ice">
-                            <div class="input-icon"><i class="bi bi-envelope"></i></div><input type="email" name="email"
-                                class="form-control-ice" placeholder="jean.dupont@exemple.com" required>
+                            <div class="input-icon"><i class="bi bi-envelope"></i></div>
+                            <input type="email" name="email" class="form-control-ice"
+                                placeholder="jean.dupont@exemple.com" required
+                                value="{{ form.email.value|default:'' }}">
                         </div>
                     </div>
-                    <div><label class="label-ice">Choisissez un identifiant</label>
+                    <div>
+                        <label class="label-ice">Choisissez un identifiant</label>
                         <div class="input-group-ice">
-                            <div class="input-icon"><i class="bi bi-at"></i></div><input type="text" name="username"
-                                class="form-control-ice" placeholder="jeandupont76" required>
+                            <div class="input-icon"><i class="bi bi-at"></i></div>
+                            <input type="text" name="username" class="form-control-ice" placeholder="jeandupont76"
+                                required value="{{ form.username.value|default:'' }}">
                         </div>
                     </div>
                     <button type="button" onclick="nextStep(2)"
-                        class="w-full mt-6 py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 duration-200">Suivant
-                        <i class="bi bi-arrow-right"></i></button>
+                        class="w-full mt-6 py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 duration-200">
+                        Suivant <i class="bi bi-arrow-right"></i>
+                    </button>
                 </div>
 
                 <div id="step-2" class="step-content space-y-5">
@@ -215,23 +261,30 @@
                         <h2 class="text-3xl font-display font-bold text-slate-900">Sécurisez votre coffre-fort</h2>
                         <p class="text-slate-500 mt-2">Choisissez un mot de passe robuste.</p>
                     </div>
-                    <div><label class="label-ice">Mot de passe</label>
+                    <div>
+                        <label class="label-ice">Mot de passe</label>
                         <div class="input-group-ice">
-                            <div class="input-icon"><i class="bi bi-lock"></i></div><input type="password"
-                                name="password1" id="pwd1" class="form-control-ice" placeholder="••••••••" required>
+                            <div class="input-icon"><i class="bi bi-lock"></i></div>
+                            <input type="password" name="password" id="pwd1" class="form-control-ice"
+                                placeholder="••••••••" required>
                         </div>
                     </div>
-                    <div><label class="label-ice">Confirmez le mot de passe</label>
+                    <div>
+                        <label class="label-ice">Confirmez le mot de passe</label>
                         <div class="input-group-ice">
-                            <div class="input-icon"><i class="bi bi-lock-fill"></i></div><input type="password"
-                                name="password2" id="pwd2" class="form-control-ice" placeholder="••••••••" required>
+                            <div class="input-icon"><i class="bi bi-lock-fill"></i></div>
+                            <input type="password" name="password2" id="pwd2" class="form-control-ice"
+                                placeholder="••••••••" required>
                         </div>
                     </div>
-                    <div class="flex gap-3 pt-4"><button type="button" onclick="prevStep(1)"
-                            class="w-1/3 py-4 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors">Retour</button><button
-                            type="button" onclick="nextStep(3)"
-                            class="w-2/3 py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow-lg">Suivant
-                            <i class="bi bi-arrow-right"></i></button></div>
+                    <div class="flex gap-3 pt-4">
+                        <button type="button" onclick="prevStep(1)"
+                            class="w-1/3 py-4 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors">Retour</button>
+                        <button type="button" onclick="nextStep(3)"
+                            class="w-2/3 py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow-lg">
+                            Suivant <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <div id="step-3" class="step-content space-y-5">
@@ -242,37 +295,48 @@
                     <div
                         class="alert-age hidden p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-center gap-2 animate-pulse">
                         <i class="bi bi-exclamation-triangle-fill"></i><span>Vous devez être majeur pour ouvrir un
-                            compte.</span></div>
+                            compte.</span>
+                    </div>
                     <div class="grid grid-cols-2 gap-4">
-                        <div><label class="label-ice">Date de naissance</label>
+                        <div>
+                            <label class="label-ice">Date de naissance</label>
                             <div class="input-group-ice">
-                                <div class="input-icon"><i class="bi bi-calendar-event"></i></div><input type="date"
-                                    name="birth_date" id="id_birth_date" class="form-control-ice" required
-                                    onchange="checkAge()">
+                                <div class="input-icon"><i class="bi bi-calendar-event"></i></div>
+                                <input type="date" name="birth_date" id="id_birth_date" class="form-control-ice"
+                                    required onchange="checkAge()" value="{{ form.birth_date.value|default:'' }}">
                             </div>
                         </div>
-                        <div><label class="label-ice">Ville de naissance</label>
+                        <div>
+                            <label class="label-ice">Ville de naissance</label>
                             <div class="input-group-ice">
-                                <div class="input-icon"><i class="bi bi-buildings"></i></div><input type="text"
-                                    name="birth_city" class="form-control-ice" placeholder="Paris" required>
+                                <div class="input-icon"><i class="bi bi-buildings"></i></div>
+                                <input type="text" name="birth_city" class="form-control-ice" placeholder="Paris"
+                                    required value="{{ form.birth_city.value|default:'' }}">
                             </div>
                         </div>
                     </div>
-                    <div class="pt-4"><label
-                            class="flex items-start gap-3 text-sm text-slate-600 cursor-pointer group select-none">
-                            <div class="relative flex items-center"><input type="checkbox" required
+                    <div class="pt-4">
+                        <label class="flex items-start gap-3 text-sm text-slate-600 cursor-pointer group select-none">
+                            <div class="relative flex items-center">
+                                <input type="checkbox" required
                                     class="peer h-5 w-5 cursor-pointer appearance-none rounded-lg border border-slate-300 transition-all checked:border-ice-500 checked:bg-ice-500 hover:border-ice-400">
                                 <div
                                     class="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 transition-opacity peer-checked:opacity-100">
-                                    <i class="bi bi-check text-lg"></i></div>
-                            </div><span class="group-hover:text-slate-900 transition-colors">Je certifie avoir plus de
-                                18 ans et j'accepte les CGU.</span>
-                        </label></div>
-                    <div class="flex gap-3 pt-4"><button type="button" onclick="prevStep(2)"
-                            class="w-1/3 py-4 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors">Retour</button><button
-                            type="submit" id="finalSubmitBtn"
-                            class="w-2/3 py-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white font-bold rounded-xl hover:from-ice-600 hover:to-ice-700 hover:shadow-lg hover:shadow-ice-500/25 transition-all duration-300 flex items-center justify-center gap-2 transform hover:-translate-y-0.5">Ouvrir
-                            mon compte</button></div>
+                                    <i class="bi bi-check text-lg"></i>
+                                </div>
+                            </div>
+                            <span class="group-hover:text-slate-900 transition-colors">Je certifie avoir plus de 18 ans
+                                et j'accepte les CGU.</span>
+                        </label>
+                    </div>
+                    <div class="flex gap-3 pt-4">
+                        <button type="button" onclick="prevStep(2)"
+                            class="w-1/3 py-4 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors">Retour</button>
+                        <button type="submit" id="finalSubmitBtn"
+                            class="w-2/3 py-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white font-bold rounded-xl hover:from-ice-600 hover:to-ice-700 hover:shadow-lg hover:shadow-ice-500/25 transition-all duration-300 flex items-center justify-center gap-2 transform hover:-translate-y-0.5">
+                            Ouvrir mon compte
+                        </button>
+                    </div>
                 </div>
 
                 <div id="loadingOverlay"
@@ -286,7 +350,8 @@
                         <div class="absolute inset-0 flex items-center justify-center">
                             <div
                                 class="w-16 h-16 bg-gradient-to-tr from-slate-900 to-slate-800 rounded-full flex items-center justify-center text-white shadow-lg shadow-ice-500/30">
-                                <i class="bi bi-shield-lock-fill text-2xl animate-pulse"></i></div>
+                                <i class="bi bi-shield-lock-fill text-2xl animate-pulse"></i>
+                            </div>
                         </div>
                     </div>
                     <div class="text-center space-y-2">
@@ -298,60 +363,137 @@
                                 Connexion aux serveurs...</p>
                         </div>
                     </div>
-                    <div
-                        class="absolute bottom-8 flex items-center gap-2 text-xs text-slate-400 uppercase tracking-widest font-semibold opacity-60">
-                        <i class="bi bi-lock-fill"></i> TLS 1.3 Encrypted</div>
                 </div>
             </form>
+
             <div class="mt-8 text-center">
                 <p class="text-slate-600">Déjà client ? <a href="{% url 'login' %}"
                         class="font-bold text-ice-600 hover:underline decoration-2 underline-offset-4">Connexion</a></p>
             </div>
         </div>
-        <div class="absolute bottom-6 flex gap-6 text-xs text-slate-400 opacity-60 font-medium"><span
-                class="flex items-center gap-1.5"><i class="bi bi-shield-lock-fill text-ice-500"></i> SSL
-                Sécurisé</span><span class="flex items-center gap-1.5"><i class="bi bi-building-check text-ice-500"></i>
-                Agrément ACPR</span></div>
     </div>
 </div>
 
 <script>
     let currentStep = 1;
+
+    // Validation de l'étape courante
     function validateStep(step) {
         const stepDiv = document.getElementById(`step-${step}`);
         const inputs = stepDiv.querySelectorAll('input[required]');
         let isValid = true;
-        inputs.forEach(input => { if (!input.value) { isValid = false; input.classList.add('border-red-400', 'bg-red-50'); } else { input.classList.remove('border-red-400', 'bg-red-50'); } });
-        if (step === 2) { const p1 = document.getElementById('pwd1').value; const p2 = document.getElementById('pwd2').value; if (p1 && p2 && p1 !== p2) { isValid = false; alert("Les mots de passe ne correspondent pas."); } }
+
+        inputs.forEach(input => {
+            if (!input.value) {
+                isValid = false;
+                input.classList.add('border-red-400', 'bg-red-50');
+                // Animation secousse
+                input.parentElement.classList.add('animate-shake');
+                setTimeout(() => input.parentElement.classList.remove('animate-shake'), 500);
+            } else {
+                input.classList.remove('border-red-400', 'bg-red-50');
+            }
+        });
+
+        // Validation spécifique mots de passe
+        if (step === 2) {
+            const p1 = document.getElementById('pwd1').value;
+            const p2 = document.getElementById('pwd2').value;
+            if (p1 && p2 && p1 !== p2) {
+                isValid = false;
+                alert("Les mots de passe ne correspondent pas.");
+            }
+        }
         return isValid;
     }
-    function nextStep(targetStep) { if (!validateStep(currentStep)) return; updateUI(targetStep); }
-    function prevStep(targetStep) { updateUI(targetStep); }
+
+    function nextStep(targetStep) {
+        if (!validateStep(currentStep)) return;
+        updateUI(targetStep);
+    }
+
+    function prevStep(targetStep) {
+        updateUI(targetStep);
+    }
+
     function updateUI(step) {
         document.getElementById(`step-${currentStep}`).classList.remove('active');
         document.getElementById(`step-${step}`).classList.add('active');
         currentStep = step;
-        const progressBar = document.getElementById('progress-bar'); const stepLabel = document.getElementById('step-label'); const stepCount = document.getElementById('step-count');
-        if (step === 1) { progressBar.style.width = '33%'; stepLabel.textContent = "Identité"; } else if (step === 2) { progressBar.style.width = '66%'; stepLabel.textContent = "Sécurité"; } else if (step === 3) { progressBar.style.width = '100%'; stepLabel.textContent = "Validation"; }
+
+        const progressBar = document.getElementById('progress-bar');
+        const stepLabel = document.getElementById('step-label');
+        const stepCount = document.getElementById('step-count');
+
+        if (step === 1) { progressBar.style.width = '33%'; stepLabel.textContent = "Identité"; }
+        else if (step === 2) { progressBar.style.width = '66%'; stepLabel.textContent = "Sécurité"; }
+        else if (step === 3) { progressBar.style.width = '100%'; stepLabel.textContent = "Validation"; }
+
         stepCount.textContent = `Étape ${step}/3`;
     }
+
     function checkAge() {
-        const birthDateInput = document.getElementById('id_birth_date'); const alertBox = document.querySelector('.alert-age'); const btn = document.getElementById('finalSubmitBtn');
+        const birthDateInput = document.getElementById('id_birth_date');
+        const alertBox = document.querySelector('.alert-age');
+        const btn = document.getElementById('finalSubmitBtn');
+
         if (!birthDateInput.value) return;
-        const birthDate = new Date(birthDateInput.value); const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear(); const m = today.getMonth() - birthDate.getMonth();
+
+        const birthDate = new Date(birthDateInput.value);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+
         if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) { age--; }
-        if (age < 18) { alertBox.classList.remove('hidden'); btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); } else { alertBox.classList.add('hidden'); btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); }
+
+        if (age < 18) {
+            alertBox.classList.remove('hidden');
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+        } else {
+            alertBox.classList.add('hidden');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
     }
+
     function handleSubmit(event) {
         event.preventDefault();
+
         const btn = document.getElementById('finalSubmitBtn');
         if (btn.disabled) return;
-        const form = document.getElementById('registerForm'); const overlay = document.getElementById('loadingOverlay'); const loaderText = document.getElementById('loaderText');
-        overlay.classList.remove('hidden'); setTimeout(() => { overlay.classList.remove('opacity-0'); }, 10);
-        const steps = [{ text: "Chiffrement de vos données...", delay: 800 }, { text: "Génération de votre clé unique...", delay: 1800 }, { text: "Création de l'espace client...", delay: 2800 }, { text: "Finalisation...", delay: 3800 }];
-        steps.forEach((step) => { setTimeout(() => { loaderText.style.opacity = '0'; loaderText.style.transform = 'translateY(10px)'; setTimeout(() => { loaderText.textContent = step.text; loaderText.style.opacity = '1'; loaderText.style.transform = 'translateY(0)'; }, 200); }, step.delay); });
-        setTimeout(() => { form.submit(); }, 4500);
+
+        const form = document.getElementById('registerForm');
+        const overlay = document.getElementById('loadingOverlay');
+        const loaderText = document.getElementById('loaderText');
+
+        overlay.classList.remove('hidden');
+        overlay.classList.add('flex');
+        setTimeout(() => { overlay.classList.remove('opacity-0'); }, 10);
+
+        const steps = [
+            { text: "Chiffrement de vos données...", delay: 800 },
+            { text: "Génération de votre IBAN...", delay: 1800 },
+            { text: "Ajout des 100€ offerts...", delay: 2800 },
+            { text: "Finalisation...", delay: 3800 }
+        ];
+
+        steps.forEach((step) => {
+            setTimeout(() => {
+                loaderText.style.opacity = '0';
+                loaderText.style.transform = 'translateY(10px)';
+                setTimeout(() => {
+                    loaderText.textContent = step.text;
+                    loaderText.style.opacity = '1';
+                    loaderText.style.transform = 'translateY(0)';
+                }, 200);
+            }, step.delay);
+        });
+
+        // Envoi final
+        setTimeout(() => {
+            form.submit();
+        }, 4500);
     }
 </script>
 {% endblock %}

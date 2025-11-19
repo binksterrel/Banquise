@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Relevé - {{ compte.numero_compte }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="glass-panel p-8 rounded-3xl mb-8 flex flex-col md:flex-row justify-between items-center gap-6">
+        <div>
+            <h1 class="text-2xl font-display font-bold text-slate-900 mb-1">{{ compte.get_type_compte_display }}</h1>
+            <p class="text-slate-500 font-mono">{{ compte.numero_compte }}</p>
+        </div>
+        <div class="text-right">
+            <p class="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Solde Actuel</p>
+            <p
+                class="text-4xl font-display font-bold {% if compte.solde >= 0 %}text-slate-900{% else %}text-red-600{% endif %}">
+                {{ compte.solde }} €</p>
+        </div>
+        <div class="flex gap-3">
+            {% if has_reportlab %}
+            <a href="{% url 'telecharger_releve_pdf' compte.id %}"
+                class="px-5 py-3 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors flex items-center gap-2">
+                <i class="bi bi-file-earmark-pdf-fill"></i> Télécharger PDF
+            </a>
+            {% endif %}
+            <a href="{% url 'dashboard' %}"
+                class="px-5 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors">
+                Retour
+            </a>
+        </div>
+    </div>
+
+    <div class="grid lg:grid-cols-4 gap-8">
+        <div class="lg:col-span-1">
+            <div class="glass-panel p-6 rounded-2xl sticky top-24">
+                <h3 class="font-bold text-slate-900 mb-4 flex items-center gap-2"><i
+                        class="bi bi-funnel-fill text-ice-500"></i> Filtrer</h3>
+                <form method="get" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Période</label>
+                        <div class="space-y-2">
+                            {{ form.date_debut }}
+                            {{ form.date_fin }}
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Type</label>
+                        {{ form.type_transaction }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Montant (€)</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            {{ form.montant_min }}
+                            {{ form.montant_max }}
+                        </div>
+                    </div>
+                    <button type="submit"
+                        class="w-full py-2.5 bg-ice-500 hover:bg-ice-600 text-white font-bold rounded-xl transition-colors">
+                        Appliquer
+                    </button>
+                    <a href="{% url 'releve_compte' compte.id %}"
+                        class="block text-center text-xs font-bold text-slate-400 hover:text-slate-600 mt-2">Réinitialiser</a>
+                </form>
+            </div>
+        </div>
+
+        <div class="lg:col-span-3">
+            <div class="glass-panel rounded-3xl overflow-hidden min-h-[500px]">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50/80 border-b border-slate-200">
+                        <tr>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Libellé</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Type</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">
+                                Montant</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for transaction in page_obj %}
+                        <tr class="hover:bg-white/50 transition-colors group">
+                            <td class="px-6 py-4 text-sm text-slate-500 font-medium">
+                                {{ transaction.date_execution|date:"d M Y" }}<br>
+                                <span class="text-xs text-slate-400">{{ transaction.date_execution|date:"H:i" }}</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <p class="font-bold text-slate-800">{{ transaction.libelle }}</p>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span
+                                    class="px-2.5 py-1 rounded-full text-xs font-bold {% if transaction.type == 'CREDIT' %}bg-green-100 text-green-700{% else %}bg-slate-100 text-slate-600{% endif %}">
+                                    {{ transaction.get_type_display }}
+                                </span>
+                            </td>
+                            <td
+                                class="px-6 py-4 text-right font-mono font-bold {% if transaction.montant > 0 %}text-green-600{% else %}text-slate-900{% endif %}">
+                                {% if transaction.montant > 0 %}+{% endif %}{{ transaction.montant }} €
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="px-6 py-12 text-center text-slate-400">
+                                <i class="bi bi-inbox text-4xl mb-2 block opacity-50"></i>
+                                Aucune transaction trouvée pour ces critères.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                {% if page_obj.paginator.num_pages > 1 %}
+                <div class="p-6 border-t border-slate-200 bg-slate-50/50 flex justify-center">
+                    <nav class="flex gap-2">
+                        {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}"
+                            class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors">Précédent</a>
+                        {% endif %}
+
+                        <span class="px-4 py-2 text-slate-500 font-medium">Page {{ page_obj.number }} / {{
+                            page_obj.paginator.num_pages }}</span>
+
+                        {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}"
+                            class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors">Suivant</a>
+                        {% endif %}
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

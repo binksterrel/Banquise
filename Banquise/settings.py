@@ -68,12 +68,19 @@ DATABASES = {
     }
 }
 
-# Password validation
+# --- MODIFICATION ICI : VALIDATION MOT DE PASSE ALLEGEE ---
 AUTH_PASSWORD_VALIDATORS = [
-    { 'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator', },
-    { 'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', },
-    { 'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator', },
-    { 'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator', },
+    # On ne garde que la longueur minimale (8 caractères)
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 8,
+        }
+    },
+    # J'ai commenté les validateurs trop stricts pour simplifier la vie de l'utilisateur
+    # { 'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator', },
+    # { 'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator', },
+    # { 'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator', },
 ]
 
 LANGUAGE_CODE = 'fr-fr'

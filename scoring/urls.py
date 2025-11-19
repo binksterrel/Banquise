@@ -8,14 +8,17 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
 
-    # --- GESTION COMPTES (Dashboard, Ouvrir, Fermer) ---
+    # --- GESTION COMPTES ---
     path('dashboard/', views.dashboard, name='dashboard'),
-    
-    # C'est ici que ça changeait : on utilise ouvrir_compte maintenant
     path('ouvrir-compte/', views.ouvrir_compte, name='ouvrir_compte'),
-    
-    # La nouvelle route pour fermer un compte
     path('fermer-compte/<int:compte_id>/', views.fermer_compte, name='fermer_compte'),
+    
+    # === NOUVELLES ROUTES AJOUTÉES ===
+    # Route pour le relevé de compte
+    path('releve-compte/<int:compte_id>/', views.releve_compte, name='releve_compte'),
+    # Route pour le téléchargement PDF
+    path('releve-compte/<int:compte_id>/pdf/', views.telecharger_releve_pdf, name='telecharger_releve_pdf'),
+    # =================================
 
     # --- BANQUE AU QUOTIDIEN ---
     path('cartes/', views.cartes, name='cartes'),

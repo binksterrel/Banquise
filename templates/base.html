@@ -102,6 +102,9 @@
                     <div class="flex items-center gap-4">
                         <a href="{% url 'dashboard' %}"
                             class="text-sm font-bold text-slate-700 hover:text-ice-600 transition-colors">Mon Espace</a>
+                        <a href="{% url 'profil' %}"
+                            class="text-sm font-bold text-slate-700 hover:text-ice-600 transition-colors">Mon Profil</a>
+
                         <div class="relative group">
                             <button
                                 class="flex items-center gap-2 py-1.5 pl-2 pr-4 rounded-full bg-white/50 border border-slate-200 hover:bg-white hover:shadow-md transition-all">
@@ -122,6 +125,9 @@
                                     <a href="{% url 'dashboard' %}"
                                         class="block px-4 py-2 text-sm text-slate-600 hover:bg-ice-50 rounded-xl transition-colors"><i
                                             class="bi bi-speedometer2 mr-2"></i> Tableau de bord</a>
+                                    <a href="{% url 'profil' %}"
+                                        class="block px-4 py-2 text-sm text-slate-600 hover:bg-ice-50 rounded-xl transition-colors"><i
+                                            class="bi bi-person mr-2"></i> Mon Profil</a>
                                 </div>
                                 <div class="p-2 border-t border-slate-100">
                                     <form action="{% url 'logout' %}" method="post">
@@ -168,6 +174,9 @@
                 </div>
                 <a href="{% url 'dashboard' %}"
                     class="block text-2xl font-bold text-slate-800 hover:text-ice-600">Tableau de bord</a>
+                <a href="{% url 'profil' %}" class="block text-2xl font-bold text-slate-800 hover:text-ice-600">Mon
+                    Profil</a>
+
                 <form action="{% url 'logout' %}" method="post" class="block pt-8">{% csrf_token %}<button
                         class="text-red-500 font-bold text-xl flex items-center justify-center gap-2 mx-auto"><i
                             class="bi bi-box-arrow-right"></i> Déconnexion</button></form>

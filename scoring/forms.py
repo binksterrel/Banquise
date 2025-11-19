@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import DemandeCredit, TypeEmploi, TypeLogement, ProduitPret, Compte
+from .models import DemandeCredit, TypeEmploi, TypeLogement, ProduitPret, Compte, Transaction
 
 # --- AUTHENTIFICATION ---
 
@@ -32,13 +32,9 @@ class VirementForm(forms.Form):
     def __init__(self, user, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if user:
-            # On ne propose que les comptes actifs de l'utilisateur
             self.fields['compte_emetteur'].queryset = Compte.objects.filter(user=user, est_actif=True)
 
-# scoring/forms.py
-
 class OuvrirCompteForm(forms.Form):
-    # On définit les types possibles ici
     TYPE_CHOICES_BASE = [
         ('COURANT', 'Compte Courant (Standard)'),
         ('EPARGNE', 'Livret Épargne (Rémunéré)'),
@@ -46,7 +42,7 @@ class OuvrirCompteForm(forms.Form):
     ]
 
     type_compte = forms.ChoiceField(
-        choices=[], # On laisse vide ici, on va le remplir dynamiquement
+        choices=[], 
         widget=forms.Select(attrs={
             'class': 'w-full p-4 rounded-xl bg-slate-50 border border-slate-200 font-bold text-slate-700 focus:ring-2 focus:ring-ice-200 focus:border-ice-400 outline-none transition-all'
         })
@@ -54,20 +50,8 @@ class OuvrirCompteForm(forms.Form):
 
     def __init__(self, user, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
-        # 1. On récupère les types de comptes que l'utilisateur a DÉJÀ (et qui sont actifs)
-        types_existants = Compte.objects.filter(
-            user=user, 
-            est_actif=True
-        ).values_list('type_compte', flat=True)
-
-        # 2. On filtre la liste de base pour ne garder que ce qu'il n'a PAS encore
-        choix_disponibles = [
-            choix for choix in self.TYPE_CHOICES_BASE 
-            if choix[0] not in types_existants
-        ]
-
-        # 3. On met à jour les choix du champ
+        types_existants = Compte.objects.filter(user=user, est_actif=True).values_list('type_compte', flat=True)
+        choix_disponibles = [choix for choix in self.TYPE_CHOICES_BASE if choix[0] not in types_existants]
         self.fields['type_compte'].choices = choix_disponibles
 
 class CloturerCompteForm(forms.Form):
@@ -81,7 +65,7 @@ class CloturerCompteForm(forms.Form):
     
     compte_destination = forms.ModelChoiceField(
         queryset=None, 
-        required=False, # Pas obligatoire si solde = 0
+        required=False,
         widget=forms.Select(attrs={
             'class': 'w-full p-4 rounded-xl bg-white border border-slate-200 focus:border-ice-500 focus:ring-ice-500 outline-none transition-all'
         }),
@@ -92,19 +76,36 @@ class CloturerCompteForm(forms.Form):
     confirmation = forms.BooleanField(
         required=True,
         label="Je confirme vouloir clôturer ce compte définitivement",
-        widget=forms.CheckboxInput(attrs={
-            'class': 'w-5 h-5 text-red-600 rounded focus:ring-red-500 border-gray-300'
-        })
+        widget=forms.CheckboxInput(attrs={'class': 'w-5 h-5 text-red-600 rounded focus:ring-red-500 border-gray-300'})
     )
 
     def __init__(self, user, compte_a_cloturer, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # On propose tous les comptes actifs de l'utilisateur SAUF celui qu'on veut fermer
         if user:
-            self.fields['compte_destination'].queryset = Compte.objects.filter(
-                user=user, 
-                est_actif=True
-            ).exclude(id=compte_a_cloturer.id)
+            self.fields['compte_destination'].queryset = Compte.objects.filter(user=user, est_actif=True).exclude(id=compte_a_cloturer.id)
+
+class TransactionFilterForm(forms.Form):
+    date_debut = forms.DateField(
+        required=False, 
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'w-full p-2 rounded-lg border border-slate-200 text-sm'})
+    )
+    date_fin = forms.DateField(
+        required=False, 
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'w-full p-2 rounded-lg border border-slate-200 text-sm'})
+    )
+    type_transaction = forms.ChoiceField(
+        choices=[('', 'Tous types'), ('DEBIT', 'Débit'), ('CREDIT', 'Crédit')],
+        required=False,
+        widget=forms.Select(attrs={'class': 'w-full p-2 rounded-lg border border-slate-200 text-sm'})
+    )
+    montant_min = forms.DecimalField(
+        required=False, 
+        widget=forms.NumberInput(attrs={'placeholder': 'Min €', 'class': 'w-full p-2 rounded-lg border border-slate-200 text-sm'})
+    )
+    montant_max = forms.DecimalField(
+        required=False, 
+        widget=forms.NumberInput(attrs={'placeholder': 'Max €', 'class': 'w-full p-2 rounded-lg border border-slate-200 text-sm'})
+    )
 
 # --- CRÉDIT & SIMULATION ---
 

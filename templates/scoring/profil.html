@@ -4,7 +4,16 @@
 
 {% block extra_css %}
 <style>
-    /* Styles spécifiques aux formulaires du profil */
+    /* Réutilisation du style Glassmorphism du Dashboard */
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    }
+
+    /* Styles spécifiques aux formulaires */
     .input-label {
         font-family: 'Outfit', sans-serif;
         font-weight: 600;
@@ -30,14 +39,31 @@
         outline: none;
     }
 
-    /* Toggle Switch pour les préférences */
-    .toggle-checkbox:checked {
-        right: 0;
-        border-color: #0ea5e9;
+    /* Animations */
+    @keyframes blob {
+        0% {
+            transform: translate(0px, 0px) scale(1);
+        }
+
+        33% {
+            transform: translate(30px, -50px) scale(1.1);
+        }
+
+        66% {
+            transform: translate(-20px, 20px) scale(0.9);
+        }
+
+        100% {
+            transform: translate(0px, 0px) scale(1);
+        }
     }
 
-    .toggle-checkbox:checked+.toggle-label {
-        background-color: #0ea5e9;
+    .animate-blob {
+        animation: blob 7s infinite;
+    }
+
+    .animation-delay-2000 {
+        animation-delay: 2s;
     }
 </style>
 {% endblock %}
@@ -56,10 +82,15 @@
 
     <div class="relative z-10 max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
 
-        <div class="mb-10">
-            <h1 class="text-4xl font-display font-bold text-slate-900">Mon Profil</h1>
-            <p class="text-slate-500 text-lg mt-2">Gérez vos informations personnelles et vos préférences de sécurité.
-            </p>
+        <div class="mb-10 flex flex-col md:flex-row justify-between items-end gap-4">
+            <div>
+                <h1 class="text-4xl font-display font-bold text-slate-900">Mon Profil</h1>
+                <p class="text-slate-500 text-lg mt-2">Gérez vos informations personnelles et votre sécurité.</p>
+            </div>
+            <a href="{% url 'dashboard' %}"
+                class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors">
+                <i class="bi bi-arrow-left mr-2"></i> Retour au Dashboard
+            </a>
         </div>
 
         <div class="grid lg:grid-cols-3 gap-8">
@@ -74,11 +105,8 @@
 
                     <div class="relative z-10 flex flex-col items-center text-center">
                         <div
-                            class="w-24 h-24 rounded-full p-1 bg-gradient-to-tr from-ice-400 to-purple-500 mb-4 shadow-lg">
-                            <div
-                                class="w-full h-full rounded-full bg-slate-900 flex items-center justify-center text-3xl font-display font-bold text-white">
-                                {{ user.username|slice:":2"|upper }}
-                            </div>
+                            class="w-24 h-24 rounded-full bg-gradient-to-tr from-ice-400 to-blue-500 flex items-center justify-center text-white shadow-lg mb-4">
+                            <span class="text-3xl font-bold">{{ user.username|slice:":2"|upper }}</span>
                         </div>
 
                         <h2 class="text-2xl font-display font-bold">{{ user.first_name }} {{ user.last_name }}</h2>
@@ -95,15 +123,10 @@
                                         class="bi bi-star-fill text-[10px] align-middle"></i></p>
                             </div>
                         </div>
-
-                        <button
-                            class="w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all text-sm font-bold flex items-center justify-center gap-2">
-                            <i class="bi bi-camera"></i> Changer la photo
-                        </button>
                     </div>
                 </div>
 
-                <div class="glass-premium p-4 rounded-3xl">
+                <div class="glass-panel p-4 rounded-3xl sticky top-24">
                     <nav class="space-y-1">
                         <a href="#infos"
                             class="flex items-center gap-3 px-4 py-3 rounded-xl bg-ice-50 text-ice-700 font-bold transition-colors">
@@ -113,38 +136,38 @@
                             class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors font-medium">
                             <i class="bi bi-shield-lock"></i> Sécurité
                         </a>
-                        <a href="#prefs"
-                            class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors font-medium">
-                            <i class="bi bi-sliders"></i> Préférences
+                        <a href="#danger"
+                            class="flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 transition-colors font-medium">
+                            <i class="bi bi-exclamation-triangle"></i> Zone Danger
                         </a>
                     </nav>
                 </div>
-
             </div>
 
             <div class="lg:col-span-2 space-y-8">
 
-                <div id="infos" class="glass-premium p-8 md:p-10 rounded-[2rem]">
+                <div id="infos" class="glass-panel p-8 md:p-10 rounded-[2rem]">
                     <div class="flex justify-between items-center mb-8">
                         <h3 class="text-xl font-display font-bold text-slate-900">Informations Personnelles</h3>
-                        <button
-                            class="w-10 h-10 rounded-full bg-slate-100 text-slate-500 hover:bg-ice-50 hover:text-ice-600 flex items-center justify-center transition-colors">
+                        <div class="w-10 h-10 rounded-full bg-ice-50 text-ice-600 flex items-center justify-center">
                             <i class="bi bi-pencil-fill text-sm"></i>
-                        </button>
+                        </div>
                     </div>
 
                     <form method="POST" class="space-y-6">
                         {% csrf_token %}
+                        <input type="hidden" name="update_info" value="1">
+
                         <div class="grid md:grid-cols-2 gap-6">
                             <div>
                                 <label class="input-label">Prénom</label>
                                 <input type="text" name="first_name" value="{{ user.first_name }}"
-                                    class="w-full px-4 py-3 rounded-xl input-field font-medium text-slate-700">
+                                    class="w-full px-4 py-3 rounded-xl input-field font-medium text-slate-700" required>
                             </div>
                             <div>
                                 <label class="input-label">Nom</label>
                                 <input type="text" name="last_name" value="{{ user.last_name }}"
-                                    class="w-full px-4 py-3 rounded-xl input-field font-medium text-slate-700">
+                                    class="w-full px-4 py-3 rounded-xl input-field font-medium text-slate-700" required>
                             </div>
                             <div class="md:col-span-2">
                                 <label class="input-label">Adresse Email</label>
@@ -152,17 +175,20 @@
                                     <i
                                         class="bi bi-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
                                     <input type="email" name="email" value="{{ user.email }}"
-                                        class="w-full pl-12 pr-4 py-3 rounded-xl input-field font-medium text-slate-700">
+                                        class="w-full pl-12 pr-4 py-3 rounded-xl input-field font-medium text-slate-700"
+                                        required>
                                 </div>
                             </div>
                             <div>
                                 <label class="input-label">Téléphone</label>
-                                <input type="tel" placeholder="+33 6 12 34 56 78"
+                                <input type="tel" name="telephone" value="{{ profil.telephone|default:'' }}"
+                                    placeholder="+33 6..."
                                     class="w-full px-4 py-3 rounded-xl input-field font-medium text-slate-700">
                             </div>
                             <div>
                                 <label class="input-label">Ville</label>
-                                <input type="text" placeholder="Paris, France"
+                                <input type="text" name="ville" value="{{ profil.ville_naissance|default:'' }}"
+                                    placeholder="Paris"
                                     class="w-full px-4 py-3 rounded-xl input-field font-medium text-slate-700">
                             </div>
                         </div>
@@ -176,52 +202,124 @@
                     </form>
                 </div>
 
-                <div id="security" class="glass-premium p-8 md:p-10 rounded-[2rem] relative overflow-hidden">
+                <div id="security" class="glass-panel p-8 md:p-10 rounded-[2rem] relative overflow-hidden">
                     <div class="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl"></div>
 
-                    <h3 class="text-xl font-display font-bold text-slate-900 mb-8">Sécurité</h3>
+                    <h3 class="text-xl font-display font-bold text-slate-900 mb-8">Modifier le mot de passe</h3>
 
-                    <form method="POST" action="{% url 'password_change' %}"
-                        class="space-y-6 border-b border-slate-200 pb-8 mb-8">
+                    <form method="POST" class="space-y-5">
                         {% csrf_token %}
-                        <div>
+                        <input type="hidden" name="change_password" value="1">
+
+                        <div class="group">
+                            <label class="input-label">Mot de passe actuel</label>
+                            <div class="relative">
+                                <i
+                                    class="bi bi-lock-fill absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors z-10"></i>
+                                <input type="password" name="old_password"
+                                    class="w-full pl-12 pr-4 py-3 rounded-xl input-field font-medium text-slate-700 placeholder-slate-400"
+                                    placeholder="Votre mot de passe actuel" required>
+                            </div>
+                            {% if password_form.old_password.errors %}
+                            <div
+                                class="mt-2 p-3 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 animate-slide-down">
+                                <i class="bi bi-x-circle-fill text-red-500 text-lg mt-0.5"></i>
+                                <p class="text-red-700 text-sm font-medium leading-tight">{{
+                                    password_form.old_password.errors.0 }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="group">
                             <label class="input-label">Nouveau mot de passe</label>
-                            <input type="password" name="new_password" placeholder="••••••••"
-                                class="w-full px-4 py-3 rounded-xl input-field font-medium text-slate-700">
+                            <div class="relative">
+                                <i
+                                    class="bi bi-key-fill absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors z-10"></i>
+                                <input type="password" name="new_password1"
+                                    class="w-full pl-12 pr-4 py-3 rounded-xl input-field font-medium text-slate-700 placeholder-slate-400"
+                                    placeholder="8 caractères minimum" required>
+                            </div>
+
+                            {% if password_form.new_password1.errors %}
+                            <div class="mt-2 space-y-2">
+                                {% for error in password_form.new_password1.errors %}
+                                <div
+                                    class="p-3 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 animate-slide-down shadow-sm">
+                                    <i class="bi bi-exclamation-triangle-fill text-red-500 text-lg mt-0.5"></i>
+                                    <div class="flex-1">
+                                        <p class="text-red-800 font-bold text-xs uppercase tracking-wide mb-0.5">
+                                            Attention</p>
+                                        <p class="text-red-700 text-sm font-medium leading-tight">{{ error }}</p>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            {% endif %}
                         </div>
-                        <div>
-                            <label class="input-label">Confirmer le mot de passe</label>
-                            <input type="password" name="confirm_password" placeholder="••••••••"
-                                class="w-full px-4 py-3 rounded-xl input-field font-medium text-slate-700">
+
+                        <div class="group">
+                            <label class="input-label">Confirmer le nouveau mot de passe</label>
+                            <div class="relative">
+                                <i
+                                    class="bi bi-check-circle-fill absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors z-10"></i>
+                                <input type="password" name="new_password2"
+                                    class="w-full pl-12 pr-4 py-3 rounded-xl input-field font-medium text-slate-700 placeholder-slate-400"
+                                    placeholder="Répétez le mot de passe" required>
+                            </div>
+                            {% if password_form.new_password2.errors %}
+                            <div
+                                class="mt-2 p-3 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 animate-slide-down">
+                                <i class="bi bi-shield-slash-fill text-red-500 text-lg mt-0.5"></i>
+                                <p class="text-red-700 text-sm font-medium leading-tight">{{
+                                    password_form.new_password2.errors.0 }}</p>
+                            </div>
+                            {% endif %}
                         </div>
-                        <button
-                            class="text-sm font-bold text-purple-600 hover:text-purple-700 underline decoration-2 underline-offset-4">
-                            Mettre à jour le mot de passe
-                        </button>
+
+                        {% if password_form.non_field_errors %}
+                        <div class="p-4 rounded-xl bg-red-100 border border-red-200 animate-pulse">
+                            {% for error in password_form.non_field_errors %}
+                            <p class="text-red-800 text-sm font-bold flex items-center gap-2">
+                                <i class="bi bi-x-octagon-fill"></i> {{ error }}
+                            </p>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="pt-4 flex justify-end">
+                            <button type="submit"
+                                class="px-8 py-3 bg-purple-600 text-white rounded-xl font-bold shadow-lg shadow-purple-200 hover:bg-purple-700 hover:shadow-purple-300/50 transition-all transform hover:-translate-y-0.5 flex items-center gap-2">
+                                <i class="bi bi-shield-check"></i> Mettre à jour le mot de passe
+                            </button>
+                        </div>
                     </form>
 
-                    <div class="flex items-center justify-between">
+                    <div class="flex items-center justify-between opacity-60 mt-8 pt-8 border-t border-slate-200">
                         <div>
                             <p class="font-bold text-slate-800">Double Authentification (2FA)</p>
-                            <p class="text-sm text-slate-500 mt-1">Sécurisez votre compte avec un code SMS.</p>
+                            <p class="text-sm text-slate-500 mt-1">Sécurisez votre compte avec un code SMS (Bientôt).
+                            </p>
                         </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" value="" class="sr-only peer" checked>
+                        <label class="relative inline-flex items-center cursor-not-allowed">
+                            <input type="checkbox" value="" class="sr-only peer" disabled>
                             <div
-                                class="w-14 h-8 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-500">
+                                class="w-14 h-8 bg-slate-200 rounded-full peer-checked:bg-green-500 after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all">
                             </div>
                         </label>
                     </div>
                 </div>
 
-                <div class="p-6 rounded-3xl border border-red-100 bg-red-50/50">
-                    <h3 class="font-bold text-red-600 mb-2">Zone de danger</h3>
-                    <p class="text-sm text-red-400 mb-4">La suppression de votre compte est irréversible et entraînera
-                        la clôture de tous vos services.</p>
-                    <button
-                        class="px-6 py-2 rounded-xl border border-red-200 text-red-600 text-sm font-bold hover:bg-red-600 hover:text-white transition-all">
-                        Supprimer mon compte
-                    </button>
+                <div id="danger" class="p-6 rounded-3xl border border-red-100 bg-red-50/50">
+                    <h3 class="font-bold text-red-600 mb-2 flex items-center gap-2">
+                        <i class="bi bi-exclamation-circle-fill"></i> Zone de danger
+                    </h3>
+                    <p class="text-sm text-red-400 mb-4">La suppression de votre compte est irréversible. Veuillez
+                        contacter le support pour procéder.</p>
+                    <a href="{% url 'support' %}"
+                        class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border-2 border-red-200 text-red-600 text-sm font-bold hover:bg-red-600 hover:border-red-600 hover:text-white transition-all">
+                        Contacter le support
+                    </a>
                 </div>
 
             </div>
