@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Supprimer Bénéficiaire{% endblock %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 500px;">
+    <div class="card border-danger shadow">
+        <div class="card-header bg-danger text-white">
+            Confirmation
+        </div>
+        <div class="card-body">
+            <p>Voulez-vous vraiment supprimer le bénéficiaire <strong>{{ beneficiaire.nom }}</strong> ?</p>
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Oui, supprimer</button>
+                <a href="{% url 'beneficiaires' %}" class="btn btn-secondary">Annuler</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

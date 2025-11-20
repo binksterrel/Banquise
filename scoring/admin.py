@@ -1,77 +1,100 @@
 from django.contrib import admin
+from django.contrib.auth.models import User
+from django.contrib.auth.admin import UserAdmin
 from .models import (
-    ProfilClient, 
-    Compte, 
-    Carte, 
-    Transaction, 
-    DemandeCredit, 
-    ProduitPret, 
-    TypeEmploi, 
-    TypeLogement
+    ProfilClient, Compte, Carte, Transaction, 
+    DemandeCredit, ProduitPret, TypeEmploi, TypeLogement,
+    Beneficiaire
 )
 
-# --- Paramètres Simples ---
-admin.site.register(TypeEmploi)
-admin.site.register(TypeLogement)
-admin.site.register(ProduitPret)
+# ===============================================
+# 1. PERSONNALISATION DE L'ADMIN DJANGO PAR DÉFAUT
+# ===============================================
 
-# --- Clients & Profils ---
-@admin.register(ProfilClient)
-class ProfilClientAdmin(admin.ModelAdmin):
-    list_display = ('user', 'date_de_naissance', 'telephone', 'ville_naissance')
-    search_fields = ('user__username', 'user__email', 'telephone')
+# Inline pour afficher le profil directement dans la page de l'utilisateur
+class ProfilClientInline(admin.StackedInline):
+    model = ProfilClient
+    can_delete = False
+    verbose_name_plural = 'Profil Client'
+    fields = ('date_de_naissance', 'ville_naissance', 'telephone')
+    
+# On redéfinit la classe UserAdmin pour y inclure le profil
+class CustomUserAdmin(UserAdmin):
+    inlines = (ProfilClientInline,)
+    list_display = UserAdmin.list_display + ('get_full_name', 'is_staff', 'is_active', 'date_joined')
+    list_select_related = ('profil',)
 
-# --- Comptes Bancaires ---
+
+# On dé-enregistre l'User par défaut pour enregistrer notre CustomUserAdmin
+admin.site.unregister(User)
+admin.site.register(User, CustomUserAdmin)
+
+
+# ===============================================
+# 2. GESTION DES MODÈLES FINANCIERS
+# ===============================================
+
 @admin.register(Compte)
 class CompteAdmin(admin.ModelAdmin):
-    list_display = ('numero_compte', 'user', 'type_compte', 'solde', 'date_creation')
-    list_filter = ('type_compte', 'date_creation')
-    search_fields = ('numero_compte', 'user__username')
-    ordering = ('-date_creation',)
+    list_display = ('user', 'type_compte', 'solde', 'numero_compte', 'est_actif', 'date_creation')
+    list_filter = ('type_compte', 'est_actif')
+    search_fields = ('numero_compte', 'user__username', 'user__email')
+    raw_id_fields = ('user',) # Rendre la recherche d'utilisateur plus performante
 
-# --- Cartes Bancaires ---
 @admin.register(Carte)
 class CarteAdmin(admin.ModelAdmin):
-    list_display = ('numero_visible', 'compte', 'date_expiration', 'est_bloquee', 'plafond_paiement', 'plafond_retrait')
-    list_filter = ('est_bloquee', 'date_expiration')
-    search_fields = ('numero_visible', 'compte__user__username')
-    
-    actions = ['bloquer_cartes', 'debloquer_cartes']
+    list_display = ('compte', 'numero_visible', 'date_expiration', 'plafond_paiement', 'est_bloquee')
+    list_filter = ('est_bloquee', 'sans_contact_actif', 'paiement_etranger_actif')
+    search_fields = ('compte__numero_compte', 'compte__user__username')
+    # Permet de choisir le compte via une recherche plutôt qu'une liste déroulante
+    raw_id_fields = ('compte',) 
 
-    def bloquer_cartes(self, request, queryset):
-        queryset.update(est_bloquee=True)
-    bloquer_cartes.short_description = "Bloquer les cartes sélectionnées"
 
-    def debloquer_cartes(self, request, queryset):
-        queryset.update(est_bloquee=False)
-    debloquer_cartes.short_description = "Débloquer les cartes sélectionnées"
+@admin.register(Beneficiaire)
+class BeneficiaireAdmin(admin.ModelAdmin):
+    list_display = ('user', 'nom', 'iban', 'date_ajout')
+    search_fields = ('nom', 'iban', 'user__username')
+    raw_id_fields = ('user',)
 
-# --- Transactions ---
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
-    list_display = ('date_execution', 'compte', 'montant', 'type', 'libelle')
-    list_filter = ('type', 'date_execution')
+    # Affiche la catégorie pour plus de clarté
+    list_display = ('compte', 'montant', 'libelle', 'type', 'categorie', 'date_execution')
+    list_filter = ('type', 'categorie', 'date_execution')
     search_fields = ('libelle', 'compte__numero_compte')
-    ordering = ('-date_execution',)
+    raw_id_fields = ('compte',)
+    # Permet de modifier la catégorie à posteriori pour corriger les erreurs de l'utilisateur
+    fields = ('compte', 'montant', 'libelle', 'type', 'categorie', 'date_execution')
 
-# --- Crédits & Simulations ---
+
+# ===============================================
+# 3. GESTION DES CRÉDITS ET SCORES
+# ===============================================
+
 @admin.register(DemandeCredit)
 class DemandeCreditAdmin(admin.ModelAdmin):
-    list_display = (
-        'id', 'user', 'produit', 'montant_souhaite', 
-        'score_calcule', 'statut', 'date_demande'
+    list_display = ('user', 'montant_souhaite', 'duree_souhaitee_annees', 'score_calcule', 'statut', 'date_demande')
+    list_filter = ('statut', 'produit__nom', 'date_demande')
+    search_fields = ('user__username', 'montant_souhaite')
+    raw_id_fields = ('user', 'produit', 'emploi_snapshot', 'logement_snapshot')
+    # Permet de visualiser toutes les données qui ont servi à calculer le score
+    fieldsets = (
+        ('Informations Client', {
+            'fields': ('user', 'produit', 'montant_souhaite', 'duree_souhaitee_annees', 'apport_personnel'),
+        }),
+        ('Situation Financière', {
+            'fields': ('revenus_mensuels', 'loyer_actuel', 'dettes_mensuelles', 'enfants_a_charge'),
+        }),
+        ('Score et Décision', {
+            'fields': ('score_calcule', 'taux_calcule', 'recommendation', 'statut', 'date_demande'),
+        }),
+        ('Snapshot (au moment de la demande)', {
+            'fields': ('emploi_snapshot', 'logement_snapshot', 'sante_snapshot'),
+            'classes': ('collapse',),
+        })
     )
-    list_filter = ('statut', 'produit', 'date_demande')
-    search_fields = ('user__username', 'id')
-    readonly_fields = ('score_calcule', 'taux_calcule', 'recommendation', 'date_demande')
 
-    # Actions personnalisées pour les conseillers
-    actions = ['approuver_demandes', 'refuser_demandes']
-
-    def approuver_demandes(self, request, queryset):
-        queryset.update(statut='ACCEPTEE')
-    approuver_demandes.short_description = "Approuver les demandes sélectionnées"
-
-    def refuser_demandes(self, request, queryset):
-        queryset.update(statut='REFUSEE')
-    refuser_demandes.short_description = "Refuser les demandes sélectionnées"
+# Enregistrement simple des tables de référence
+admin.site.register(ProduitPret)
+admin.site.register(TypeEmploi)
+admin.site.register(TypeLogement)

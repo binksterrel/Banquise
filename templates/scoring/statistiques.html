@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Mon Budget{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">Analyse de vos dépenses (Mois en cours)</h2>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body">
+                    <canvas id="budgetChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow p-4">
+                <h4 class="text-primary">{{ month_name }}</h4>
+                <hr>
+                <h3>Total Dépensé : <strong>{{ total_depenses }} €</strong></h3>
+                <p class="text-muted mt-3">
+                    Ce graphique représente la répartition de vos débits par catégorie pour le mois actuel.
+                </p>
+                <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary mt-3">Retour au tableau de bord</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('budgetChart').getContext('2d');
+    const labels = JSON.parse('{{ labels_json|escapejs }}');
+    const data = JSON.parse('{{ data_json|escapejs }}');
+
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Dépenses en €',
+                data: data,
+                backgroundColor: [
+                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'
+                ],
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

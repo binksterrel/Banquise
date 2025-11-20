@@ -7,12 +7,11 @@
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Récupération des valeurs Django
-        const score = {{ demande.score_calcule|default: 0
+        const score = {{ demande.score_calcule|default: "0"
     }};
-    const statut = "{{ demande.statut }}";
+    const statut = "{{ demande.statut|default:"EN_ATTENTE" }}";
 
-    // Effet Confetti si accepté
+    // Confetti si accepté et score > 50
     if (statut !== 'REFUSEE' && score > 50) {
         confetti({
             particleCount: 100,
@@ -22,32 +21,26 @@
         });
     }
 
-    // Logique des Sliders
+    // Sliders
     const rangeDuree = document.getElementById('rangeDuree');
     const rangeMensualite = document.getElementById('rangeMensualite');
     const valDuree = document.getElementById('valDuree');
     const valMensualite = document.getElementById('valMensualite');
 
-    // Variables pour calcul JS (optionnel, pour le visuel)
-    const taux = parseFloat("{{ demande.taux_calcule|default:3.5 }}".replace(',', '.'));
-    const montant = {{ demande.montant_souhaite|default: 0 }};
+    const taux = parseFloat("{{ demande.taux_calcule|default:"3.5" }}".replace(',', '.'));
+    const montant = {{ demande.montant_souhaite|default: "0" }};
 
     function updateCalc() {
         if (valDuree && rangeDuree) valDuree.innerText = rangeDuree.value;
         if (valMensualite && rangeMensualite) valMensualite.innerText = rangeMensualite.value;
-
-        // Ici vous pourriez ajouter un appel AJAX vers api_calcul_pret_dynamique
     }
 
     if (rangeDuree) {
-        // Initialisation
         if (valMensualite && rangeMensualite) valMensualite.innerText = rangeMensualite.value;
-
-        // Écouteurs d'événements
         rangeDuree.addEventListener('input', updateCalc);
         if (rangeMensualite) rangeMensualite.addEventListener('input', updateCalc);
     }
-    });
+});
 </script>
 {% endblock %}
 
@@ -90,24 +83,27 @@
                 <div class="relative w-40 h-40">
                     <svg class="w-full h-full transform -rotate-90 drop-shadow-xl">
                         <circle cx="80" cy="80" r="70" stroke="#f1f5f9" stroke-width="12" fill="none"></circle>
-                        <circle cx="80" cy="80" r="70"
-                            stroke="{% if demande.score_calcule > 50 %}#10b981{% else %}#ef4444{% endif %}"
+                        <circle cx="80" cy="80" r="70" stroke="{% if demande.score_calcule|default:" 0"|float> 50
+                            %}#10b981{% else %}#ef4444{% endif %}"
                             stroke-width="12" fill="none" stroke-dasharray="440" stroke-linecap="round"
-                            stroke-dashoffset="{{ 440|subtract:demande.score_calcule|multiply:4.4 }}"
+                            stroke-dashoffset="{{ 440|subtract:demande.score_calcule|multiply:'4.4'|default:'440' }}"
                             class="transition-all duration-1000 ease-out">
                         </circle>
                     </svg>
                     <div class="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center">
-                        <span class="text-4xl font-display font-bold text-slate-900">{{ demande.score_calcule }}</span>
+                        <span class="text-4xl font-display font-bold text-slate-900">{{
+                            demande.score_calcule|default:"0" }}</span>
                         <span class="text-xs text-slate-400 font-bold">/ 100</span>
                     </div>
                 </div>
 
                 <div class="mt-8 px-4 py-2 rounded-xl text-sm font-bold w-full
-                    {% if demande.score_calcule > 75 %}bg-green-50 text-green-600 border border-green-100
-                    {% elif demande.score_calcule > 45 %}bg-yellow-50 text-yellow-600 border border-yellow-100
+                    {% if demande.score_calcule|default:" 0"|float> 75 %}bg-green-50 text-green-600 border
+                    border-green-100
+                    {% elif demande.score_calcule|default:"0"|float > 45 %}bg-yellow-50 text-yellow-600 border
+                    border-yellow-100
                     {% else %}bg-red-50 text-red-600 border border-red-100{% endif %}">
-                    {{ demande.recommendation }}
+                    {{ demande.recommendation|default:"Calcul en cours" }}
                 </div>
             </div>
 
@@ -123,7 +119,7 @@
                     </p>
                     <h2 class="text-5xl md:text-6xl font-display font-bold text-slate-900 tracking-tight"
                         id="affichage-montant">
-                        {{ montant_propose_formate }} €
+                        {{ montant_propose_formate|default:"0.00" }} €
                     </h2>
                 </div>
 
@@ -133,10 +129,10 @@
                         <div class="flex justify-between mb-4">
                             <label class="text-sm font-bold text-slate-700">Durée du prêt</label>
                             <span class="text-lg font-bold text-ice-600 bg-ice-50 px-3 py-1 rounded-lg">
-                                <span id="valDuree">{{ demande.duree_souhaitee_annees }}</span> ans
+                                <span id="valDuree">{{ demande.duree_souhaitee_annees|default:"10" }}</span> ans
                             </span>
                         </div>
-                        <input type="range" min="5" max="30" value="{{ demande.duree_souhaitee_annees }}"
+                        <input type="range" min="5" max="30" value="{{ demande.duree_souhaitee_annees|default:" 10" }}"
                             id="rangeDuree"
                             class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-slate-900 hover:accent-ice-600 transition-all">
                     </div>
@@ -145,11 +141,11 @@
                         <div class="flex justify-between mb-4">
                             <label class="text-sm font-bold text-slate-700">Mensualité Max</label>
                             <span class="text-lg font-bold text-ice-600 bg-ice-50 px-3 py-1 rounded-lg">
-                                <span id="valMensualite">?</span> €
+                                <span id="valMensualite">{{ mensualite_max_possible|default:"100" }}</span> €
                             </span>
                         </div>
-                        <input type="range" min="100" max="{{ mensualite_max_possible }}"
-                            value="{{ mensualite_max_possible }}" id="rangeMensualite"
+                        <input type="range" min="100" max="{{ mensualite_max_possible|default:" 100" }}"
+                            value="{{ mensualite_max_possible|default:" 100" }}" id="rangeMensualite"
                             class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-slate-900 hover:accent-ice-600 transition-all">
                     </div>
                 </div>
@@ -157,14 +153,11 @@
 
                 <div class="mt-10 flex flex-col sm:flex-row gap-4">
                     <a href="{% url 'simulation' %}"
-                        class="px-8 py-4 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors text-center">
-                        Recommencer
-                    </a>
+                        class="px-8 py-4 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors text-center">Recommencer</a>
                     {% if demande.statut != 'REFUSEE' %}
                     <a href="#"
-                        class="px-8 py-4 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 text-white font-bold shadow-lg hover:shadow-ice-500/30 hover:-translate-y-1 transition-all text-center flex-grow">
-                        Valider ce financement
-                    </a>
+                        class="px-8 py-4 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 text-white font-bold shadow-lg hover:shadow-ice-500/30 hover:-translate-y-1 transition-all text-center flex-grow">Valider
+                        ce financement</a>
                     {% endif %}
                 </div>
             </div>

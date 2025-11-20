@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% load static %}
+
+{% block title %}Admin Dashboard. Banquise{% endblock %}
+
+{% block extra_css %}
+<style>
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.78);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: 0 8px 30px rgba(2, 6, 23, 0.06);
+    }
+
+    .data-card {
+        @apply glass-panel p-6 rounded-3xl overflow-hidden relative transition-all duration-300 transform hover:scale-[1.01] cursor-pointer;
+        box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06);
+    }
+
+    .data-card:hover {
+        box-shadow: 0 10px 40px rgba(14, 165, 233, 0.12);
+        border-color: #0ea5e9;
+        transform: translateY(-4px);
+    }
+
+    .data-value {
+        font-family: 'Outfit', sans-serif;
+        font-size: 2.6rem;
+        font-weight: 800;
+        line-height: 1;
+        display: inline-block;
+        min-width: 6ch;
+        text-align: left;
+    }
+
+    .admin-link-card {
+        @apply text-sm mt-4 inline-block text-slate-500 hover:text-slate-900 font-bold transition-colors;
+    }
+
+    .pulse {
+        animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        50% {
+            transform: scale(1.02);
+            opacity: 0.9;
+        }
+
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    /* Background blobs */
+    @keyframes blob {
+        0% {
+            transform: translate(0px, 0px) scale(1);
+        }
+
+        33% {
+            transform: translate(30px, -50px) scale(1.1);
+        }
+
+        66% {
+            transform: translate(-20px, 20px) scale(0.9);
+        }
+
+        100% {
+            transform: translate(0px, 0px) scale(1);
+        }
+    }
+
+    .animate-blob {
+        animation: blob 9s infinite;
+    }
+
+    .animation-delay-2000 {
+        animation-delay: 2s;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.45);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 60;
+    }
+
+    .modal {
+        max-width: 720px;
+        width: 94%;
+        background: white;
+        border-radius: 16px;
+        padding: 1.25rem;
+        box-shadow: 0 10px 40px rgba(2, 6, 23, 0.25);
+    }
+
+    /* Small responsive helpers */
+    @media (max-width: 768px) {
+        .data-value {
+            font-size: 2.2rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="relative min-h-screen overflow-hidden">
+
+    <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+        <div
+            class="absolute top-20 left-10 w-[420px] h-[420px] bg-ice-300 rounded-full mix-blend-multiply filter blur-[120px] opacity-40 animate-blob">
+        </div>
+        <div
+            class="absolute bottom-20 right-10 w-[420px] h-[420px] bg-purple-300 rounded-full mix-blend-multiply filter blur-[120px] opacity-40 animate-blob animation-delay-2000">
+        </div>
+    </div>
+
+    <div class="relative z-10 max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+
+        <div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+            <div>
+                <h1 class="text-4xl font-display font-bold text-slate-900">Bienvenue Gestionnaire de Banquise 👋</h1>
+                <p class="text-slate-500 text-lg mt-2">Vue d'ensemble et gestion des données critiques du système.</p>
+            </div>
+            <div class="flex gap-3 items-center">
+                <a href="{{ admin_url_base }}"
+                    class="px-5 py-2.5 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-colors shadow-lg">
+                    <i class="bi bi-shield-lock-fill mr-2"></i> Accès CRUD Avancé
+                </a>
+                <button id="refreshStatsBtn"
+                    class="px-4 py-2 bg-slate-100 rounded-lg font-medium text-sm hover:bg-slate-200 transition">Refresh</button>
+            </div>
+        </div>
+
+        <div class="grid md:grid-cols-4 gap-6 mb-8">
+
+            <a href="{{ admin_url_base }}auth/user/" class="data-card bg-white/90 border-blue-200 hover:border-blue-500"
+                data-stat="total_users">
+                <p class="text-xs font-bold text-blue-600 uppercase">Utilisateurs Enregistrés</p>
+                <div class="flex items-center justify-between mt-3">
+                    <span class="data-value text-slate-900" id="ui_total_users"
+                        data-value="{{ total_users|default:0 }}">{{ total_users }}</span>
+                    <i class="bi bi-people-fill text-4xl text-blue-400 opacity-60"></i>
+                </div>
+            </a>
+
+            <a href="{{ admin_url_base }}scoring/compte/"
+                class="data-card bg-white/90 border-green-200 hover:border-green-500" data-stat="total_balance">
+                <p class="text-xs font-bold text-green-600 uppercase">Total Solde Actif (€)</p>
+                <div class="flex items-center justify-between mt-3">
+                    <span class="data-value text-slate-900" id="ui_total_balance"
+                        data-value="{{ total_balance|default:0 }}">{{ total_balance|floatformat:0|default:"0"|intcomma
+                        }}</span>
+                    <i class="bi bi-currency-euro text-4xl text-green-400 opacity-60"></i>
+                </div>
+            </a>
+
+            <a href="{{ admin_url_base }}scoring/demandecredit/"
+                class="data-card bg-white/90 border-orange-200 hover:border-orange-500" data-stat="pending_loans">
+                <p class="text-xs font-bold text-orange-600 uppercase">Crédits en Attente</p>
+                <div class="flex items-center justify-between mt-3">
+                    <span class="data-value text-slate-900" id="ui_pending_loans"
+                        data-value="{{ pending_loans|default:0 }}">{{ pending_loans }}</span>
+                    <i class="bi bi-clock-fill text-4xl text-orange-400 opacity-60"></i>
+                </div>
+            </a>
+
+            <a href="{{ admin_url_base }}scoring/beneficiaire/"
+                class="data-card bg-white/90 border-purple-200 hover:border-purple-500" data-stat="beneficiaries">
+                <p class="text-xs font-bold text-purple-600 uppercase">Bénéficiaires Enregistrés</p>
+                <div class="flex items-center justify-between mt-3">
+                    <span class="data-value text-slate-900" id="ui_beneficiaries"
+                        data-value="{% if total_users %}{{ total_users }}{% else %}0{% endif %}">{% if total_users %}{{
+                        total_users }}{% else %}0{% endif %}</span>
+                    <i class="bi bi-person-lines-fill text-4xl text-purple-400 opacity-60"></i>
+                </div>
+            </a>
+
+        </div>
+
+        <hr class="border-slate-200 my-6">
+
+        <div class="grid lg:grid-cols-3 gap-8">
+
+            <div class="lg:col-span-2 glass-panel p-6 rounded-[1.5rem]">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-display font-bold text-slate-900">Activité Récente. 10 dernières
+                        Transactions</h3>
+                    <div class="text-sm text-slate-500">Dernière MAJ. <span id="lastUpdated">—</span></div>
+                </div>
+
+                <div class="space-y-2" id="recentList">
+                    {% for tx in recent_transactions %}
+                    <a href="{{ admin_url_base }}scoring/transaction/{{ tx.id }}/change/"
+                        class="flex justify-between items-center p-3 border-b border-slate-100 hover:bg-slate-50/50 rounded-lg transition-colors cursor-pointer tx-row"
+                        data-tx='{"id":{{ tx.id }}, "libelle":"{{ tx.libelle|escapejs }}", "montant":{{ tx.montant }}, "type":"{{ tx.type }}", "user":"{{ tx.compte.user.username|escapejs }}"}'>
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-2.5 h-2.5 rounded-full {% if tx.type == 'DEBIT' %}bg-red-500{% else %}bg-green-500{% endif %}">
+                            </div>
+                            <div>
+                                <p class="font-medium text-slate-900">{{ tx.libelle|truncatechars:40 }}</p>
+                                <p class="text-xs text-slate-500">Client. {{ tx.compte.user.username }}. Catégorie. {{
+                                    tx.get_categorie_display }}</p>
+                            </div>
+                        </div>
+                        <span
+                            class="font-bold font-mono text-lg {% if tx.type == 'DEBIT' %}text-red-600{% else %}text-green-600{% endif %}">{{
+                            tx.montant|floatformat:2 }} €</span>
+                    </a>
+                    {% empty %}
+                    <p class="text-center text-slate-500 py-4 italic">Aucune transaction récente à afficher.</p>
+                    {% endfor %}
+                </div>
+
+                <div class="mt-4">
+                    <a href="{{ admin_url_base }}scoring/transaction/" class="admin-link-card">
+                        <i class="bi bi-list-columns-reverse"></i> Voir toutes les transactions (Accès CRUD)
+                    </a>
+                </div>
+            </div>
+
+            <div class="lg:col-span-1 glass-panel p-6 rounded-[1.5rem]">
+                <h3 class="text-xl font-display font-bold text-slate-900 mb-4">Analyse. Principales Dépenses</h3>
+
+                <canvas id="expensesChart" width="400" height="320"></canvas>
+
+                <ul class="space-y-3 mt-4" id="topCatsList">
+                    {% for cat in top_categories %}
+                    <li class="flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                            <i class="bi bi-tag-fill text-sm text-red-400"></i>
+                            <span class="font-medium text-slate-700">{{ cat.name }}</span>
+                        </div>
+                        <span class="font-mono font-bold text-red-600 cat-value">{{ cat.total|floatformat:2 }}</span>
+                    </li>
+                    {% empty %}
+                    <li class="p-4 text-center text-slate-500 italic">Pas encore de dépenses catégorisées.</li>
+                    {% endfor %}
+                </ul>
+
+                <p class="text-xs text-slate-400 mt-4">Basé sur les débits totaux par catégorie.</p>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="modalBackdrop" class="modal-backdrop">
+    <div class="modal relative">
+        <button id="modalClose" class="absolute top-3 right-3 text-slate-500 hover:text-slate-800">✕</button>
+        <h4 class="text-lg font-bold mb-2" id="modalTitle">Transaction</h4>
+        <div id="modalBody" class="text-sm text-slate-700">
+            <!-- content injected by JS -->
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // ---- helper: animate counter ----
+        function animateValue(el, start, end, duration = 900) {
+            const range = end - start;
+            const stepTime = Math.abs(Math.floor(duration / (range || 1)));
+            let startTime = null;
+            function step(timestamp) {
+                if (!startTime) startTime = timestamp;
+                const progress = Math.min((timestamp - startTime) / duration, 1);
+                const value = Math.floor(start + range * progress);
+                el.textContent = value.toLocaleString();
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    el.textContent = end.toLocaleString();
+                }
+            }
+            window.requestAnimationFrame(step);
+        }
+
+        // ---- init counters from data-value ----
+        const counters = [
+            { id: 'ui_total_users', parse: v => parseInt(v) },
+            { id: 'ui_total_balance', parse: v => parseFloat(v) },
+            { id: 'ui_pending_loans', parse: v => parseInt(v) },
+            { id: 'ui_beneficiaries', parse: v => parseInt(v) }
+        ];
+        counters.forEach(cfg => {
+            const el = document.getElementById(cfg.id);
+            if (!el) return;
+            const raw = el.getAttribute('data-value') || el.textContent || '0';
+            const value = cfg.parse(raw.toString().replace(/[, ]+/g, '')) || 0;
+            animateValue(el, 0, Math.round(value));
+        });
+
+        // ---- Chart data from DOM list ----
+        function buildChartData() {
+            const labels = [];
+            const data = [];
+            document.querySelectorAll('#topCatsList .cat-value').forEach(li => {
+                const label = li.closest('li').querySelector('.font-medium')?.textContent?.trim() || 'Cat';
+                labels.push(label);
+                const val = parseFloat(li.textContent.replace(/[^\d\.\-]/g, '')) || 0;
+                data.push(val);
+            });
+            return { labels, data };
+        }
+
+        const ctx = document.getElementById('expensesChart').getContext('2d');
+        const chartData = buildChartData();
+        const expensesChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: chartData.labels,
+                datasets: [{
+                    data: chartData.data,
+                    backgroundColor: [
+                        'rgba(239,68,68,0.85)',
+                        'rgba(249,115,22,0.85)',
+                        'rgba(34,197,94,0.85)',
+                        'rgba(59,130,246,0.85)',
+                        'rgba(168,85,247,0.85)',
+                        'rgba(14,165,233,0.85)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        // ---- Modal for tx detail ----
+        const modalBackdrop = document.getElementById('modalBackdrop');
+        const modalClose = document.getElementById('modalClose');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalBody = document.getElementById('modalBody');
+
+        document.querySelectorAll('.tx-row').forEach(row => {
+            row.addEventListener('click', e => {
+                e.preventDefault();
+                const raw = row.getAttribute('data-tx');
+                let data;
+                try { data = JSON.parse(raw); } catch (err) { return; }
+                modalTitle.textContent = data.libelle || 'Transaction';
+                modalBody.innerHTML = `
+                <p><strong>ID.</strong> ${data.id}</p>
+                <p><strong>Client.</strong> ${data.user}</p>
+                <p><strong>Montant.</strong> ${Number(data.montant).toFixed(2)} €</p>
+                <p><strong>Type.</strong> ${data.type}</p>
+                <div class="mt-3"><a href="${'{{ admin_url_base }}scoring/transaction/' + data.id + '/change/'}" class="text-blue-600 font-medium">Ouvrir dans Admin</a></div>
+            `;
+                modalBackdrop.style.display = 'flex';
+            });
+        });
+        modalClose.addEventListener('click', () => modalBackdrop.style.display = 'none');
+        modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) modalBackdrop.style.display = 'none'; });
+
+        // ---- Live refresh via API ----
+        const refreshBtn = document.getElementById('refreshStatsBtn');
+        const lastUpdatedEl = document.getElementById('lastUpdated');
+
+        async function fetchStats() {
+            try {
+                const res = await fetch('{% url "admin_stats_api" %}');
+                if (!res.ok) throw new Error('Network');
+                const json = await res.json();
+                // update counters
+                const map = {
+                    ui_total_users: json.total_users,
+                    ui_total_balance: Math.round(json.total_balance || 0),
+                    ui_pending_loans: json.pending_loans,
+                    ui_beneficiaries: json.beneficiaries
+                };
+                Object.entries(map).forEach(([id, val]) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    const curr = parseInt(el.textContent.replace(/[^0-9\-]+/g, '')) || 0;
+                    animateValue(el, curr, Math.round(val || 0), 700);
+                    el.setAttribute('data-value', val);
+                });
+
+                // update recent tx list (simple diff append)
+                if (Array.isArray(json.recent_transactions)) {
+                    const list = document.getElementById('recentList');
+                    list.innerHTML = '';
+                    json.recent_transactions.forEach(tx => {
+                        const a = document.createElement('a');
+                        a.className = 'flex justify-between items-center p-3 border-b border-slate-100 hover:bg-slate-50/50 rounded-lg transition-colors cursor-pointer tx-row';
+                        a.href = '{{ admin_url_base }}scoring/transaction/' + tx.id + '/change/';
+                        a.setAttribute('data-tx', JSON.stringify(tx));
+                        a.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-2.5 h-2.5 rounded-full ${tx.type === 'DEBIT' ? 'bg-red-500' : 'bg-green-500'}"></div>
+                            <div>
+                                <p class="font-medium text-slate-900">${tx.libelle}</p>
+                                <p class="text-xs text-slate-500">Client. ${tx.user}. Catégorie. ${tx.categorie}</p>
+                            </div>
+                        </div>
+                        <span class="font-bold font-mono text-lg ${tx.type === 'DEBIT' ? 'text-red-600' : 'text-green-600'}">${Number(tx.montant).toFixed(2)} €</span>
+                    `;
+                        list.appendChild(a);
+                        // attach click listener
+                        a.addEventListener('click', e => {
+                            e.preventDefault();
+                            modalTitle.textContent = tx.libelle;
+                            modalBody.innerHTML = `
+                            <p><strong>ID.</strong> ${tx.id}</p>
+                            <p><strong>Client.</strong> ${tx.user}</p>
+                            <p><strong>Montant.</strong> ${Number(tx.montant).toFixed(2)} €</p>
+                            <p><strong>Type.</strong> ${tx.type}</p>
+                            <div class="mt-3"><a href="${'{{ admin_url_base }}scoring/transaction/' + tx.id + '/change/'}" class="text-blue-600 font-medium">Ouvrir dans Admin</a></div>
+                        `;
+                            modalBackdrop.style.display = 'flex';
+                        });
+                    });
+                }
+
+                // update chart
+                if (Array.isArray(json.top_categories)) {
+                    // rebuild DOM list
+                    const catsList = document.getElementById('topCatsList');
+                    catsList.innerHTML = '';
+                    json.top_categories.forEach(cat => {
+                        const li = document.createElement('li');
+                        li.className = 'flex justify-between items-center';
+                        li.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <i class="bi bi-tag-fill text-sm text-red-400"></i>
+                            <span class="font-medium text-slate-700">${cat.name}</span>
+                        </div>
+                        <span class="font-mono font-bold text-red-600 cat-value">${Number(cat.total).toFixed(2)}</span>
+                    `;
+                        catsList.appendChild(li);
+                    });
+                    // update chart data
+                    const built = buildChartData();
+                    expensesChart.data.labels = built.labels;
+                    expensesChart.data.datasets[0].data = built.data;
+                    expensesChart.update();
+                }
+
+                lastUpdatedEl.textContent = new Date().toLocaleString();
+            } catch (err) {
+                console.error('fetchStats error', err);
+            }
+        }
+
+        refreshBtn.addEventListener('click', () => fetchStats());
+
+        // option: auto refresh every 60s
+        // setInterval(fetchStats, 60000);
+
+    });
+</script>
+{% endblock %}

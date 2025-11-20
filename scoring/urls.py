@@ -10,20 +10,22 @@ urlpatterns = [
 
     # --- GESTION COMPTES ---
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('statistiques/', views.statistiques, name='statistiques'), # Nouvelle route
     path('ouvrir-compte/', views.ouvrir_compte, name='ouvrir_compte'),
     path('fermer-compte/<int:compte_id>/', views.fermer_compte, name='fermer_compte'),
-    
-    # === NOUVELLES ROUTES AJOUTÉES ===
-    # Route pour le relevé de compte
     path('releve-compte/<int:compte_id>/', views.releve_compte, name='releve_compte'),
-    # Route pour le téléchargement PDF
     path('releve-compte/<int:compte_id>/pdf/', views.telecharger_releve_pdf, name='telecharger_releve_pdf'),
-    # =================================
-
+    path('rib-compte/<int:compte_id>/pdf/', views.telecharger_rib_pdf, name='telecharger_rib_pdf'),
+    
     # --- BANQUE AU QUOTIDIEN ---
     path('cartes/', views.cartes, name='cartes'),
     path('gestion-plafonds/<int:carte_id>/', views.gestion_plafonds, name='gestion_plafonds'),
+    
+    # --- VIREMENTS & BENEFICIAIRES ---
     path('virement/', views.virement, name='virement'),
+    path('beneficiaires/', views.gestion_beneficiaires, name='beneficiaires'), # Nouvelle route
+    path('beneficiaires/nouveau/', views.ajouter_beneficiaire, name='ajouter_beneficiaire'), # Nouvelle route
+    path('beneficiaires/supprimer/<int:beneficiaire_id>/', views.supprimer_beneficiaire, name='supprimer_beneficiaire'), # Nouvelle route
 
     # --- CREDIT & SIMULATION ---
     path('simulation/', views.page_simulation, name='simulation'),
@@ -34,4 +36,6 @@ urlpatterns = [
     # --- AUTRES ---
     path('support/', views.support, name='support'),
     path('profil/', views.profil, name='profil'),
+    path('admin-dashboard/', views.admin_dashboard_view, name='admin_dashboard'),
+    path('api/admin-stats/', views.admin_stats_api, name='admin_stats_api'),
 ]

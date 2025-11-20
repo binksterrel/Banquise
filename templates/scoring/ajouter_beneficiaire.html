@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %}Nouveau Bénéficiaire - Banquise{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-control {
+        background-color: rgba(255, 255, 255, 0.8);
+        border: 1px solid #e2e8f0;
+        padding: 0.875rem 1rem;
+        border-radius: 1rem;
+        transition: all 0.2s ease;
+        width: 100%;
+        color: #1e293b;
+        font-weight: 500;
+    }
+
+    .form-control:focus {
+        background-color: #ffffff;
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
+        outline: none;
+    }
+
+    label {
+        font-family: 'Outfit', sans-serif;
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: #475569;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="relative min-h-screen overflow-hidden flex flex-col items-center justify-center py-12">
+    <div class="absolute top-0 left-0 w-full h-full z-0 pointer-events-none">
+        <div class="absolute top-10 left-10 w-96 h-96 bg-ice-200 rounded-full blur-3xl opacity-50"></div>
+        <div class="absolute bottom-10 right-10 w-80 h-80 bg-purple-100 rounded-full blur-3xl opacity-40"></div>
+    </div>
+
+    <div class="relative z-10 w-full max-w-lg px-4">
+
+        <div class="glass-premium p-8 md:p-10 rounded-[2rem] relative overflow-hidden shadow-2xl">
+
+            <div
+                class="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-ice-100 to-transparent rounded-full opacity-50 pointer-events-none blur-xl">
+            </div>
+
+            <div class="text-center mb-8">
+                <div
+                    class="w-16 h-16 bg-slate-900 rounded-2xl text-white flex items-center justify-center text-2xl mx-auto mb-4 shadow-lg shadow-slate-200">
+                    <i class="bi bi-person-plus-fill"></i>
+                </div>
+                <h1 class="text-3xl font-display font-bold text-slate-900">Ajouter un bénéficiaire</h1>
+                <p class="text-slate-500 mt-2 text-sm">Enregistrez un compte pour des virements plus rapides.</p>
+            </div>
+
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+
+                <div>
+                    <label for="{{ form.nom.id_for_label }}">Nom ou Surnom</label>
+                    <div class="relative">
+                        <input type="text" name="nom" id="{{ form.nom.id_for_label }}" required
+                            class="form-control pl-10" placeholder="Ex: Maman, Loyer..."
+                            value="{{ form.nom.value|default:'' }}">
+                        <i class="bi bi-tag-fill absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    </div>
+                    {% if form.nom.errors %}
+                    <p class="text-red-500 text-xs mt-1 ml-1">{{ form.nom.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.iban.id_for_label }}">IBAN du compte</label>
+                    <div class="relative">
+                        <input type="text" name="iban" id="{{ form.iban.id_for_label }}" required
+                            class="form-control pl-10 font-mono text-sm" placeholder="FR76 ..."
+                            value="{{ form.iban.value|default:'' }}">
+                        <i
+                            class="bi bi-credit-card-2-front-fill absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    </div>
+                    {% if form.iban.errors %}
+                    <p class="text-red-500 text-xs mt-1 ml-1">{{ form.iban.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="pt-4 space-y-3">
+                    <button type="submit"
+                        class="w-full py-3.5 bg-slate-900 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2">
+                        <i class="bi bi-check-lg"></i>
+                        <span>Enregistrer le bénéficiaire</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="mt-8 text-center">
+            <a href="{% url 'beneficiaires' %}"
+                class="inline-flex items-center gap-2 text-slate-500 font-bold hover:text-slate-800 transition-colors py-2 px-4 rounded-xl hover:bg-white/50">
+                <i class="bi bi-arrow-left"></i> Retour à la liste
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

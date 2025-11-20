@@ -122,12 +122,12 @@
                                     <p class="text-xs text-slate-500 truncate">{{ user.email }}</p>
                                 </div>
                                 <div class="p-2">
-                                    <a href="{% url 'dashboard' %}"
-                                        class="block px-4 py-2 text-sm text-slate-600 hover:bg-ice-50 rounded-xl transition-colors"><i
-                                            class="bi bi-speedometer2 mr-2"></i> Tableau de bord</a>
                                     <a href="{% url 'profil' %}"
                                         class="block px-4 py-2 text-sm text-slate-600 hover:bg-ice-50 rounded-xl transition-colors"><i
                                             class="bi bi-person mr-2"></i> Mon Profil</a>
+                                    <a href="{% url 'dashboard' %}"
+                                        class="block px-4 py-2 text-sm text-slate-600 hover:bg-ice-50 rounded-xl transition-colors"><i
+                                            class="bi bi-speedometer2 mr-2"></i> Tableau de bord</a>
                                 </div>
                                 <div class="p-2 border-t border-slate-100">
                                     <form action="{% url 'logout' %}" method="post">
