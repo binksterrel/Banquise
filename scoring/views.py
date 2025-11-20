@@ -7,9 +7,9 @@ from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.db import transaction
-from django.db.models import Sum, F, Count 
-from django.utils import timezone
+from django.db.models import Sum, F
 from django.core.paginator import Paginator
+from django.utils import timezone
 from datetime import timedelta
 import random
 import io
@@ -97,6 +97,7 @@ def logout_view(request):
     logout(request)
     return redirect('home')
 
+
 # ==============================================================================
 # 2. GESTION DES COMPTES (Dashboard, Ouvrir, Fermer, Relevé, Stats)
 # ==============================================================================
@@ -106,7 +107,6 @@ def dashboard(request):
     comptes = Compte.objects.filter(user=request.user, est_actif=True)
     cartes = Carte.objects.filter(compte__in=comptes)
     transactions = Transaction.objects.filter(compte__in=comptes).order_by('-date_execution')[:5]
-    
     return render(request, 'scoring/dashboard.html', {
         'comptes': comptes,
         'cartes': cartes,
@@ -174,6 +174,7 @@ def releve_compte(request, compte_id):
         'has_reportlab': HAS_REPORTLAB
     })
 
+# Génération PDF Relevé
 @login_required
 def telecharger_releve_pdf(request, compte_id):
     if not HAS_REPORTLAB:
@@ -221,7 +222,6 @@ def telecharger_releve_pdf(request, compte_id):
     ]))
     
     elements.append(table)
-
     doc.build(elements)
     buffer.seek(0)
     
@@ -229,6 +229,7 @@ def telecharger_releve_pdf(request, compte_id):
     response['Content-Disposition'] = f'attachment; filename="releve_compte_{compte.numero_compte}.pdf"'
     return response
 
+# Génération PDF RIB
 @login_required
 def telecharger_rib_pdf(request, compte_id):
     if not HAS_REPORTLAB:
@@ -245,7 +246,6 @@ def telecharger_rib_pdf(request, compte_id):
     style_titre = ParagraphStyle('Titre', parent=styles['Title'], fontSize=20, spaceAfter=20, alignment=1)
     
     elements.append(Paragraph("Relevé d'Identité Bancaire (RIB)", style_titre))
-    
     elements.append(Paragraph("<font size=12><b>BANQUISE</b></font>", styles['Normal']))
     elements.append(Paragraph(f"Titulaire: {request.user.first_name} {request.user.last_name}", styles['Normal']))
     elements.append(HRFlowable(width="100%", thickness=1, lineCap='round', color=colors.HexColor('#0EA5E9'), spaceAfter=20))
@@ -373,38 +373,9 @@ def fermer_compte(request, compte_id):
         form = CloturerCompteForm(request.user, compte)
     return render(request, 'scoring/fermer_compte.html', {'form': form, 'compte': compte})
 
-# ==============================================================================
-# 2. GESTION DES COMPTES (suite)
-# ==============================================================================
-
-@login_required
-def ouvrir_compte(request):
-    """
-    Crée un nouveau compte pour l'utilisateur connecté.
-    Le type de compte est choisi via le formulaire dans le template open_compte.html.
-    """
-    if request.method == 'POST':
-        form = OuvrirCompteForm(request.POST)
-        if form.is_valid():
-            type_compte = form.cleaned_data.get('type_compte', 'COURANT')
-            numero = f"FR76 {random.randint(1000,9999)} {random.randint(1000,9999)} {random.randint(1000,9999)}"
-            Compte.objects.create(
-                user=request.user,
-                type_compte=type_compte,
-                numero_compte=numero,
-                solde=0.00,
-                est_actif=True
-            )
-            messages.success(request, f"Votre compte {type_compte} a été créé avec succès !")
-            return redirect('dashboard')
-    else:
-        form = OuvrirCompteForm()
-
-    return render(request, 'scoring/open_compte.html', {'form': form})
-
 
 # ==============================================================================
-# 3. CARTES ET VIREMENTS (Inclut Beneficiaires)
+# 3. CARTES, VIREMENTS ET BENEFICIAIRES
 # ==============================================================================
 
 @login_required
@@ -525,8 +496,9 @@ def supprimer_beneficiaire(request, beneficiaire_id):
         return redirect('beneficiaires')
     return render(request, 'scoring/confirmer_suppression_beneficiaire.html', {'beneficiaire': bene})
 
+
 # ==============================================================================
-# 4. CREDIT & AUTRES
+# 4. CREDITS & SIMULATIONS
 # ==============================================================================
 
 @login_required
@@ -562,28 +534,29 @@ def page_simulation(request):
 def page_resultat(request, demande_id):
     demande = get_object_or_404(DemandeCredit, id=demande_id, user=request.user)
     mensualite_max = int(demande.revenus_mensuels * 0.35)
-    return render(request, 'scoring/resultat.html', {'demande': demande, 'montant_propose_formate': f"{demande.montant_souhaite:,.0f}".replace(',', ' '), 'mensualite_max_possible': mensualite_max})
+    return render(request, 'scoring/resultat.html', {
+        'demande': demande,
+        'montant_propose_formate': f"{demande.montant_souhaite:,.0f}".replace(',', ' '),
+        'mensualite_max_possible': mensualite_max
+    })
 
 @login_required
 def page_historique(request):
     demandes = DemandeCredit.objects.filter(user=request.user).order_by('-date_demande')
     return render(request, 'scoring/historique.html', {'demandes': demandes})
 
-# Cette fonction a été remplacée par admin_stats_api, mais je la garde si elle est toujours dans une URL non fournie.
 @login_required
 def api_calcul_pret_dynamique(request): 
     return JsonResponse({'total_projet_formate': "---"})
 
-# Cette fonction est la cause de l'erreur dans l'URL et est un doublon de admin_dashboard_view, mais elle est ajoutée pour satisfaire l'AttributeError de votre urls.py
 @staff_member_required
 def admin_stats_api(request): 
-    """API endpoint pour les stats temps réel du dashboard admin."""
-    # Cette fonction existerait pour alimenter des graphiques via AJAX
     return JsonResponse({'status': 'ok', 'message': 'API endpoint admin prêt'})
 
 
 def support(request):
     return render(request, 'scoring/support.html')
+
 
 # ==============================================================================
 # 5. PROFIL & ADMIN DASHBOARD
@@ -592,9 +565,7 @@ def support(request):
 @login_required
 def profil(request):
     client_profil, created = ProfilClient.objects.get_or_create(user=request.user)
-    
     comptes = Compte.objects.filter(user=request.user, est_actif=True)
-    
     password_form = PasswordChangeForm(request.user)
 
     if request.method == 'POST':
@@ -632,21 +603,11 @@ def profil(request):
 
 @staff_member_required
 def admin_dashboard_view(request):
-    """
-    Tableau de bord de gestion pour les utilisateurs "Staff" (employés de la banque).
-    Affiche les métriques clés et les liens vers les sections d'administration.
-    """
     total_users = User.objects.count()
-    
-    total_balance = Compte.objects.filter(est_actif=True).aggregate(
-        total_sum=Sum('solde')
-    )['total_sum'] or 0.00
-    
+    total_balance = Compte.objects.filter(est_actif=True).aggregate(total_sum=Sum('solde'))['total_sum'] or 0.00
     recent_transactions = Transaction.objects.all().select_related('compte', 'compte__user').order_by('-date_execution')[:10]
-    
     pending_loans = DemandeCredit.objects.filter(statut='EN_ATTENTE').count()
     
-    # Calcul du Top 5 des dépenses (les montants sont négatifs pour les débits, d'où le tri sur la valeur négative)
     top_categories = Transaction.objects.filter(type='DEBIT').values('categorie').annotate(
         total_spent=Sum(F('montant'))
     ).order_by('total_spent')[:5]
@@ -659,7 +620,6 @@ def admin_dashboard_view(request):
         'pending_loans': pending_loans,
         'recent_transactions': recent_transactions,
         'top_categories': [
-            # On prend la valeur absolue pour l'affichage (ex: -1200 -> 1200)
             {'name': category_map.get(item['categorie'], 'Inconnu'), 'total': abs(item['total_spent'])}
             for item in top_categories
         ],
