@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Validation crédits - Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="glass-panel p-6 md:p-8 rounded-3xl">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <p class="text-xs font-bold uppercase text-ice-600 tracking-[0.2em]">Admin</p>
+                <h1 class="text-2xl font-display font-bold text-slate-900">Validation des demandes de crédit</h1>
+                <p class="text-sm text-slate-500">Décision IA affichée, confirmation humaine requise.</p>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            {% for d in demandes %}
+            <div class="p-4 rounded-2xl border border-slate-100 bg-white/80 shadow-sm">
+                <div class="flex items-center justify-between gap-4">
+                    <div class="space-y-1">
+                        <p class="text-sm text-slate-500">{{ d.user.username }} · {{ d.date_demande|date:"d M Y H:i" }}</p>
+                        <p class="font-display font-bold text-lg text-slate-900">{{ d.montant_souhaite }} € sur {{ d.duree_souhaitee_annees }} ans</p>
+                        <p class="text-sm text-slate-600">Revenus: {{ d.revenus_mensuels }} € · Mensualité estimée: {{ d.mensualite_calculee|default:"-" }} € · IA: {{ d.get_ia_decision_display|default:"-" }}</p>
+                        <p class="text-xs text-slate-500">Score: {{ d.score_calcule }} · Reco: {{ d.recommendation }}</p>
+                    </div>
+                    <form method="post" class="flex items-center gap-2">{% csrf_token %}
+                        <input type="hidden" name="demande_id" value="{{ d.id }}">
+                        <button name="action" value="REFUSEE" class="px-4 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-bold hover:bg-red-50">Refuser</button>
+                        <button name="action" value="ACCEPTEE" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-bold hover:-translate-y-0.5 transition-all duration-200 shadow-lg">Accepter</button>
+                    </form>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-slate-500 text-sm">Aucune demande en attente.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

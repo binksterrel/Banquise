@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}FAQ - Banquise{% endblock %}
+
+{% block content %}
+<section class="bg-white">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div class="text-center mb-12">
+            <p class="text-xs font-bold uppercase text-ice-600 tracking-[0.2em]">FAQ</p>
+            <h1 class="text-4xl font-display font-bold text-slate-900 mt-2">Vos questions, nos réponses claires.</h1>
+            <p class="text-slate-500 mt-4">Nous avons rassemblé les questions les plus fréquentes. Si vous ne trouvez pas la vôtre, notre équipe support est disponible 7j/7.</p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-6">
+            {% for item in [
+                ("Comment ouvrir un compte ?", "Inscrivez-vous en ligne, vérifiez votre identité (pièce d'identité + selfie) puis choisissez votre offre. L'ouverture prend moins de 5 minutes."),
+                ("Banquise est-elle régulée ?", "Oui, Banquise opère sous agrément ACPR en France et respecte les obligations PSD2. Les fonds sont ségrégués et sécurisés."),
+                ("Comment sécurisez-vous mes paiements ?", "Authentification forte (3DS), détection de fraude en temps réel, cartes activables/désactivables à la demande et plafonds ajustables."),
+                ("Puis-je changer de formule ?", "Vous pouvez passer de Essentiel à Plus ou Infinite depuis le tableau de bord à tout moment. Le changement est effectif dès le cycle suivant."),
+                ("Quels sont les frais à l'étranger ?", "Retraits hors zone € à 2% (min 2 €), paiements au taux interbancaire. Infinite inclut une assurance voyage étendue."),
+                ("Proposez-vous des comptes pour entreprises ?", "Oui, les comptes pro sont disponibles sur demande. Contactez l'équipe Partenariats pour un accompagnement dédié."),
+                ("Comment contacter le support ?", "Depuis l'app ou sur la page Support : chat temps réel, email prioritaire et rappel téléphonique selon votre formule."),
+                ("Que faites-vous de mes données ?", "Vos données sont chiffrées, hébergées dans l'UE, jamais revendues. Consultez la page Confidentialité pour le détail.")
+            ] %}
+            <div class="p-6 rounded-2xl bg-slate-50 border border-slate-100 shadow-sm">
+                <h3 class="font-display font-bold text-lg text-slate-900 mb-2">{{ item.0 }}</h3>
+                <p class="text-sm text-slate-600 leading-relaxed">{{ item.1 }}</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="mt-12 text-center">
+            <p class="text-sm text-slate-500 mb-3">Toujours une question ?</p>
+            <a href="{% url 'support' %}" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 text-white font-bold hover:-translate-y-0.5 transition-all duration-300 shadow-lg hover:shadow-slate-900/30">
+                Contacter le support <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}

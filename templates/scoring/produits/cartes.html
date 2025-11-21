@@ -5,55 +5,148 @@
 {% block content %}
 <div class="relative py-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid lg:grid-cols-2 gap-12 items-center">
+
+        <div class="grid lg:grid-cols-2 gap-16 items-center">
+
+            <!-- Texte -->
             <div>
-                <span class="text-ice-600 font-bold tracking-wider text-sm uppercase">Technologie & Design</span>
-                <h1 class="mt-4 text-4xl font-display font-bold text-slate-900 sm:text-5xl">
-                    Payez avec style, <br>même là où seuls les pingouins ont réseau.
+                <span class="text-ice-600 font-bold tracking-wider text-sm uppercase">
+                    Technologie & Design
+                </span>
+
+                <h1 class="mt-6 text-4xl font-display font-bold text-slate-900 sm:text-6xl leading-tight">
+                    Une carte pour <br>chaque ambition.
                 </h1>
-                <p class="mt-6 text-lg text-slate-600">
-                    Des cartes virtuelles pour vos achats en ligne aux cartes physiques en métal pour vos voyages.
-                    Contrôlez tout depuis votre poche.
+
+                <p class="mt-6 text-lg text-slate-600 leading-relaxed">
+                    Que ce soit pour vos dépenses quotidiennes, votre épargne ou vos projets pro. Banquise vous propose
+                    une expérience fluide et un design reconnaissable instantanément.
                 </p>
+
                 <ul class="mt-8 space-y-4">
                     <li class="flex items-center gap-3 text-slate-700">
-                        <i class="bi bi-check-circle-fill text-ice-500"></i> Sans frais à l'étranger (même au pôle Nord)
+                        <i class="bi bi-check-circle-fill text-ice-500"></i> Sans frais à l'étranger
                     </li>
                     <li class="flex items-center gap-3 text-slate-700">
                         <i class="bi bi-check-circle-fill text-ice-500"></i> Compatible Apple Pay & Google Pay
                     </li>
                     <li class="flex items-center gap-3 text-slate-700">
-                        <i class="bi bi-check-circle-fill text-ice-500"></i> Assurance voyage incluse
+                        <i class="bi bi-check-circle-fill text-ice-500"></i> Sécurité renforcée & contrôle en temps réel
                     </li>
                 </ul>
+
+                <div class="mt-10">
+                    <a href="{% url 'register' %}"
+                        class="inline-flex items-center justify-center px-8 py-4 text-base font-bold text-white transition-all duration-200 bg-slate-900 border border-transparent rounded-xl hover:bg-slate-700 shadow-lg hover:shadow-xl hover:-translate-y-1">
+                        Commander ma carte
+                    </a>
+                </div>
             </div>
 
-            <div class="relative">
-                <div
-                    class="absolute inset-0 bg-gradient-to-tr from-ice-200 to-purple-200 rounded-full blur-3xl opacity-50">
-                </div>
+            <!-- Cartes -->
+            <div class="relative h-[450px] flex items-center justify-center group">
 
-                <div
-                    class="relative w-96 h-60 mx-auto bg-gradient-to-br from-slate-800 to-black rounded-3xl p-8 shadow-2xl border border-slate-700 transform rotate-6 hover:rotate-0 transition-all duration-500 group overflow-hidden">
-                    <div class="flex justify-between items-start mb-10 relative z-10">
-                        <i class="bi bi-snow2 text-ice-400 text-3xl"></i>
-                        <i class="bi bi-wifi text-slate-600 text-2xl rotate-90"></i>
-                    </div>
-                    <div class="space-y-6 relative z-10">
-                        <div class="text-slate-400 font-mono text-lg tracking-widest">**** **** **** 4289</div>
-                        <div class="flex justify-between items-end">
-                            <div>
-                                <div class="text-white/80 text-sm">JOHN DOE</div>
-                                <div class="text-white font-bold italic mt-1">VISA</div>
+                <div class="card-stack-container relative w-[380px] h-[240px]">
+
+                    <!-- CARD 1 -->
+                    <div class="stack-card absolute w-full h-full rounded-3xl p-8 shadow-2xl border border-white/10 overflow-hidden cursor-pointer
+                        bg-gradient-to-br from-ice-500 via-blue-500 to-blue-700
+                        rotate-[-8deg] top-0 left-0
+                        transition-all duration-500 ease-out
+                        z-10 group-hover:translate-x-[-20px] group-hover:rotate-[-12deg]">
+
+                        <div class="flex justify-between items-start mb-10 relative z-10">
+                            <i class="bi bi-snow2 text-white/90 text-3xl"></i>
+                            <i class="bi bi-wifi text-white/60 text-2xl rotate-90"></i>
+                        </div>
+
+                        <div class="space-y-6 relative z-10">
+                            <div class="text-white/90 font-mono text-2xl tracking-widest">
+                                **** **** **** 1234
+                            </div>
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <div class="text-white/60 text-[10px] font-bold uppercase tracking-wider mb-1">
+                                        Titulaire</div>
+                                    <div class="text-white font-bold tracking-wide uppercase text-sm">JOHN DOE</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-white/60 text-[10px] font-bold uppercase tracking-wider mb-1">Exp.
+                                    </div>
+                                    <div class="text-white font-mono text-sm font-bold">12/28</div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div
-                        class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl pointer-events-none">
+
+                    <!-- CARD 2 -->
+                    <div class="stack-card absolute w-full h-full rounded-3xl p-8 shadow-2xl border border-white/10 overflow-hidden cursor-pointer
+                        bg-gradient-to-br from-indigo-900 via-purple-800 to-slate-900
+                        rotate-[4deg] top-3 left-3
+                        transition-all duration-500 ease-out
+                        z-20 group-hover:translate-y-[-15px]">
+
+                        <div class="flex justify-between items-start mb-10 relative z-10">
+                            <i class="bi bi-snow2 text-white/90 text-3xl"></i>
+                            <i class="bi bi-wifi text-white/60 text-2xl rotate-90"></i>
+                        </div>
+
+                        <div class="space-y-6 relative z-10">
+                            <div class="text-white/90 font-mono text-2xl tracking-widest">
+                                **** **** **** 5678
+                            </div>
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <div class="text-white/60 text-[10px] font-bold uppercase tracking-wider mb-1">
+                                        Titulaire</div>
+                                    <div class="text-white font-bold tracking-wide uppercase text-sm">JOHN DOE</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-white/60 text-[10px] font-bold uppercase tracking-wider mb-1">Exp.
+                                    </div>
+                                    <div class="text-white font-mono text-sm font-bold">05/28</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- CARD 3 -->
+                    <div class="stack-card absolute w-full h-full rounded-3xl p-8 shadow-2xl border border-white/10 overflow-hidden cursor-pointer
+                        bg-gradient-to-br from-slate-800 to-black
+                        rotate-[-2deg] top-6 left-6
+                        transition-all duration-500 ease-out
+                        z-30 group-hover:translate-x-[20px] group-hover:translate-y-[10px] group-hover:rotate-[5deg]">
+
+                        <div class="flex justify-between items-start mb-10 relative z-10">
+                            <i class="bi bi-snow2 text-white/90 text-3xl"></i>
+                            <i class="bi bi-wifi text-white/60 text-2xl rotate-90"></i>
+                        </div>
+
+                        <div class="space-y-6 relative z-10">
+                            <div class="text-white/90 font-mono text-2xl tracking-widest">
+                                **** **** **** 9012
+                            </div>
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <div class="text-white/60 text-[10px] font-bold uppercase tracking-wider mb-1">
+                                        Titulaire</div>
+                                    <div class="text-white font-bold tracking-wide uppercase text-sm">JOHN DOE</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-white/60 text-[10px] font-bold uppercase tracking-wider mb-1">Exp.
+                                    </div>
+                                    <div class="text-white font-mono text-sm font-bold">08/28</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
-            </div>
+
+            </div><!-- FIN CARTES -->
+
         </div>
+
     </div>
 </div>
 {% endblock %}

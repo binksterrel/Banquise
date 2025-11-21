@@ -4,13 +4,37 @@ from django.utils import timezone
 
 # --- UTILISATEURS ---
 class ProfilClient(models.Model):
+    ABONNEMENT_CHOICES = [
+        ('ESSENTIEL', 'Essentiel'),
+        ('PLUS', 'Plus'),
+        ('INFINITE', 'Infinite'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profil')
     date_de_naissance = models.DateField(null=True, blank=True)
     ville_naissance = models.CharField(max_length=100, blank=True)
     telephone = models.CharField(max_length=15, blank=True)
+    abonnement = models.CharField(max_length=15, choices=ABONNEMENT_CHOICES, default='ESSENTIEL')
+    prochain_abonnement = models.CharField(max_length=15, choices=ABONNEMENT_CHOICES, null=True, blank=True)
+    prochaine_facturation = models.DateField(default=timezone.now)
 
     def __str__(self):
         return self.user.username
+
+
+# --- SUPPORT & CHAT ---
+class MessageSupport(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='messages_support')
+    contenu = models.TextField()
+    est_admin = models.BooleanField(default=False)
+    date_envoi = models.DateTimeField(auto_now_add=True)
+    est_lu = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['date_envoi']
+
+    def __str__(self):
+        return f"{'Admin' if self.est_admin else self.user.username}: {self.contenu[:40]}"
 
 # --- BANQUE AU QUOTIDIEN ---
 class Compte(models.Model):
@@ -19,6 +43,7 @@ class Compte(models.Model):
         ('EPARGNE', 'Compte Épargne'),
         ('PRO', 'Compte Pro / Business'),
     ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comptes')
     type_compte = models.CharField(max_length=20, choices=TYPE_CHOICES, default='COURANT')
     solde = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
@@ -54,7 +79,10 @@ class Beneficiaire(models.Model):
 
 # --- TRANSACTIONS ---
 class Transaction(models.Model):
-    TYPE_CHOICES = [('DEBIT', 'Débit'), ('CREDIT', 'Crédit')]
+    TYPE_CHOICES = [
+        ('DEBIT', 'Débit'),
+        ('CREDIT', 'Crédit')
+    ]
 
     CATEGORIE_CHOICES = [
         ('ALIM', 'Alimentation & Courses'),
@@ -101,7 +129,12 @@ class DemandeCredit(models.Model):
         ('ACCEPTEE', 'Acceptée'),
         ('REFUSEE', 'Refusée'),
     ]
-    ETAT_SANTE_CHOIX = [('BON', 'Bon'), ('MOYEN', 'Moyen'), ('FAIBLE', 'Faible')]
+
+    ETAT_SANTE_CHOIX = [
+        ('BON', 'Bon'),
+        ('MOYEN', 'Moyen'),
+        ('FAIBLE', 'Faible'),
+    ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     produit = models.ForeignKey(ProduitPret, on_delete=models.SET_NULL, null=True, blank=True)
@@ -120,6 +153,30 @@ class DemandeCredit(models.Model):
     recommendation = models.CharField(max_length=50, blank=True)
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='EN_ATTENTE')
     date_demande = models.DateTimeField(auto_now_add=True)
+    ia_decision = models.CharField(max_length=20, choices=STATUT_CHOICES, null=True, blank=True)
+    mensualite_calculee = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.produit.nom if self.produit else 'Produit inconnu'} ({self.statut})"
+
+
+class Notification(models.Model):
+    TYPE_CHOICES = [
+        ('VIREMENT', 'Virement'),
+        ('TRANSACTION', 'Transaction'),
+        ('CREDIT', 'Crédit'),
+        ('INFO', 'Info'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    titre = models.CharField(max_length=100)
+    contenu = models.TextField()
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='INFO')
+    url = models.CharField(max_length=250, blank=True)
+    est_lu = models.BooleanField(default=False)
+    date_creation = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date_creation']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.titre}"

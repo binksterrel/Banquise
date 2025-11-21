@@ -115,8 +115,7 @@
                             class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors">Précédent</a>
                         {% endif %}
 
-                        <span class="px-4 py-2 text-slate-500 font-medium">Page {{ page_obj.number }} / {{
-                            page_obj.paginator.num_pages }}</span>
+                        <span class="px-4 py-2 text-slate-500 font-medium">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
 
                         {% if page_obj.has_next %}
                         <a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}"

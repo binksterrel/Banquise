@@ -32,6 +32,7 @@ urlpatterns = [
     path('resultat/<int:demande_id>/', views.page_resultat, name='resultat_simulation'),
     path('historique/', views.page_historique, name='historique'),
     path('api/calcul-pret/', views.api_calcul_pret_dynamique, name='api_calcul_pret'),
+    path('changer-abonnement/', views.changer_abonnement, name='changer_abonnement'),
 
     # --- AUTRES ---
     path('support/', views.support, name='support'),
@@ -41,4 +42,22 @@ urlpatterns = [
     path('produits/comptes/', views.produits_comptes, name='produits_comptes'),
     path('produits/cartes/', views.produits_cartes, name='produits_cartes'),
     path('produits/epargne/', views.produits_epargne, name='produits_epargne'),
+
+    # --- PAGES INFORMATIVES ---
+    path('a-propos/', views.page_a_propos, name='a_propos'),
+    path('tarifs/', views.page_tarifs, name='tarifs'),
+    path('faq/', views.page_faq, name='faq'),
+    path('carrieres/', views.page_carrieres, name='carrieres'),
+    path('presse/', views.page_presse, name='presse'),
+    path('partenaires/', views.page_partenaires, name='partenaires'),
+    path('mentions-legales/', views.page_mentions_legales, name='mentions_legales'),
+    path('confidentialite/', views.page_confidentialite, name='confidentialite'),
+    path('cookies/', views.page_cookies, name='cookies'),
+    path('abonnements/', views.page_abonnements, name='abonnements'),
+    path('notifications/', views.notifications_view, name='notifications'),
+
+    # --- CHAT SUPPORT ---
+    path('support/chat/', views.chat_support, name='chat_support'),
+    path('support/admin-chat/', views.chat_support_admin, name='chat_support_admin'),
+    path('admin/credits/', views.admin_validation_credits, name='admin_validation_credits'),
 ]

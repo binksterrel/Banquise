@@ -10,7 +10,9 @@ from django.db import transaction
 from django.db.models import Sum, F
 from django.core.paginator import Paginator
 from django.utils import timezone
+from django.urls import reverse
 from datetime import timedelta
+from decimal import Decimal
 import random
 import io
 import json
@@ -32,17 +34,68 @@ from .forms import (
     OuvrirCompteForm, CloturerCompteForm, TransactionFilterForm,
     BeneficiaireForm
 )
-from .models import Compte, Carte, Transaction, DemandeCredit, ProfilClient, ProduitPret, Beneficiaire
+from .models import (
+    Compte, Carte, Transaction, DemandeCredit, ProfilClient, ProduitPret,
+    Beneficiaire, MessageSupport, Notification
+)
 
 # BIC Statique pour la démo
 BANQUISE_BIC = "BANQFR76"
+
+PLAN_CONFIG = {
+    'ESSENTIEL': {'prix': Decimal("0.00"), 'label': 'Essentiel'},
+    'PLUS': {'prix': Decimal("9.90"), 'label': 'Plus'},
+    'INFINITE': {'prix': Decimal("19.90"), 'label': 'Infinite'},
+}
+
+def notifier(user, titre, contenu, type_evt='INFO', url=''):
+    Notification.objects.create(
+        user=user,
+        titre=titre,
+        contenu=contenu,
+        type=type_evt,
+        url=url or ''
+    )
+
+
+def overdraft_limit_for_user(user):
+    profil, _ = ProfilClient.objects.get_or_create(user=user, defaults={
+        'abonnement': 'ESSENTIEL',
+        'prochaine_facturation': timezone.now().date() + timedelta(days=30)
+    })
+    return {
+        'ESSENTIEL': Decimal("100.00"),
+        'PLUS': Decimal("500.00"),
+        'INFINITE': Decimal("1000.00")
+    }.get(profil.abonnement, Decimal("100.00"))
+
+
+def enforce_overdraft(compte):
+    """Blocage/déblocage des cartes en fonction du découvert autorisé."""
+    limit = overdraft_limit_for_user(compte.user)
+    solsous = compte.solde
+    cartes = Carte.objects.filter(compte=compte)
+
+    if solsous < -limit:
+        # Blocage si pas déjà bloqué
+        updated = cartes.filter(est_bloquee=False).update(est_bloquee=True)
+        if updated:
+            notifier(compte.user, "Découvert dépassé", "Vos cartes sont bloquées jusqu'au retour en dessous du découvert autorisé.", "TRANSACTION", url=reverse('cartes'))
+    else:
+        # Déblocage si le compte est revenu au-dessus du découvert autorisé
+        updated = cartes.filter(est_bloquee=True).update(est_bloquee=False)
+        if updated:
+            notifier(compte.user, "Cartes débloquées", "Votre solde est revenu au-dessus du découvert autorisé.", "TRANSACTION", url=reverse('cartes'))
 
 # ==============================================================================
 # 1. AUTHENTIFICATION
 # ==============================================================================
 
 def home(request):
-    return render(request, 'scoring/home.html')
+    unread_notifs = 0
+    if request.user.is_authenticated:
+        unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
+    return render(request, 'scoring/home.html', {'unread_notifs': unread_notifs})
 
 def register(request):
     if request.method == 'POST':
@@ -52,7 +105,9 @@ def register(request):
             ProfilClient.objects.create(
                 user=user,
                 date_de_naissance=form.cleaned_data['birth_date'],
-                ville_naissance=form.cleaned_data['birth_city']
+                ville_naissance=form.cleaned_data['birth_city'],
+                abonnement='ESSENTIEL',
+                prochaine_facturation=timezone.now().date() + timedelta(days=30)
             )
             compte = Compte.objects.create(
                 user=user, 
@@ -91,7 +146,8 @@ def login_view(request):
             return redirect('dashboard')
     else:
         form = AuthenticationForm()
-    return render(request, 'registration/login.html', {'form': form})
+    unread_notifs = 0
+    return render(request, 'registration/login.html', {'form': form, 'unread_notifs': unread_notifs})
 
 def logout_view(request):
     logout(request)
@@ -107,11 +163,169 @@ def dashboard(request):
     comptes = Compte.objects.filter(user=request.user, est_actif=True)
     cartes = Carte.objects.filter(compte__in=comptes)
     transactions = Transaction.objects.filter(compte__in=comptes).order_by('-date_execution')[:5]
+    profil, _ = ProfilClient.objects.get_or_create(user=request.user, defaults={
+        'abonnement': 'ESSENTIEL',
+        'prochaine_facturation': timezone.now().date() + timedelta(days=30)
+    })
+    unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
     return render(request, 'scoring/dashboard.html', {
         'comptes': comptes,
         'cartes': cartes,
-        'transactions_recentes': transactions
+        'transactions_recentes': transactions,
+        'profil_client': profil,
+        'plans': PLAN_CONFIG,
+        'unread_notifs': unread_notifs
     })
+
+@login_required
+@transaction.atomic
+def changer_abonnement(request):
+    if request.method != 'POST':
+        return redirect('dashboard')
+
+    plan = request.POST.get('plan')
+    profil, _ = ProfilClient.objects.get_or_create(user=request.user, defaults={
+        'abonnement': 'ESSENTIEL',
+        'prochaine_facturation': timezone.now().date() + timedelta(days=30)
+    })
+
+    if plan == 'RESILIER':
+        profil.prochain_abonnement = 'ESSENTIEL'
+        profil.save(update_fields=['prochain_abonnement'])
+        messages.success(request, "Votre abonnement sera résilié à la fin de la période en cours (retour à Essentiel).")
+        return redirect('dashboard')
+
+    if plan not in PLAN_CONFIG:
+        messages.error(request, "Formule inconnue.")
+        return redirect('dashboard')
+
+    if plan == profil.abonnement:
+        messages.info(request, "Vous êtes déjà sur cette formule.")
+        return redirect('dashboard')
+
+    compte = Compte.objects.filter(user=request.user, est_actif=True).order_by('id').first()
+    if not compte:
+        messages.error(request, "Aucun compte actif pour débiter l'abonnement.")
+        return redirect('dashboard')
+
+    prix = PLAN_CONFIG[plan]['prix']
+    if compte.solde < prix:
+        messages.error(request, "Solde insuffisant pour activer cette formule.")
+        return redirect('dashboard')
+
+    compte.solde = compte.solde - prix
+    compte.save(update_fields=['solde'])
+    Transaction.objects.create(
+        compte=compte,
+        montant=-prix,
+        libelle=f"Abonnement Banquise {PLAN_CONFIG[plan]['label']}",
+        type='DEBIT',
+        categorie='AUTRE'
+    )
+    notifier(request.user, "Abonnement modifié", f"Passage à {PLAN_CONFIG[plan]['label']} facturé {prix} €.", "TRANSACTION", url=reverse('dashboard'))
+    enforce_overdraft(compte)
+
+    profil.abonnement = plan
+    profil.prochain_abonnement = plan
+    profil.prochaine_facturation = timezone.now().date() + timedelta(days=30)
+    profil.save(update_fields=['abonnement', 'prochain_abonnement', 'prochaine_facturation'])
+
+    messages.success(request, f"Formule {PLAN_CONFIG[plan]['label']} activée. Prochaine facturation dans 30 jours.")
+    return redirect('dashboard')
+
+
+def page_abonnements(request):
+    profil = None
+    if request.user.is_authenticated:
+        profil, _ = ProfilClient.objects.get_or_create(user=request.user, defaults={
+            'abonnement': 'ESSENTIEL',
+            'prochaine_facturation': timezone.now().date() + timedelta(days=30)
+        })
+    unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count() if request.user.is_authenticated else 0
+    return render(request, 'scoring/abonnements.html', {
+        'plans': PLAN_CONFIG,
+        'profil_client': profil,
+        'unread_notifs': unread_notifs
+    })
+
+
+@login_required
+def chat_support(request):
+    # Récupère l'historique de l'utilisateur
+    messages_support = MessageSupport.objects.filter(user=request.user)
+    unread_count = Notification.objects.filter(user=request.user, est_lu=False).count()
+
+    if request.method == 'POST':
+        contenu = request.POST.get('message', '').strip()
+        if contenu:
+            MessageSupport.objects.create(
+                user=request.user,
+                contenu=contenu,
+                est_admin=False
+            )
+            notifier(request.user, "Message envoyé", "Votre message a été envoyé au support.", "INFO", url=reverse('chat_support'))
+            # Notify all staff members
+            staff_users = User.objects.filter(is_staff=True)
+            for admin in staff_users:
+                notifier(admin, "Nouveau message client", f"{request.user.username}: {contenu[:80]}", "INFO", url=f"{reverse('chat_support_admin')}?user={request.user.id}")
+            messages.success(request, "Message envoyé au support.")
+            return redirect('chat_support')
+        else:
+            messages.error(request, "Le message ne peut pas être vide.")
+
+    return render(request, 'scoring/chat_support.html', {
+        'messages_support': messages_support,
+        'unread_notifs': unread_count
+    })
+
+
+@staff_member_required
+def chat_support_admin(request):
+    # Liste des conversations ordonnées par dernier message
+    from django.db.models import Max
+    filter_user = request.GET.get('user')
+    base_threads = MessageSupport.objects.values('user').annotate(last=Max('date_envoi')).order_by('-last')
+    conversations = []
+    unread_count = Notification.objects.filter(user=request.user, est_lu=False).count()
+    for t in base_threads:
+        if filter_user and str(t['user']) != str(filter_user):
+            continue
+        user_obj = User.objects.filter(id=t['user']).first()
+        msgs = MessageSupport.objects.filter(user_id=t['user']).order_by('date_envoi')
+        conversations.append({'user': user_obj, 'messages': msgs})
+
+    # Réponse à un utilisateur ciblé
+    if request.method == 'POST':
+        target_user_id = request.POST.get('target_user')
+        contenu = request.POST.get('message', '').strip()
+        if target_user_id and contenu:
+            MessageSupport.objects.create(
+                user_id=target_user_id,
+                contenu=contenu,
+                est_admin=True
+            )
+            notifier(User.objects.get(id=target_user_id), "Réponse support", contenu[:120], "INFO", url=reverse('chat_support'))
+            messages.success(request, "Message envoyé au client.")
+            return redirect('chat_support_admin')
+        else:
+            messages.error(request, "Sélectionnez un utilisateur et saisissez un message.")
+
+    return render(request, 'scoring/chat_support_admin.html', {
+        'conversations': conversations,
+        'filter_user': filter_user,
+        'unread_notifs': unread_count
+    })
+
+
+@login_required
+def notifications_view(request):
+    notifs = Notification.objects.filter(user=request.user)
+    if request.method == 'POST':
+        notifs.update(est_lu=True)
+        messages.success(request, "Notifications marquées comme lues.")
+        return redirect('notifications')
+    unread_count = notifs.filter(est_lu=False).count()
+    return render(request, 'scoring/notifications.html', {'notifications': notifs, 'unread_notifs': unread_count})
 
 @login_required
 def statistiques(request):
@@ -147,6 +361,7 @@ def statistiques(request):
 def releve_compte(request, compte_id):
     compte = get_object_or_404(Compte, id=compte_id, user=request.user, est_actif=True)
     transactions_list = Transaction.objects.filter(compte=compte).order_by('-date_execution')
+    unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
     
     form = TransactionFilterForm(request.GET)
     if form.is_valid():
@@ -171,7 +386,8 @@ def releve_compte(request, compte_id):
         'compte': compte,
         'page_obj': page_obj,
         'form': form,
-        'has_reportlab': HAS_REPORTLAB
+        'has_reportlab': HAS_REPORTLAB,
+        'unread_notifs': unread_notifs
     })
 
 # Génération PDF Relevé
@@ -453,6 +669,8 @@ def virement(request):
                         type='DEBIT',
                         categorie='VIREMENT' 
                     )
+                    notifier(request.user, "Virement envoyé", f"Virement vers {destinataire_str} de {montant} €", "VIREMENT", url=reverse('dashboard'))
+                    enforce_overdraft(compte)
 
                     # 2. Créditer le destinataire (si c'est un compte interne)
                     iban_cible = beneficiaire.iban if beneficiaire else nouvel_iban
@@ -473,6 +691,8 @@ def virement(request):
                             type='CREDIT',
                             categorie='VIREMENT'
                         )
+                        notifier(compte_destinataire.user, "Virement reçu", f"Vous avez reçu {montant} € de {request.user.get_full_name()}", "VIREMENT", url=reverse('dashboard'))
+                        enforce_overdraft(compte_destinataire)
                     except Compte.DoesNotExist:
                         # Si le compte n'existe pas chez nous (virement vers une autre banque),
                         # l'argent sort simplement du système.
@@ -540,22 +760,55 @@ def page_simulation(request):
             demande = form.save(commit=False)
             demande.user = request.user
             
-            mensualite = (demande.montant_souhaite / (demande.duree_souhaitee_annees * 12))
-            taux_endettement = (mensualite / demande.revenus_mensuels) * 100
-            score = max(0, min(100, 100 - int(taux_endettement)))
-            if demande.apport_personnel > (demande.montant_souhaite * 0.2): score += 10
-            demande.score_calcule = score
-            if score >= 60:
-                demande.statut = 'ACCEPTEE'
-                demande.recommendation = "Excellent"
-            elif score >= 40:
-                demande.statut = 'EN_ATTENTE'
-                demande.recommendation = "Moyen"
+            # --- Simulation plus réaliste ---
+            base_rate = demande.produit.taux_ref if demande.produit else Decimal("3.50")
+            taux_mensuel = float(base_rate) / 100 / 12
+            nb_mois = demande.duree_souhaitee_annees * 12
+
+            if taux_mensuel > 0 and nb_mois > 0:
+                mensualite = demande.montant_souhaite * (taux_mensuel) / (1 - (1 + taux_mensuel) ** (-nb_mois))
             else:
-                demande.statut = 'REFUSEE'
-                demande.recommendation = "Risqué"
+                mensualite = demande.montant_souhaite / max(1, nb_mois)
+
+            # Ratios clés
+            dettes_totales = demande.dettes_mensuelles + demande.loyer_actuel
+            dti = ((mensualite + dettes_totales) / max(1, demande.revenus_mensuels)) * 100  # taux d'endettement
+            ltv = 100 * (1 - (demande.apport_personnel / max(1, demande.montant_souhaite)))  # loan-to-value
+
+            score = 100
+            if dti > 30:
+                score -= (dti - 30) * 1.5
+            if ltv > 80:
+                score -= (ltv - 80) * 0.5
+            if demande.revenus_mensuels < 2000:
+                score -= 10
+            if demande.apport_personnel >= demande.montant_souhaite * 0.2:
+                score += 8
+            if demande.sante_snapshot == 'BON':
+                score += 2
+            if demande.emploi_snapshot and demande.emploi_snapshot.nom.lower().startswith('cdi'):
+                score += 5
+
+            score = int(max(0, min(100, score)))
+
+            # Décision IA préliminaire
+            ia_decision = 'ACCEPTEE' if (dti <= 40 and ltv <= 90 and score >= 60) else 'REFUSEE'
+            recommendation = "Avis automatique favorable" if ia_decision == 'ACCEPTEE' else "Avis automatique défavorable (à confirmer)"
+
+            # Taux ajusté en fonction du risque
+            surcharge_risque = Decimal(max(0, (70 - score)) * 0.02).quantize(Decimal("0.01"))
+            taux_final = Decimal(base_rate) + surcharge_risque
+
+            demande.score_calcule = score
+            demande.taux_calcule = taux_final
+            demande.mensualite_calculee = Decimal(str(mensualite)).quantize(Decimal("0.01"))
+            demande.ia_decision = ia_decision
+            demande.recommendation = recommendation
+            # Toujours validation admin finale
+            demande.statut = 'EN_ATTENTE'
             
             demande.save()
+            notifier(request.user, "Demande de crédit reçue", f"Avis automatique : {ia_decision}. En attente d'un conseiller.", "CREDIT", url=reverse('historique'))
             return redirect('resultat_simulation', demande_id=demande.id)
     else:
         form = SimulationPretForm()
@@ -565,16 +818,22 @@ def page_simulation(request):
 def page_resultat(request, demande_id):
     demande = get_object_or_404(DemandeCredit, id=demande_id, user=request.user)
     mensualite_max = int(demande.revenus_mensuels * 0.35)
+    unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
+    score_val = demande.score_calcule or 0
+    gauge_offset = max(0, 440 - (score_val * 4.4))
     return render(request, 'scoring/resultat.html', {
         'demande': demande,
         'montant_propose_formate': f"{demande.montant_souhaite:,.0f}".replace(',', ' '),
-        'mensualite_max_possible': mensualite_max
+        'mensualite_max_possible': mensualite_max,
+        'unread_notifs': unread_notifs,
+        'gauge_offset': gauge_offset
     })
 
 @login_required
 def page_historique(request):
     demandes = DemandeCredit.objects.filter(user=request.user).order_by('-date_demande')
-    return render(request, 'scoring/historique.html', {'demandes': demandes})
+    unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
+    return render(request, 'scoring/historique.html', {'demandes': demandes, 'unread_notifs': unread_notifs})
 
 @login_required
 def api_calcul_pret_dynamique(request): 
@@ -582,12 +841,74 @@ def api_calcul_pret_dynamique(request):
 
 @staff_member_required
 def admin_stats_api(request): 
-    return JsonResponse({'status': 'ok', 'message': 'API endpoint admin prêt'})
+    total_users = User.objects.count()
+    total_balance = Compte.objects.filter(est_actif=True).aggregate(total_sum=Sum('solde'))['total_sum'] or 0.00
+    pending_loans = DemandeCredit.objects.filter(statut='EN_ATTENTE').count()
+    active_accounts = Compte.objects.filter(est_actif=True).count()
+    return JsonResponse({
+        'status': 'ok',
+        'total_users': total_users,
+        'total_balance': float(total_balance),
+        'pending_loans': pending_loans,
+        'active_accounts': active_accounts
+    })
+
+@staff_member_required
+def admin_validation_credits(request):
+    pending = DemandeCredit.objects.filter(statut='EN_ATTENTE').order_by('-date_demande')
+
+    if request.method == 'POST':
+        demande_id = request.POST.get('demande_id')
+        action = request.POST.get('action')
+        demande = get_object_or_404(DemandeCredit, id=demande_id)
+
+        if action == 'ACCEPTEE':
+            demande.statut = 'ACCEPTEE'
+            demande.save(update_fields=['statut'])
+            notifier(demande.user, "Crédit accepté", "Votre demande de crédit a été acceptée par un administrateur.", "CREDIT", url=reverse('historique'))
+            messages.success(request, "Demande acceptée.")
+        elif action == 'REFUSEE':
+            demande.statut = 'REFUSEE'
+            demande.save(update_fields=['statut'])
+            notifier(demande.user, "Crédit refusé", "Votre demande de crédit a été refusée par un administrateur.", "CREDIT", url=reverse('historique'))
+            messages.info(request, "Demande refusée.")
+        return redirect('admin_validation_credits')
+
+    return render(request, 'scoring/admin_credits.html', {'demandes': pending})
 
 
 def support(request):
-    return render(request, 'scoring/support.html')
+    messages_support = []
+    if request.user.is_authenticated:
+        messages_support = MessageSupport.objects.filter(user=request.user)
+    return render(request, 'scoring/support.html', {'messages_support': messages_support})
 
+def page_a_propos(request):
+    return render(request, 'scoring/a_propos.html')
+
+def page_tarifs(request):
+    return render(request, 'scoring/tarifs.html')
+
+def page_faq(request):
+    return render(request, 'scoring/faq.html')
+
+def page_carrieres(request):
+    return render(request, 'scoring/carrieres.html')
+
+def page_presse(request):
+    return render(request, 'scoring/presse.html')
+
+def page_partenaires(request):
+    return render(request, 'scoring/partenaires.html')
+
+def page_mentions_legales(request):
+    return render(request, 'scoring/mentions_legales.html')
+
+def page_confidentialite(request):
+    return render(request, 'scoring/confidentialite.html')
+
+def page_cookies(request):
+    return render(request, 'scoring/cookies.html')
 
 # ==============================================================================
 # 5. PROFIL & ADMIN DASHBOARD
@@ -598,6 +919,8 @@ def profil(request):
     client_profil, created = ProfilClient.objects.get_or_create(user=request.user)
     comptes = Compte.objects.filter(user=request.user, est_actif=True)
     password_form = PasswordChangeForm(request.user)
+    messages_support = MessageSupport.objects.filter(user=request.user).order_by('-date_envoi')[:5]
+    unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
 
     if request.method == 'POST':
         if 'change_password' in request.POST:
@@ -629,7 +952,9 @@ def profil(request):
     return render(request, 'scoring/profil.html', {
         'profil': client_profil,
         'comptes': comptes,
-        'password_form': password_form
+        'password_form': password_form,
+        'messages_support': messages_support,
+        'unread_notifs': unread_notifs
     })
 
 @staff_member_required
@@ -638,6 +963,7 @@ def admin_dashboard_view(request):
     total_balance = Compte.objects.filter(est_actif=True).aggregate(total_sum=Sum('solde'))['total_sum'] or 0.00
     recent_transactions = Transaction.objects.all().select_related('compte', 'compte__user').order_by('-date_execution')[:10]
     pending_loans = DemandeCredit.objects.filter(statut='EN_ATTENTE').count()
+    active_accounts = Compte.objects.filter(est_actif=True).count()
     
     top_categories = Transaction.objects.filter(type='DEBIT').values('categorie').annotate(
         total_spent=Sum(F('montant'))
@@ -649,6 +975,7 @@ def admin_dashboard_view(request):
         'total_users': total_users,
         'total_balance': total_balance,
         'pending_loans': pending_loans,
+        'active_accounts': active_accounts,
         'recent_transactions': recent_transactions,
         'top_categories': [
             {'name': category_map.get(item['categorie'], 'Inconnu'), 'total': abs(item['total_spent'])}

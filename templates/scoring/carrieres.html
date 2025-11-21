@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Carrières - Banquise{% endblock %}
+
+{% block content %}
+<section class="bg-gradient-to-b from-ice-50 to-white">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div class="grid lg:grid-cols-2 gap-10 items-center">
+            <div class="space-y-4">
+                <p class="text-xs font-bold uppercase text-ice-600 tracking-[0.2em]">Rejoindre Banquise</p>
+                <h1 class="text-4xl font-display font-bold text-slate-900">Des équipes produit, tech et conformité qui construisent la finance claire.</h1>
+                <p class="text-slate-600 text-lg leading-relaxed">Nous recherchons des profils qui aiment résoudre des problèmes complexes avec simplicité, et qui placent la sécurité au même niveau que l'expérience utilisateur.</p>
+                <div class="flex items-center gap-4 text-sm text-slate-600">
+                    <span class="px-3 py-1 rounded-full bg-white border border-ice-100 text-ice-700 font-bold">Télétravail hybride</span>
+                    <span class="px-3 py-1 rounded-full bg-white border border-ice-100 text-ice-700 font-bold">Paris / Remote EU</span>
+                </div>
+            </div>
+            <div class="p-6 rounded-3xl bg-white shadow-glass border border-slate-100">
+                <div class="flex items-center justify-between mb-4">
+                    <p class="text-sm font-bold text-slate-900">Ce que l'on cultive</p>
+                    <div class="flex -space-x-2">
+                        <span class="w-8 h-8 rounded-full bg-ice-100 border border-white flex items-center justify-center text-ice-700 text-xs font-bold">UX</span>
+                        <span class="w-8 h-8 rounded-full bg-slate-900 text-white border border-white flex items-center justify-center text-xs font-bold">Sec</span>
+                        <span class="w-8 h-8 rounded-full bg-blue-100 border border-white flex items-center justify-center text-blue-700 text-xs font-bold">Data</span>
+                    </div>
+                </div>
+                <ul class="space-y-3 text-sm text-slate-600">
+                    <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-500 mt-0.5"></i>Culture produit forte, décisions guidées par l'usage réel.</li>
+                    <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-500 mt-0.5"></i>Chapitres sécurité, conformité et data intégrés à chaque squad.</li>
+                    <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-500 mt-0.5"></i>Process d'onboarding structuré, mentorat et formations continues.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <p class="text-xs font-bold uppercase text-ice-600 tracking-[0.2em]">Postes ouverts</p>
+            <h2 class="text-2xl font-display font-bold text-slate-900">Nous recrutons maintenant</h2>
+        </div>
+        <a href="mailto:talent@banquise.com" class="text-sm font-bold text-ice-700 hover:text-ice-900">Spontanée <i class="bi bi-arrow-up-right"></i></a>
+    </div>
+    <div class="space-y-4">
+        {% for role in [
+            ("Senior Backend Engineer", "CDI - Paris ou Remote EU", "Django, API PSD2, résilience, monitoring temps réel."),
+            ("Product Designer", "CDI - Paris", "Design system, micro-interactions, accessibilité WCAG 2.1."),
+            ("Data Analyst Finance", "CDI - Remote EU", "Reporting réglementaire, modèles de risque, Looker/DBT."),
+            ("Compliance Officer", "CDI - Paris", "KYC/KYB, LCB-FT, audits ACPR, procédures internes.")
+        ] %}
+        <div class="p-5 rounded-2xl bg-white border border-slate-100 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <p class="font-display font-bold text-lg text-slate-900">{{ role.0 }}</p>
+                <p class="text-sm text-slate-500">{{ role.1 }}</p>
+                <p class="text-sm text-slate-500 mt-1">{{ role.2 }}</p>
+            </div>
+            <a href="mailto:talent@banquise.com?subject={{ role.0|urlencode }}" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-bold hover:-translate-y-0.5 transition-all duration-200 shadow-lg hover:shadow-slate-900/30">Postuler</a>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

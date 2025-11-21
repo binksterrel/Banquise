@@ -124,9 +124,14 @@
                                 <p class="font-mono text-ice-300">{{ user.date_joined|date:"M Y" }}</p>
                             </div>
                             <div>
-                                <p class="text-xs text-slate-400 uppercase tracking-wider font-bold">Statut</p>
-                                <p class="font-bold text-yellow-400">Gold <i
-                                        class="bi bi-star-fill text-[10px] align-middle"></i></p>
+                                <p class="text-xs text-slate-400 uppercase tracking-wider font-bold">Formule</p>
+                                <p class="font-bold text-ice-300">{{ profil.get_abonnement_display }}</p>
+                                {% if profil.abonnement != 'ESSENTIEL' %}
+                                <form method="post" action="{% url 'changer_abonnement' %}" class="mt-3">{% csrf_token %}
+                                    <input type="hidden" name="plan" value="RESILIER">
+                                    <button type="submit" onclick="return confirm('Résilier et revenir à Essentiel à la fin de la période en cours ?');" class="text-xs font-bold text-red-200 hover:text-red-100">Résilier (fin de période)</button>
+                                </form>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -145,6 +150,10 @@
                         <a href="#security"
                             class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors font-medium">
                             <i class="bi bi-shield-lock"></i> Sécurité
+                        </a>
+                        <a href="{% url 'chat_support' %}"
+                            class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors font-medium">
+                            <i class="bi bi-chat-dots"></i> Chat Support
                         </a>
                         <a href="#danger"
                             class="flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 transition-colors font-medium">
@@ -175,10 +184,12 @@
                             <div class="relative z-10">
                                 <div class="flex justify-between items-start mb-4">
                                     <div>
-                                        <h4 class="font-display font-bold text-2xl text-slate-800">{{
-                                            compte.get_type_compte_display }}</h4>
-                                        <p class="text-slate-500 text-sm mt-1">Titulaire: **{{ user.first_name }} {{
-                                            user.last_name }}**</p>
+                                        <h4 class="font-display font-bold text-2xl text-slate-800">
+                                            {{ compte.get_type_compte_display }}
+                                        </h4>
+                                        <p class="text-slate-500 text-sm mt-1">
+                                            Titulaire: {{ user.first_name }} {{user.last_name }}
+                                        </p>
                                     </div>
                                     <i class="bi bi-bank text-2xl text-slate-300"></i>
                                 </div>
@@ -218,7 +229,9 @@
                                     <div class="md:col-span-3 bg-white p-3 rounded-xl border border-slate-200">
                                         <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">
                                             Solde actuel sur ce compte</p>
-                                        <p class="font-display text-xl font-bold text-ice-600">{{ compte.solde }} €</p>
+                                        <p class="font-display text-xl font-bold text-ice-600">
+                                            {{ compte.solde }} €
+                                        </p>
                                     </div>
                                 </div>
 
@@ -241,6 +254,7 @@
                         {% endfor %}
                     </div>
                 </div>
+
                 <div id="infos" class="glass-panel p-8 md:p-10 rounded-[2rem]">
                     <div class="flex justify-between items-center mb-8">
                         <h3 class="text-xl font-display font-bold text-slate-900">Informations Personnelles</h3>
@@ -288,7 +302,9 @@
                         </div>
                         <div class="pt-4 flex justify-end">
                             <button type="submit"
-                                class="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold shadow-lg hover:bg-ice-600 hover:shadow-ice-500/30 transition-all transform hover:-translate-y-0.5">Enregistrer</button>
+                                class="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold shadow-lg hover:bg-ice-600 hover:shadow-ice-500/30 transition-all transform hover:-translate-y-0.5">
+                                Enregistrer
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -296,9 +312,11 @@
                 <div id="security" class="glass-panel p-8 md:p-10 rounded-[2rem] relative overflow-hidden">
                     <div class="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl"></div>
                     <h3 class="text-xl font-display font-bold text-slate-900 mb-8">Modifier le mot de passe</h3>
+
                     <form method="POST" class="space-y-5">
                         {% csrf_token %}
                         <input type="hidden" name="change_password" value="1">
+
                         <div class="group">
                             <label class="input-label">Mot de passe actuel</label>
                             <div class="relative">
@@ -312,11 +330,13 @@
                             <div
                                 class="mt-2 p-3 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 animate-slide-down">
                                 <i class="bi bi-x-circle-fill text-red-500 text-lg mt-0.5"></i>
-                                <p class="text-red-700 text-sm font-medium leading-tight">{{
-                                    password_form.old_password.errors.0 }}</p>
+                                <p class="text-red-700 text-sm font-medium leading-tight">
+                                    {{ password_form.old_password.errors.0 }}
+                                </p>
                             </div>
                             {% endif %}
                         </div>
+
                         <div class="group">
                             <label class="input-label">Nouveau mot de passe</label>
                             <div class="relative">
@@ -332,14 +352,15 @@
                                 <div
                                     class="p-3 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 shadow-sm">
                                     <i class="bi bi-exclamation-triangle-fill text-red-500 text-lg mt-0.5"></i>
-                                    <p class="text-red-800 font-bold text-xs uppercase tracking-wide mb-0.5">
-                                        Attention</p>
-                                    <p class="text-red-700 text-sm font-medium leading-tight">{{ error }}</p>
+                                    <div>
+                                        <p class="text-red-700 text-sm font-medium leading-tight">{{ error }}</p>
+                                    </div>
                                 </div>
                                 {% endfor %}
                             </div>
                             {% endif %}
                         </div>
+
                         <div class="group">
                             <label class="input-label">Confirmer le mot de passe</label>
                             <div class="relative">
@@ -352,11 +373,13 @@
                             {% if password_form.new_password2.errors %}
                             <div class="mt-2 p-3 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3">
                                 <i class="bi bi-shield-slash-fill text-red-500 text-lg mt-0.5"></i>
-                                <p class="text-red-700 text-sm font-medium leading-tight">{{
-                                    password_form.new_password2.errors.0 }}</p>
+                                <p class="text-red-700 text-sm font-medium leading-tight">
+                                    {{ password_form.new_password2.errors.0 }}
+                                </p>
                             </div>
                             {% endif %}
                         </div>
+
                         <div class="pt-4 flex justify-end">
                             <button type="submit"
                                 class="px-8 py-3 bg-purple-600 text-white rounded-xl font-bold shadow-lg shadow-purple-200 hover:bg-purple-700 hover:shadow-purple-300/50 transition-all transform hover:-translate-y-0.5 flex items-center gap-2">
@@ -384,8 +407,8 @@
                     <h3 class="font-bold text-red-600 mb-2 flex items-center gap-2">
                         <i class="bi bi-exclamation-circle-fill"></i> Zone de danger
                     </h3>
-                    <p class="text-sm text-red-400 mb-4">La suppression de votre compte est irréversible. Veuillez
-                        contacter le support pour procéder.</p>
+                    <p class="text-sm text-red-400 mb-4">La suppression de votre compte est irréversible. Contactez le
+                        support pour procéder.</p>
                     <a href="{% url 'support' %}"
                         class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border-2 border-red-200 text-red-600 text-sm font-bold hover:bg-red-600 hover:border-red-600 hover:text-white transition-all">
                         Contacter le support

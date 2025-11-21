@@ -52,6 +52,18 @@
                     {% endif %}
                 </div>
 
+                <div class="px-2 text-xs text-slate-500">
+                    {% with profil=carte.compte.user.profil %}
+                    {% if profil.abonnement == 'INFINITE' %}
+                    Découvert autorisé : 1000 €
+                    {% elif profil.abonnement == 'PLUS' %}
+                    Découvert autorisé : 500 €
+                    {% else %}
+                    Découvert autorisé : 100 €
+                    {% endif %}
+                    {% endwith %}
+                </div>
+
                 <div class="relative h-64 w-full rounded-3xl p-8 shadow-2xl border border-white/10 group transform hover:scale-[1.02] transition-all duration-500 overflow-hidden cursor-pointer
                     {% if carte.compte.type_compte == 'EPARGNE' %}
                         bg-gradient-to-br from-ice-500 via-blue-500 to-blue-700

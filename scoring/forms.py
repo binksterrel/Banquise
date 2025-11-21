@@ -152,4 +152,8 @@ class SimulationPretForm(forms.ModelForm):
     
     class Meta:
         model = DemandeCredit
-        exclude = ['user', 'statut', 'date_demande', 'score_calcule', 'taux_calcule', 'recommendation', 'sante_snapshot']
+        exclude = [
+            'user', 'statut', 'date_demande',
+            'score_calcule', 'taux_calcule', 'recommendation',
+            'sante_snapshot', 'ia_decision', 'mensualite_calculee'
+        ]

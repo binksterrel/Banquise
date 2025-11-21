@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}À propos - Banquise{% endblock %}
+
+{% block content %}
+<section class="relative overflow-hidden bg-gradient-to-b from-ice-50 via-white to-white">
+    <div class="absolute inset-0 pointer-events-none">
+        <div class="absolute -right-20 -top-20 w-80 h-80 bg-ice-100 rounded-full blur-3xl opacity-70"></div>
+        <div class="absolute -left-10 top-40 w-72 h-72 bg-blue-100 rounded-full blur-3xl opacity-60"></div>
+    </div>
+
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24 relative">
+        <div class="grid lg:grid-cols-2 gap-12 items-center">
+            <div class="space-y-6">
+                <span class="inline-flex items-center gap-2 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-ice-700 bg-ice-50 rounded-full">Notre mission</span>
+                <h1 class="text-4xl lg:text-5xl font-display font-bold text-slate-900 leading-tight">Construire la banque la plus claire, la plus sûre et la plus utile d'Europe.</h1>
+                <p class="text-lg text-slate-600 leading-relaxed">Banquise est née d'une idée simple : votre argent mérite une expérience fluide, intelligible et profondément sécurisée. Nous créons des produits transparents, responsables et designés pour réduire le bruit et vous rendre le contrôle.</p>
+                <div class="flex flex-wrap gap-4">
+                    <a href="{% url 'tarifs' %}" class="px-5 py-3 rounded-xl bg-slate-900 text-white font-bold shadow-lg hover:shadow-slate-900/30 hover:-translate-y-0.5 transition-all duration-300">Voir nos offres</a>
+                    <a href="{% url 'support' %}" class="px-5 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold hover:border-ice-200 hover:text-ice-700 transition-colors">Discuter avec nous</a>
+                </div>
+            </div>
+            <div class="bg-white shadow-glass border border-slate-100 rounded-3xl p-8 space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold uppercase text-slate-400 mb-1">Clients actifs</p>
+                        <p class="text-3xl font-display font-bold text-slate-900">+180k</p>
+                        <p class="text-sm text-slate-500">Croissance organique, zéro publicité massive.</p>
+                    </div>
+                    <div class="w-16 h-16 rounded-2xl bg-ice-50 text-ice-600 flex items-center justify-center text-2xl"><i class="bi bi-people-fill"></i></div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold uppercase text-slate-400 mb-1">Disponibilité</p>
+                        <p class="text-3xl font-display font-bold text-slate-900">99.98%</p>
+                        <p class="text-sm text-slate-500">Infrastructure multi-cloud, supervision 24/7.</p>
+                    </div>
+                    <div class="w-16 h-16 rounded-2xl bg-ice-50 text-ice-600 flex items-center justify-center text-2xl"><i class="bi bi-shield-check"></i></div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold uppercase text-slate-400 mb-1">Engagement climat</p>
+                        <p class="text-3xl font-display font-bold text-slate-900">-35%</p>
+                        <p class="text-sm text-slate-500">Réduction de l’empreinte carbone par carte émise depuis 2023.</p>
+                    </div>
+                    <div class="w-16 h-16 rounded-2xl bg-ice-50 text-ice-600 flex items-center justify-center text-2xl"><i class="bi bi-globe-europe-africa"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="grid md:grid-cols-3 gap-8">
+        <div class="p-6 rounded-2xl bg-white shadow-glass border border-slate-100">
+            <div class="w-12 h-12 rounded-xl bg-ice-50 text-ice-600 flex items-center justify-center text-xl mb-4"><i class="bi bi-lightning-charge-fill"></i></div>
+            <h3 class="font-display font-bold text-xl text-slate-900 mb-2">Clarté radicale</h3>
+            <p class="text-slate-600 text-sm leading-relaxed">Des tarifs lisibles, des interfaces limpides, des termes compréhensibles. Vos décisions sont prises en pleine lumière.</p>
+        </div>
+        <div class="p-6 rounded-2xl bg-white shadow-glass border border-slate-100">
+            <div class="w-12 h-12 rounded-xl bg-ice-50 text-ice-600 flex items-center justify-center text-xl mb-4"><i class="bi bi-shield-lock-fill"></i></div>
+            <h3 class="font-display font-bold text-xl text-slate-900 mb-2">Sécurité by design</h3>
+            <p class="text-slate-600 text-sm leading-relaxed">Authentification forte, monitoring en temps réel, conformité ACPR/PSD2. Nous sécurisons avant d’optimiser.</p>
+        </div>
+        <div class="p-6 rounded-2xl bg-white shadow-glass border border-slate-100">
+            <div class="w-12 h-12 rounded-xl bg-ice-50 text-ice-600 flex items-center justify-center text-xl mb-4"><i class="bi bi-stars"></i></div>
+            <h3 class="font-display font-bold text-xl text-slate-900 mb-2">Expérience soignée</h3>
+            <p class="text-slate-600 text-sm leading-relaxed">Animations subtiles, informations hiérarchisées, assistance proactive. Nous designons pour diminuer le stress financier.</p>
+        </div>
+    </div>
+</section>
+
+<section class="bg-slate-900 text-white py-16">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+            <div class="space-y-4 max-w-2xl">
+                <p class="text-ice-300 text-sm font-bold uppercase tracking-[0.2em]">Chronologie</p>
+                <h2 class="text-3xl font-display font-bold">Les jalons qui comptent.</h2>
+                <p class="text-slate-200 leading-relaxed">Une progression mesurée, alignée sur la confiance et la qualité. Chaque étape est guidée par la réduction du risque et l’amélioration de l’expérience client.</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full lg:w-1/2">
+                <div class="p-4 rounded-2xl bg-white/5 border border-white/10">
+                    <p class="text-xs text-ice-200 font-bold uppercase mb-1">2022</p>
+                    <p class="text-lg font-bold">Lancement Banquise</p>
+                    <p class="text-sm text-slate-200 mt-2">Premiers comptes courants, contrôle temps réel des plafonds.</p>
+                </div>
+                <div class="p-4 rounded-2xl bg-white/5 border border-white/10">
+                    <p class="text-xs text-ice-200 font-bold uppercase mb-1">2023</p>
+                    <p class="text-lg font-bold">Cartes & Épargne</p>
+                    <p class="text-sm text-slate-200 mt-2">Cartes métal, épargne haut rendement, premières API partenaires.</p>
+                </div>
+                <div class="p-4 rounded-2xl bg-white/5 border border-white/10">
+                    <p class="text-xs text-ice-200 font-bold uppercase mb-1">2024</p>
+                    <p class="text-lg font-bold">Crédits responsables</p>
+                    <p class="text-sm text-slate-200 mt-2">Scoring transparent, parcours immobilier, coaching budgétaire.</p>
+                </div>
+                <div class="p-4 rounded-2xl bg-white/5 border border-white/10">
+                    <p class="text-xs text-ice-200 font-bold uppercase mb-1">2025</p>
+                    <p class="text-lg font-bold">Europe first</p>
+                    <p class="text-sm text-slate-200 mt-2">Disponibilité multilingue, temps de réponse <120ms, couverture paneuropéenne.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="grid lg:grid-cols-2 gap-10 items-center">
+        <div class="space-y-4">
+            <p class="text-xs font-bold uppercase text-ice-600 tracking-[0.2em]">Équipe</p>
+            <h2 class="text-3xl font-display font-bold text-slate-900">Des profils hybrides, finance + produit + sécurité.</h2>
+            <p class="text-slate-600 leading-relaxed">Banquiers, designers, ingénieurs, experts conformité travaillent ensemble pour livrer des services robustes et humains. Nous recrutons des personnes curieuses, rigoureuses et orientées impact.</p>
+            <div class="grid grid-cols-2 gap-4 text-sm text-slate-600">
+                <div class="p-4 rounded-2xl bg-white shadow-glass border border-slate-100">
+                    <p class="font-bold text-slate-900">Comité Risques</p>
+                    <p class="text-slate-500 mt-1">6 membres issus d'établissements régulés.</p>
+                </div>
+                <div class="p-4 rounded-2xl bg-white shadow-glass border border-slate-100">
+                    <p class="font-bold text-slate-900">Tech & Produit</p>
+                    <p class="text-slate-500 mt-1">45 spécialistes sécurité, data, design ops.</p>
+                </div>
+            </div>
+        </div>
+        <div class="rounded-3xl bg-gradient-to-br from-ice-50 to-white border border-ice-100 shadow-glass p-10 space-y-6">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-white text-ice-600 flex items-center justify-center shadow"><i class="bi bi-award"></i></div>
+                <div>
+                    <p class="text-xs font-bold uppercase text-slate-500">Conformité & régulation</p>
+                    <p class="text-slate-800 font-bold">ACPR & PSD2</p>
+                </div>
+            </div>
+            <ul class="space-y-3 text-sm text-slate-600">
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-500 mt-0.5"></i> Agrément ACPR en France, procédures KYC/KYB renforcées.</li>
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-500 mt-0.5"></i> Données chiffrées en transit et au repos, sauvegardes multi-zone.</li>
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-500 mt-0.5"></i> Equipe sécurité dédiée au monitoring des anomalies temps réel.</li>
+            </ul>
+        </div>
+    </div>
+</section>
+{% endblock %}

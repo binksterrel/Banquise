@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Abonnements - Banquise{% endblock %}
+
+{% block content %}
+<section class="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white relative overflow-hidden">
+    <div class="absolute inset-0 opacity-40 mix-blend-screen"
+        style="background: radial-gradient(35% 35% at 20% 20%, rgba(56,189,248,0.25), transparent), radial-gradient(30% 30% at 80% 10%, rgba(59,130,246,0.2), transparent);">
+    </div>
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20 relative">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <div class="space-y-4 max-w-3xl">
+                <p class="text-xs font-bold uppercase text-ice-300 tracking-[0.25em]">Abonnements Banquise</p>
+                <h1 class="text-4xl lg:text-5xl font-display font-bold leading-tight">Choisissez la formule qui matche vos usages.</h1>
+                <p class="text-slate-200 text-lg">Paiements sécurisés, cartes évolutives, protections renforcées. Vous pouvez changer de formule à tout moment avec confirmation.</p>
+                {% if profil_client %}
+                <div class="text-sm text-slate-200">Formule actuelle : <span class="font-bold">{{ profil_client.get_abonnement_display }}</span> · Prochaine facturation : {{ profil_client.prochaine_facturation|date:"d M Y" }}</div>
+                {% endif %}
+            </div>
+            <a href="{% url 'dashboard' %}" class="px-4 py-2 rounded-xl bg-white text-slate-900 font-bold text-sm hover:-translate-y-0.5 transition-all duration-200 shadow-lg">Retour tableau de bord</a>
+        </div>
+    </div>
+</section>
+
+<section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="grid md:grid-cols-3 gap-6">
+        {% for code, plan in plans.items %}
+        <div class="p-8 rounded-3xl {% if code == 'PLUS' %}bg-slate-900 text-white shadow-2xl border border-slate-800 relative overflow-hidden{% else %}bg-white shadow-glass border border-slate-100{% endif %}">
+            {% if code == 'PLUS' %}
+            <div class="absolute inset-0 opacity-30" style="background: radial-gradient(60% 60% at 30% 20%, rgba(56,189,248,0.35), transparent);"></div>
+            <div class="absolute inset-0 border border-white/5 rounded-3xl"></div>
+            {% endif %}
+            <div class="flex items-baseline justify-between mb-6 {% if code == 'PLUS' %}relative z-10{% endif %}">
+                <div>
+                    <p class="text-xs font-bold uppercase {% if code == 'PLUS' %}text-ice-300{% else %}text-slate-400{% endif %}">{{ plan.label }}</p>
+                    <h3 class="text-3xl font-display font-bold">{% if plan.prix == 0 %}0 €{% else %}{{ plan.prix }} €{% endif %} / mois</h3>
+                </div>
+                {% if code == 'PLUS' %}<span class="px-3 py-1 text-xs font-bold rounded-full bg-white/10 text-ice-100 border border-white/10">Le plus choisi</span>{% endif %}
+            </div>
+            <ul class="space-y-3 text-sm {% if code == 'PLUS' %}text-slate-100 relative z-10{% else %}text-slate-600{% endif %}">
+                {% if code == 'ESSENTIEL' %}
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill {% if code == 'PLUS' %}text-ice-300{% else %}text-ice-500{% endif %} mt-0.5"></i> Compte courant et carte virtuelle</li>
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill {% if code == 'PLUS' %}text-ice-300{% else %}text-ice-500{% endif %} mt-0.5"></i> Paiements SEPA instantanés</li>
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill {% if code == 'PLUS' %}text-ice-300{% else %}text-ice-500{% endif %} mt-0.5"></i> Plafonds ajustables en temps réel</li>
+                {% elif code == 'PLUS' %}
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-300 mt-0.5"></i> Carte physique + virtuelle, assurances voyage/mobilité</li>
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-300 mt-0.5"></i> Sous-compte partagé + cartes éphémères</li>
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-300 mt-0.5"></i> Cashback partenaires sélectionnés</li>
+                {% else %}
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-500 mt-0.5"></i> Carte métal + plafonds boostés</li>
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-500 mt-0.5"></i> Conciergerie 24/7 & lounge aéroports</li>
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-500 mt-0.5"></i> Cartes virtuelles illimitées & protections achats</li>
+                {% endif %}
+            </ul>
+            <div class="mt-6 {% if code == 'PLUS' %}relative z-10{% endif %}">
+                <form method="post" action="{% url 'changer_abonnement' %}">{% csrf_token %}
+                    <input type="hidden" name="plan" value="{{ code }}">
+                    <button type="submit" onclick="return confirm('Confirmer le passage à {{ plan.label }} ({% if plan.prix == 0 %}0 €{% else %}{{ plan.prix }} €{% endif %} facturés maintenant) ?');" class="w-full px-5 py-3 rounded-xl font-bold text-sm {% if code == 'PLUS' %}bg-white text-slate-900 hover:-translate-y-0.5 transition-all duration-300 shadow-lg{% else %}bg-slate-900 text-white hover:-translate-y-0.5 transition-all duration-300 shadow-lg hover:shadow-slate-900/30{% endif %}">
+                        Choisir {{ plan.label }}
+                    </button>
+                </form>
+                {% if profil_client and profil_client.abonnement == code %}
+                <p class="text-xs text-slate-500 mt-2 {% if code == 'PLUS' %}text-slate-200{% endif %}">Plan actuel.</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if profil_client and profil_client.abonnement != 'ESSENTIEL' %}
+    <div class="mt-8 p-6 rounded-2xl bg-red-50 border border-red-100 text-red-700 text-sm">
+        <form method="post" action="{% url 'changer_abonnement' %}">{% csrf_token %}
+            <input type="hidden" name="plan" value="RESILIER">
+            <p class="font-bold mb-2">Résilier</p>
+            <p class="mb-3 text-red-600">Résiliation programmée : retour à Essentiel à la fin de la période en cours.</p>
+            <button type="submit" onclick="return confirm('Confirmer la résiliation et le retour à Essentiel à la fin de la période en cours ?');" class="px-4 py-2 rounded-lg bg-white text-red-700 font-bold border border-red-200 hover:bg-red-100">Programmer la résiliation</button>
+        </form>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

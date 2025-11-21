@@ -111,8 +111,13 @@
             <div>
                 <p class="text-slate-500 text-sm font-medium mb-1">{% now "l d F Y" %}</p>
                 <h1 class="text-3xl md:text-4xl font-display font-bold text-slate-900">
-                    Bonjour, <span class="text-transparent bg-clip-text bg-gradient-to-r from-ice-600 to-blue-600">{{
-                        user.first_name|default:user.username }}</span> 👋
+                    Bonjour, <span class="text-transparent bg-clip-text bg-gradient-to-r from-ice-600 to-blue-600">
+                        {% if user.first_name %}
+                        {{ user.first_name|capfirst }}
+                        {% else %}
+                        {{ user.username|capfirst }}
+                        {% endif %}
+                    </span> 👋
                 </h1>
             </div>
             <div>
@@ -151,8 +156,7 @@
                         </div>
 
                         <div class="flex justify-between items-end">
-                            <p class="text-xs text-slate-400 font-mono bg-white/50 px-2 py-1 rounded-lg">{{
-                                compte.numero_compte }}</p>
+                            <p class="text-xs text-slate-400 font-mono bg-white/50 px-2 py-1 rounded-lg">{{ compte.numero_compte }}</p>
                         </div>
                     </div>
                     {% empty %}
@@ -213,8 +217,7 @@
                                 </div>
                                 <div>
                                     <p class="font-bold text-slate-800">{{ tx.libelle }}</p>
-                                    <p class="text-xs text-slate-500 font-medium">{{ tx.date_execution|date:"d F, H:i"
-                                        }}</p>
+                                    <p class="text-xs text-slate-500 font-medium">{{ tx.date_execution|date:"d F, H:i" }}</p>
                                 </div>
                             </div>
                             <span
@@ -236,6 +239,52 @@
             </div>
 
             <div class="lg:w-1/3 space-y-8">
+
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">Formule actuelle</p>
+                            <h3 class="font-display font-bold text-slate-900 text-xl">{{ profil_client.get_abonnement_display }}</h3>
+                            <p class="text-sm text-slate-500">Prochaine facturation : {{ profil_client.prochaine_facturation|date:"d M Y" }}</p>
+                            {% if profil_client.prochain_abonnement and profil_client.prochain_abonnement != profil_client.abonnement %}
+                            <p class="text-xs text-slate-500 mt-1">Plan programmé : {{ profil_client.get_prochain_abonnement_display }}</p>
+                            {% endif %}
+                        </div>
+                        <a href="{% url 'abonnements' %}" class="text-xs font-bold text-ice-700 hover:text-ice-900 underline underline-offset-4">Avantages</a>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="text-xs text-slate-500">Changer de formule (confirmation requise) :</div>
+                        <div class="grid grid-cols-1 gap-2">
+                            <form method="post" action="{% url 'changer_abonnement' %}">{% csrf_token %}
+                                <input type="hidden" name="plan" value="ESSENTIEL">
+                                <button type="submit" onclick="return confirm('Confirmer le passage à Essentiel (0 €) ?');" class="w-full flex items-center justify-between px-4 py-3 rounded-xl border {% if profil_client.abonnement == 'ESSENTIEL' %}border-ice-200 bg-ice-50 text-ice-700{% else %}border-slate-200 text-slate-700 hover:border-ice-200 hover:text-ice-700{% endif %} transition-colors">
+                                    <span class="font-bold text-sm">Essentiel</span>
+                                    <span class="text-xs text-slate-500">0 €</span>
+                                </button>
+                            </form>
+                            <form method="post" action="{% url 'changer_abonnement' %}">{% csrf_token %}
+                                <input type="hidden" name="plan" value="PLUS">
+                                <button type="submit" onclick="return confirm('Confirmer le passage à Plus (9,90 € facturés maintenant) ?');" class="w-full flex items-center justify-between px-4 py-3 rounded-xl border {% if profil_client.abonnement == 'PLUS' %}border-ice-200 bg-ice-50 text-ice-700{% else %}border-slate-200 text-slate-700 hover:border-ice-200 hover:text-ice-700{% endif %} transition-colors">
+                                    <span class="font-bold text-sm">Plus</span>
+                                    <span class="text-xs text-slate-500">9,90 €</span>
+                                </button>
+                            </form>
+                            <form method="post" action="{% url 'changer_abonnement' %}">{% csrf_token %}
+                                <input type="hidden" name="plan" value="INFINITE">
+                                <button type="submit" onclick="return confirm('Confirmer le passage à Infinite (19,90 € facturés maintenant) ?');" class="w-full flex items-center justify-between px-4 py-3 rounded-xl border {% if profil_client.abonnement == 'INFINITE' %}border-ice-200 bg-ice-50 text-ice-700{% else %}border-slate-200 text-slate-700 hover:border-ice-200 hover:text-ice-700{% endif %} transition-colors">
+                                    <span class="font-bold text-sm">Infinite</span>
+                                    <span class="text-xs text-slate-500">19,90 €</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% if profil_client.abonnement != 'ESSENTIEL' %}
+                    <form method="post" action="{% url 'changer_abonnement' %}" class="pt-2">{% csrf_token %}
+                        <input type="hidden" name="plan" value="RESILIER">
+                        <button type="submit" onclick="return confirm('Résilier et revenir à Essentiel à la fin de la période en cours ?');" class="w-full px-4 py-3 text-xs font-bold rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-left">Résilier (fin de période)</button>
+                    </form>
+                    {% endif %}
+                </div>
 
                 <div
                     class="relative h-56 w-full bg-gradient-to-br from-slate-800 to-black rounded-3xl p-8 shadow-2xl border border-slate-700 group transform hover:scale-105 transition-all duration-500 overflow-hidden cursor-pointer">

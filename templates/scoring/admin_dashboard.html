@@ -166,6 +166,8 @@
                     class="px-5 py-2.5 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-colors shadow-lg">
                     <i class="bi bi-shield-lock-fill mr-2"></i> Accès CRUD Avancé
                 </a>
+                <a href="{% url 'admin_validation_credits' %}"
+                    class="px-4 py-2 bg-ice-50 text-ice-700 border border-ice-100 rounded-lg font-bold text-sm hover:bg-ice-100 transition">Validation crédits</a>
                 <button id="refreshStatsBtn"
                     class="px-4 py-2 bg-slate-100 rounded-lg font-medium text-sm hover:bg-slate-200 transition">Refresh</button>
             </div>
@@ -178,8 +180,7 @@
                 data-stat="total_users">
                 <p class="text-xs font-bold text-blue-600 uppercase">Utilisateurs Enregistrés</p>
                 <div class="flex items-center justify-between mt-3">
-                    <span class="data-value" id="ui_total_users" data-value="{{ total_users|default:0 }}">{{ total_users
-                        }}</span>
+                    <span class="data-value" id="ui_total_users" data-value="{{ total_users|default:0 }}">{{ total_users }}</span>
                     <i class="bi bi-people-fill text-4xl text-blue-400 opacity-60"></i>
                 </div>
             </a>
@@ -188,8 +189,7 @@
                 data-stat="total_balance">
                 <p class="text-xs font-bold text-green-600 uppercase">Total Solde Actif (€)</p>
                 <div class="flex items-center justify-between mt-3">
-                    <span class="data-value" id="ui_total_balance" data-value="{{ total_balance|default:0 }}">{{
-                        total_balance|floatformat:0|default:"0"|intcomma }}</span>
+                    <span class="data-value" id="ui_total_balance" data-value="{{ total_balance|default:0 }}">{{ total_balance|floatformat:0|default:"0"|intcomma }}</span>
                     <i class="bi bi-currency-euro text-4xl text-green-400 opacity-60"></i>
                 </div>
             </a>
@@ -198,20 +198,18 @@
                 class="data-card border-orange-200 hover:border-orange-500" data-stat="pending_loans">
                 <p class="text-xs font-bold text-orange-600 uppercase">Crédits en Attente</p>
                 <div class="flex items-center justify-between mt-3">
-                    <span class="data-value" id="ui_pending_loans" data-value="{{ pending_loans|default:0 }}">{{
-                        pending_loans }}</span>
+                    <span class="data-value" id="ui_pending_loans" data-value="{{ pending_loans|default:0 }}">{{ pending_loans }}</span>
                     <i class="bi bi-clock-fill text-4xl text-orange-400 opacity-60"></i>
                 </div>
             </a>
 
-            <a href="{{ admin_url_base }}scoring/beneficiaire/"
-                class="data-card border-purple-200 hover:border-purple-500" data-stat="beneficiaries">
-                <p class="text-xs font-bold text-purple-600 uppercase">Bénéficiaires Enregistrés</p>
+            <a href="{{ admin_url_base }}scoring/compte/"
+                class="data-card border-purple-200 hover:border-purple-500" data-stat="active_accounts">
+                <p class="text-xs font-bold text-purple-600 uppercase">Comptes Actifs</p>
                 <div class="flex items-center justify-between mt-3">
-                    <span class="data-value" id="ui_beneficiaries"
-                        data-value="{% if total_users %}{{ total_users }}{% else %}0{% endif %}">{% if total_users %}{{
-                        total_users }}{% else %}0{% endif %}</span>
-                    <i class="bi bi-person-lines-fill text-4xl text-purple-400 opacity-60"></i>
+                    <span class="data-value" id="ui_active_accounts"
+                        data-value="{{ active_accounts|default:0 }}">{{ active_accounts|default:"0" }}</span>
+                    <i class="bi bi-bank2 text-4xl text-purple-400 opacity-60"></i>
                 </div>
             </a>
 
@@ -240,13 +238,11 @@
                             </div>
                             <div>
                                 <p class="font-medium text-slate-900">{{ tx.libelle|truncatechars:40 }}</p>
-                                <p class="text-xs text-slate-500">Client. {{ tx.compte.user.username }}. Catégorie. {{
-                                    tx.get_categorie_display }}</p>
+                                <p class="text-xs text-slate-500">Client. {{ tx.compte.user.username }}. Catégorie. {{ tx.get_categorie_display }}</p>
                             </div>
                         </div>
                         <span
-                            class="font-bold font-mono text-lg {% if tx.type == 'DEBIT' %}text-red-600{% else %}text-green-600{% endif %}">{{
-                            tx.montant|floatformat:2 }} €</span>
+                            class="font-bold font-mono text-lg {% if tx.type == 'DEBIT' %}text-red-600{% else %}text-green-600{% endif %}">{{ tx.montant|floatformat:2 }} €</span>
                     </a>
                     {% empty %}
                     <p class="text-center text-slate-500 py-4 italic">Aucune transaction récente à afficher.</p>
@@ -318,7 +314,7 @@
             { id: 'ui_total_users', parse: v => parseInt(v) },
             { id: 'ui_total_balance', parse: v => parseFloat(v) },
             { id: 'ui_pending_loans', parse: v => parseInt(v) },
-            { id: 'ui_beneficiaries', parse: v => parseInt(v) }
+            { id: 'ui_active_accounts', parse: v => parseInt(v) }
         ];
         counters.forEach(cfg => {
             const el = document.getElementById(cfg.id);
@@ -407,7 +403,7 @@
                     { id: 'ui_total_users', value: json.total_users || 0 },
                     { id: 'ui_total_balance', value: Math.round(json.total_balance || 0) },
                     { id: 'ui_pending_loans', value: json.pending_loans || 0 },
-                    { id: 'ui_beneficiaries', value: json.beneficiaries || 0 }
+                    { id: 'ui_active_accounts', value: json.active_accounts || 0 }
                 ];
 
                 updates.forEach(u => {

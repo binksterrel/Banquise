@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Confidentialité - Banquise{% endblock %}
+
+{% block content %}
+<section class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <h1 class="text-3xl font-display font-bold text-slate-900 mb-4">Politique de confidentialité</h1>
+    <p class="text-slate-600 mb-6">Nous protégeons vos données et expliquons clairement nos usages.</p>
+
+    <div class="space-y-6">
+        <div class="p-6 rounded-2xl bg-white border border-slate-100 shadow-sm">
+            <h3 class="font-display font-bold text-lg text-slate-900 mb-2">Données collectées</h3>
+            <p class="text-sm text-slate-600">Identité (KYC), coordonnées, données bancaires et de transaction, données techniques (logs, device), interactions support. Nous collectons uniquement ce qui est nécessaire à la fourniture et à la sécurité du service.</p>
+        </div>
+        <div class="p-6 rounded-2xl bg-white border border-slate-100 shadow-sm">
+            <h3 class="font-display font-bold text-lg text-slate-900 mb-2">Finalités</h3>
+            <ul class="text-sm text-slate-600 space-y-2">
+                <li><i class="bi bi-check-circle-fill text-ice-500 mr-2"></i>Ouverture et tenue de compte, exécution des paiements.</li>
+                <li><i class="bi bi-check-circle-fill text-ice-500 mr-2"></i>Lutte LCB-FT, prévention de la fraude, obligations réglementaires.</li>
+                <li><i class="bi bi-check-circle-fill text-ice-500 mr-2"></i>Amélioration produit, support client, statistiques agrégées.</li>
+            </ul>
+        </div>
+        <div class="p-6 rounded-2xl bg-white border border-slate-100 shadow-sm">
+            <h3 class="font-display font-bold text-lg text-slate-900 mb-2">Conservation & localisation</h3>
+            <p class="text-sm text-slate-600">Données hébergées dans l'UE, chiffrées en transit et au repos. Durées conformes aux obligations financières (5 à 10 ans selon les cas).</p>
+        </div>
+        <div class="p-6 rounded-2xl bg-white border border-slate-100 shadow-sm">
+            <h3 class="font-display font-bold text-lg text-slate-900 mb-2">Vos droits</h3>
+            <p class="text-sm text-slate-600">Accès, rectification, effacement, opposition, portabilité. Adressez vos demandes à dpo@banquise.com avec pièce d'identité. Réponse sous 30 jours.</p>
+        </div>
+    </div>
+</section>
+{% endblock %}

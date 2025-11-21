@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="glass-panel p-6 md:p-8 rounded-3xl">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <p class="text-xs font-bold uppercase text-ice-600 tracking-[0.2em]">Centre de notifications</p>
+                <h1 class="text-2xl font-display font-bold text-slate-900">Vos alertes</h1>
+            </div>
+            <form method="post">{% csrf_token %}
+                <button class="text-sm font-bold text-ice-700 hover:text-ice-900">Tout marquer comme lu</button>
+            </form>
+        </div>
+        <div class="space-y-3">
+            {% for n in notifications %}
+            <div class="p-4 rounded-2xl border {% if n.est_lu %}border-slate-100 bg-white{% else %}border-ice-200 bg-ice-50{% endif %} flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-500">{{ n.date_creation|date:"d M Y H:i" }} · {{ n.get_type_display }}</p>
+                    <p class="font-bold text-slate-900">{{ n.titre }}</p>
+                    <p class="text-sm text-slate-600">{{ n.contenu }}</p>
+                </div>
+                {% if n.url %}
+                <a href="{{ n.url }}" class="text-xs font-bold text-ice-700 hover:text-ice-900">Ouvrir</a>
+                {% endif %}
+            </div>
+            {% empty %}
+            <p class="text-slate-500 text-sm">Aucune notification.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

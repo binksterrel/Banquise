@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Tarifs - Banquise{% endblock %}
+
+{% block content %}
+<section class="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white relative overflow-hidden">
+    <div class="absolute inset-0 opacity-40 mix-blend-screen"
+        style="background: radial-gradient(35% 35% at 20% 20%, rgba(56,189,248,0.25), transparent), radial-gradient(30% 30% at 80% 10%, rgba(59,130,246,0.2), transparent);">
+    </div>
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20 relative">
+        <div class="flex flex-col lg:flex-row items-center justify-between gap-10">
+            <div class="space-y-4 max-w-2xl">
+                <p class="text-ice-200 text-xs font-bold uppercase tracking-[0.25em]">Tarifs clairs</p>
+                <h1 class="text-4xl lg:text-5xl font-display font-bold leading-tight">Choisissez l'offre qui correspond à votre rythme financier.</h1>
+                <p class="text-slate-200 text-lg">Des comptes sans frais cachés, des cartes adaptées à vos usages, des options proactives que vous activez ou désactivez en un geste.</p>
+                <div class="flex items-center gap-3 text-sm text-slate-200">
+                    <i class="bi bi-check-circle-fill text-ice-400"></i> Aucun frais surprise, tout est documenté.
+                </div>
+            </div>
+            <div class="px-5 py-3 rounded-full bg-white/10 border border-white/15 text-sm font-bold text-white/90">
+                Mise à jour tarifaire : {% now "F Y" %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="grid md:grid-cols-3 gap-6">
+        <div class="p-8 rounded-3xl bg-white shadow-glass border border-slate-100 flex flex-col">
+            <div class="flex items-baseline justify-between mb-6">
+                <div>
+                    <p class="text-xs font-bold uppercase text-slate-400">Essentiel</p>
+                    <h3 class="text-2xl font-display font-bold text-slate-900">0 € / mois</h3>
+                </div>
+                <span class="px-3 py-1 text-xs font-bold rounded-full bg-ice-50 text-ice-700">Starter</span>
+            </div>
+            <ul class="space-y-3 text-sm text-slate-600 flex-grow">
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-500 mt-0.5"></i>Compte courant + carte virtuelle</li>
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-500 mt-0.5"></i>Paiements SEPA instantanés</li>
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-500 mt-0.5"></i>Plafonds ajustables en temps réel</li>
+                <li class="flex items-start gap-2 opacity-70"><i class="bi bi-dash-circle text-slate-300 mt-0.5"></i>Pas de carte métal</li>
+                <li class="flex items-start gap-2"><i class="bi bi-dash-circle text-slate-300 mt-0.5"></i>Découvert autorisé : 100 €</li>
+            </ul>
+            <a href="{% url 'register' %}" class="mt-8 inline-flex items-center justify-center px-5 py-3 rounded-xl bg-slate-900 text-white font-bold hover:-translate-y-0.5 transition-all duration-300 shadow-lg hover:shadow-slate-900/30">Ouvrir un compte</a>
+        </div>
+
+        <div class="p-8 rounded-3xl bg-slate-900 text-white shadow-2xl border border-slate-800 relative overflow-hidden flex flex-col">
+            <div class="absolute inset-0 opacity-30" style="background: radial-gradient(60% 60% at 30% 20%, rgba(56,189,248,0.35), transparent);"></div>
+            <div class="absolute inset-0 border border-white/5 rounded-3xl"></div>
+            <div class="flex items-baseline justify-between mb-6 relative z-10">
+                <div>
+                    <p class="text-xs font-bold uppercase text-ice-300">Plus</p>
+                    <h3 class="text-3xl font-display font-bold">9,90 € / mois</h3>
+                </div>
+                <span class="px-3 py-1 text-xs font-bold rounded-full bg-white/10 text-ice-100 border border-white/10">Le plus choisi</span>
+            </div>
+            <ul class="space-y-3 text-sm text-slate-100 relative z-10 flex-grow">
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-300 mt-0.5"></i>Carte physique + virtuelle</li>
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-300 mt-0.5"></i>Assurance voyage & mobilité</li>
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-300 mt-0.5"></i>1 sous-compte partagé + cartes éphémères</li>
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-300 mt-0.5"></i>Cashback partenaires sélectionnés</li>
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-300 mt-0.5"></i>Découvert autorisé : 500 €</li>
+            </ul>
+            <a href="{% url 'register' %}" class="mt-8 inline-flex items-center justify-center px-5 py-3 rounded-xl bg-white text-slate-900 font-bold hover:-translate-y-0.5 transition-all duration-300 shadow-lg">Choisir Plus</a>
+        </div>
+
+        <div class="p-8 rounded-3xl bg-white shadow-glass border border-slate-100 flex flex-col">
+            <div class="flex items-baseline justify-between mb-6">
+                <div>
+                    <p class="text-xs font-bold uppercase text-slate-400">Infinite</p>
+                    <h3 class="text-2xl font-display font-bold text-slate-900">19,90 € / mois</h3>
+                </div>
+                <span class="px-3 py-1 text-xs font-bold rounded-full bg-slate-900 text-white">Premium</span>
+            </div>
+            <ul class="space-y-3 text-sm text-slate-600 flex-grow">
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-500 mt-0.5"></i>Carte métal + plafonds boostés</li>
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-500 mt-0.5"></i>Conciergerie 24/7 & lounge aéroports</li>
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-500 mt-0.5"></i>Protection achats / extensions de garantie</li>
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-500 mt-0.5"></i>10 sous-comptes + cartes virtuelles illimitées</li>
+                <li class="flex items-start gap-2"><i class="bi bi-check-circle-fill text-ice-500 mt-0.5"></i>Découvert autorisé : 1000 €</li>
+            </ul>
+            <a href="{% url 'register' %}" class="mt-8 inline-flex items-center justify-center px-5 py-3 rounded-xl bg-slate-900 text-white font-bold hover:-translate-y-0.5 transition-all duration-300 shadow-lg hover:shadow-slate-900/30">Parler à un conseiller</a>
+        </div>
+    </div>
+</section>
+
+<section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+    <div class="rounded-3xl bg-white border border-slate-100 shadow-glass p-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div>
+                <p class="text-xs font-bold uppercase text-ice-600 tracking-[0.2em] mb-2">Transparence</p>
+                <h3 class="text-2xl font-display font-bold text-slate-900">Frais courants</h3>
+                <p class="text-slate-500 text-sm">Résumé lisible des frais ponctuels. Aucun frais si vous ne les utilisez pas.</p>
+            </div>
+            <div class="grid sm:grid-cols-3 gap-4 w-full md:w-auto">
+                <div class="p-4 rounded-2xl bg-slate-50 text-slate-700 text-sm">
+                    <p class="font-bold text-slate-900">Retrait zone €</p>
+                    <p class="text-2xl font-display">1%</p>
+                    <p class="text-xs text-slate-500 mt-1">Min 1 €, gratuit jusqu'à 200 €/mois (Plus).</p>
+                </div>
+                <div class="p-4 rounded-2xl bg-slate-50 text-slate-700 text-sm">
+                    <p class="font-bold text-slate-900">Retrait hors zone €</p>
+                    <p class="text-2xl font-display">2%</p>
+                    <p class="text-xs text-slate-500 mt-1">Min 2 €, taux de change interbancaire.</p>
+                </div>
+                <div class="p-4 rounded-2xl bg-slate-50 text-slate-700 text-sm">
+                    <p class="font-bold text-slate-900">Carte supplémentaire</p>
+                    <p class="text-2xl font-display">6 €</p>
+                    <p class="text-xs text-slate-500 mt-1">Disponible sur Plus & Infinite.</p>
+                </div>
+            </div>
+        </div>
+        <div class="mt-6 text-sm text-slate-500">Toutes les conditions tarifaires détaillées sont disponibles sur demande et dans votre espace client. Les plafonds et frais peuvent varier selon votre historique et votre profil de risque.</div>
+    </div>
+</section>
+{% endblock %}
