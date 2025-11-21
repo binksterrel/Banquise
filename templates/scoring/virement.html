@@ -4,6 +4,7 @@
 
 {% block extra_css %}
 <style>
+    /* Styles du formulaire */
     .form-control,
     .form-select {
         background-color: rgba(255, 255, 255, 0.8);
@@ -148,11 +149,120 @@
                             </div>
 
                             <div>
-                                <p class="text-xs font-bold text-slate-400 uppercase mb-2">Option 2 : Saisir un IBAN</p>
-                                <div class="flex gap-3">
-                                    <input type="text" name="nouveau_beneficiaire_iban" placeholder="FR76 ..."
-                                        class="form-control font-mono">
+                                <p class="text-xs font-bold text-slate-400 uppercase mb-2">Option 2 : Saisir un IBAN
+                                </p>
+
+                                <div
+                                    class="flex shadow-sm rounded-xl overflow-hidden border border-slate-200 focus-within:border-ice-500 focus-within:ring-4 focus-within:ring-ice-500/10 transition-all bg-white/80">
+
+                                    <div
+                                        class="relative bg-slate-50 border-r border-slate-200 min-w-[130px] max-w-[160px]">
+                                        <select id="iban-prefix"
+                                            class="w-full h-full pl-3 pr-8 py-3 bg-transparent text-slate-700 font-bold font-mono text-sm appearance-none focus:outline-none cursor-pointer truncate">
+                                            <optgroup label="Fréquents">
+                                                <option value="FR76" selected>🇫🇷 FR76</option>
+                                                <option value="BE68">🇧🇪 BE68</option>
+                                                <option value="DE89">🇩🇪 DE89</option>
+                                                <option value="ES64">🇪🇸 ES64</option>
+                                                <option value="IT60">🇮🇹 IT60</option>
+                                                <option value="GB29">🇬🇧 GB29</option>
+                                                <option value="CH93">🇨🇭 CH93</option>
+                                            </optgroup>
+                                            <optgroup label="Monde">
+                                                <option value="AF12">🇦🇫 AF12</option>
+                                                <option value="ZA23">🇿🇦 ZA23</option>
+                                                <option value="AL45">🇦🇱 AL45</option>
+                                                <option value="DZ88">🇩🇿 DZ88</option>
+                                                <option value="DE89">🇩🇪 DE89</option>
+                                                <option value="AD10">🇦🇩 AD10</option>
+                                                <option value="SA33">🇸🇦 SA33</option>
+                                                <option value="AR71">🇦🇷 AR71</option>
+                                                <option value="AM22">🇦🇲 AM22</option>
+                                                <option value="AU55">🇦🇺 AU55</option>
+                                                <option value="AT61">🇦🇹 AT61</option>
+                                                <option value="AZ09">🇦🇿 AZ09</option>
+                                                <option value="BH44">🇧🇭 BH44</option>
+                                                <option value="BE68">🇧🇪 BE68</option>
+                                                <option value="BY11">🇧🇾 BY11</option>
+                                                <option value="BA99">🇧🇦 BA99</option>
+                                                <option value="BR82">🇧🇷 BR82</option>
+                                                <option value="BG35">🇧🇬 BG35</option>
+                                                <option value="CA14">🇨🇦 CA14</option>
+                                                <option value="CN77">🇨🇳 CN77</option>
+                                                <option value="CY51">🇨🇾 CY51</option>
+                                                <option value="KR30">🇰🇷 KR30</option>
+                                                <option value="HR19">🇭🇷 HR19</option>
+                                                <option value="DK21">🇩🇰 DK21</option>
+                                                <option value="EG56">🇪🇬 EG56</option>
+                                                <option value="AE90">🇦🇪 AE90</option>
+                                                <option value="ES64">🇪🇸 ES64</option>
+                                                <option value="EE42">🇪🇪 EE42</option>
+                                                <option value="US01">🇺🇸 US01</option>
+                                                <option value="FI18">🇫🇮 FI18</option>
+                                                <option value="FR76">🇫🇷 FR76</option>
+                                                <option value="GE33">🇬🇪 GE33</option>
+                                                <option value="GR91">🇬🇷 GR91</option>
+                                                <option value="HU58">🇭🇺 HU58</option>
+                                                <option value="IN25">🇮🇳 IN25</option>
+                                                <option value="ID74">🇮🇩 ID74</option>
+                                                <option value="IR83">🇮🇷 IR83</option>
+                                                <option value="IE20">🇮🇪 IE20</option>
+                                                <option value="IS04">🇮🇸 IS04</option>
+                                                <option value="IL38">🇮🇱 IL38</option>
+                                                <option value="IT60">🇮🇹 IT60</option>
+                                                <option value="JP88">🇯🇵 JP88</option>
+                                                <option value="JO52">🇯🇴 JO52</option>
+                                                <option value="KZ66">🇰🇿 KZ66</option>
+                                                <option value="LB15">🇱🇧 LB15</option>
+                                                <option value="LI77">🇱🇮 LI77</option>
+                                                <option value="LT99">🇱🇹 LT99</option>
+                                                <option value="LU55">🇱🇺 LU55</option>
+                                                <option value="MK07">🇲🇰 MK07</option>
+                                                <option value="MT22">🇲🇹 MT22</option>
+                                                <option value="MA48">🇲🇦 MA48</option>
+                                                <option value="MU36">🇲🇺 MU36</option>
+                                                <option value="MR59">🇲🇷 MR59</option>
+                                                <option value="MX81">🇲🇽 MX81</option>
+                                                <option value="MD92">🇲🇩 MD92</option>
+                                                <option value="MC05">🇲🇨 MC05</option>
+                                                <option value="ME17">🇲🇪 ME17</option>
+                                                <option value="NO84">🇳🇴 NO84</option>
+                                                <option value="NZ11">🇳🇿 NZ11</option>
+                                                <option value="PK63">🇵🇰 PK63</option>
+                                                <option value="PS28">🇵🇸 PS28</option>
+                                                <option value="NL95">🇳🇱 NL95</option>
+                                                <option value="PL34">🇵🇱 PL34</option>
+                                                <option value="PT50">🇵🇹 PT50</option>
+                                                <option value="QA79">🇶🇦 QA79</option>
+                                                <option value="RO41">🇷🇴 RO41</option>
+                                                <option value="GB29">🇬🇧 GB29</option>
+                                                <option value="RU03">🇷🇺 RU03</option>
+                                                <option value="SM98">🇸🇲 SM98</option>
+                                                <option value="RS10">🇷🇸 RS10</option>
+                                                <option value="SG65">🇸🇬 SG65</option>
+                                                <option value="SK12">🇸🇰 SK12</option>
+                                                <option value="SI56">🇸🇮 SI56</option>
+                                                <option value="SE30">🇸🇪 SE30</option>
+                                                <option value="CH93">🇨🇭 CH93</option>
+                                                <option value="TN54">🇹🇳 TN54</option>
+                                                <option value="TR14">🇹🇷 TR14</option>
+                                                <option value="UA70">🇺🇦 UA70</option>
+                                                <option value="VN88">🇻🇳 VN88</option>
+                                            </optgroup>
+                                        </select>
+                                        <div
+                                            class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                            <i class="bi bi-chevron-down text-xs"></i>
+                                        </div>
+                                    </div>
+
+                                    <input type="text" id="iban-body" maxlength="17" placeholder="0000 0000 0000 00"
+                                        class="w-full py-3 px-4 bg-transparent font-mono text-slate-700 placeholder:text-slate-300 focus:outline-none border-none tracking-wider"
+                                        oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/(.{4})/g, '$1 ').trim()">
                                 </div>
+
+                                <input type="hidden" name="nouveau_beneficiaire_iban" id="real_iban_input">
+
                                 {% if form.nouveau_beneficiaire_iban.errors %}
                                 <p class="text-red-500 text-sm mt-1">{{ form.nouveau_beneficiaire_iban.errors.0 }}</p>
                                 {% endif %}
@@ -288,20 +398,45 @@
 
 <script>
     const selectBene = document.querySelector('select[name="beneficiaire_enregistre"]');
-    const inputIban = document.querySelector('input[name="nouveau_beneficiaire_iban"]');
+    const ibanPrefix = document.getElementById('iban-prefix');
+    const ibanBody = document.getElementById('iban-body');
+    const realIbanInput = document.getElementById('real_iban_input');
 
+    // Fonction pour mettre à jour l'input caché envoyé à Django
+    function updateRealIban() {
+        const prefix = ibanPrefix.value;
+        // On enlève les espaces pour l'envoi
+        const body = ibanBody.value.replace(/\s/g, '');
+
+        if (body.length > 0) {
+            realIbanInput.value = prefix + body;
+            // Si on écrit un IBAN, on désactive la sélection de bénéficiaire
+            selectBene.value = '';
+        } else {
+            realIbanInput.value = '';
+        }
+    }
+
+    // Écouteurs d'événements
+    ibanPrefix.addEventListener('change', updateRealIban);
+    ibanBody.addEventListener('input', updateRealIban);
+
+    // Gestion du conflit entre Select Bénéficiaire et Input IBAN
     selectBene.addEventListener('change', function () {
         if (this.value) {
-            inputIban.value = '';
-            inputIban.disabled = true;
-            inputIban.classList.add('bg-slate-100', 'cursor-not-allowed');
+            ibanBody.value = '';
+            realIbanInput.value = '';
+            ibanBody.disabled = true;
+            ibanPrefix.disabled = true;
+            ibanBody.parentElement.classList.add('opacity-50', 'bg-slate-100');
         } else {
-            inputIban.disabled = false;
-            inputIban.classList.remove('bg-slate-100', 'cursor-not-allowed');
+            ibanBody.disabled = false;
+            ibanPrefix.disabled = false;
+            ibanBody.parentElement.classList.remove('opacity-50', 'bg-slate-100');
         }
     });
 
-    inputIban.addEventListener('input', function () {
+    ibanBody.addEventListener('input', function () {
         if (this.value) {
             selectBene.value = '';
         }

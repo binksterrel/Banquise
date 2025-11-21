@@ -38,4 +38,7 @@ urlpatterns = [
     path('profil/', views.profil, name='profil'),
     path('admin-dashboard/', views.admin_dashboard_view, name='admin_dashboard'),
     path('api/admin-stats/', views.admin_stats_api, name='admin_stats_api'),
+    path('produits/comptes/', views.produits_comptes, name='produits_comptes'),
+    path('produits/cartes/', views.produits_cartes, name='produits_cartes'),
+    path('produits/epargne/', views.produits_epargne, name='produits_epargne'),
 ]

@@ -17,6 +17,7 @@ class Compte(models.Model):
     TYPE_CHOICES = [
         ('COURANT', 'Compte Courant'),
         ('EPARGNE', 'Compte Épargne'),
+        ('PRO', 'Compte Pro / Business'),
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comptes')
     type_compte = models.CharField(max_length=20, choices=TYPE_CHOICES, default='COURANT')

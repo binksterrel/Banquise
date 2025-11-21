@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}Nos Comptes | BANQUISE{% endblock %}
+
+{% block content %}
+<div class="relative overflow-hidden py-20 sm:py-32 lg:pb-32 xl:pb-36">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20">
+        <div class="mx-auto max-w-2xl text-center">
+            <h1 class="text-4xl font-display font-bold tracking-tight text-slate-900 sm:text-6xl mb-6">
+                Garde ton argent au frais…<span class="text-ice-600"> mais jamais gelé</span>.
+            </h1>
+            <p class="mt-6 text-lg leading-8 text-slate-600">
+                Un compte courant complet, un IBAN français, et une gestion en temps réel. Sans frais cachés, sans
+                engagement.
+            </p>
+            <div class="mt-10 flex items-center justify-center gap-x-6">
+                <a href="{% url 'register' %}"
+                    class="rounded-xl bg-slate-900 px-8 py-3.5 text-sm font-bold text-white shadow-glow hover:bg-slate-800 transition-all">Ouvrir
+                    un compte gratuit</a>
+            </div>
+
+            <div class="mt-16 flex justify-center relative">
+                <div
+                    class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-gradient-to-tr from-ice-400/30 to-purple-500/30 rounded-full blur-[80px] -z-10">
+                </div>
+
+                <div
+                    class="relative z-20 w-[380px] h-[240px] bg-gradient-to-br from-slate-800 to-black rounded-3xl p-8 shadow-2xl border border-slate-700 transform rotate-6 hover:rotate-0 transition-all duration-500 group overflow-hidden mx-auto">
+                    <div class="flex justify-between items-start mb-10 relative z-10">
+                        <i class="bi bi-snow2 text-ice-400 text-3xl"></i>
+                        <i class="bi bi-wifi text-slate-600 text-2xl rotate-90"></i>
+                    </div>
+                    <div class="space-y-6 relative z-10">
+                        <div class="text-slate-400 font-mono text-lg tracking-widest">**** **** **** 4289</div>
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <div class="text-white/80 text-sm">JOHN DOE</div>
+                                <div class="text-white font-bold italic mt-1">VISA</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl pointer-events-none">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div
+                class="bg-white/60 backdrop-blur-xl p-8 rounded-2xl border border-white shadow-glass hover:-translate-y-1 transition-transform duration-300">
+                <div
+                    class="w-12 h-12 bg-ice-100 rounded-xl flex items-center justify-center text-ice-600 mb-6 text-2xl">
+                    <i class="bi bi-globe-europe-africa"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-900 mb-3">IBAN Français</h3>
+                <p class="text-slate-500">Recevez votre salaire et mettez en place vos prélèvements en toute simplicité.
+                </p>
+            </div>
+
+            <div
+                class="bg-white/60 backdrop-blur-xl p-8 rounded-2xl border border-white shadow-glass hover:-translate-y-1 transition-transform duration-300">
+                <div
+                    class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 mb-6 text-2xl">
+                    <i class="bi bi-lightning-charge"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-900 mb-3">Virements Instantanés</h3>
+                <p class="text-slate-500">Envoyez et recevez de l'argent en quelques secondes, gratuitement et sans
+                    limite.</p>
+            </div>
+
+            <div
+                class="bg-white/60 backdrop-blur-xl p-8 rounded-2xl border border-white shadow-glass hover:-translate-y-1 transition-transform duration-300">
+                <div
+                    class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 mb-6 text-2xl">
+                    <i class="bi bi-shield-check"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-900 mb-3">Sécurité Maximale</h3>
+                <p class="text-slate-500">Bloquez et débloquez votre carte depuis l'app. Vos fonds sont garantis jusqu'à
+                    100 000€.</p>
+            </div>
+        </div>
+    </div>
+    <div
+        class="absolute top-0 -left-4 w-96 h-96 bg-ice-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob z-0">
+    </div>
+    <div
+        class="absolute top-0 -right-4 w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000 z-0">
+    </div>
+</div>
+{% endblock %}

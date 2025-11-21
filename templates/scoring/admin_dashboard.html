@@ -49,10 +49,15 @@
     }
 
     .data-value {
-        font-size: 2.8rem;
+        font-size: clamp(1.5rem, 2.5vw, 2.8rem);
+        /* taille adaptable */
         font-weight: 900;
         color: #111827;
         font-family: 'Outfit', sans-serif;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
     }
 
     .admin-link-card {
@@ -127,10 +132,9 @@
         box-shadow: 0 10px 40px rgba(2, 6, 23, 0.25);
     }
 
-    /* Small responsive helpers */
     @media (max-width: 768px) {
         .data-value {
-            font-size: 2.2rem;
+            font-size: clamp(1.2rem, 5vw, 2.2rem);
         }
     }
 </style>
@@ -292,11 +296,12 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+
         // Animate counter helper
         function animateValue(el, start, end, duration = 900) {
             const range = end - start;
-            const stepTime = Math.abs(Math.floor(duration / (range || 1)));
             let startTime = null;
+
             function step(timestamp) {
                 if (!startTime) startTime = timestamp;
                 const progress = Math.min((timestamp - startTime) / duration, 1);
@@ -405,23 +410,22 @@
                     { id: 'ui_beneficiaries', value: json.beneficiaries || 0 }
                 ];
 
-                updates.forEach(cfg => {
-                    const el = document.getElementById(cfg.id);
+                updates.forEach(u => {
+                    const el = document.getElementById(u.id);
                     if (!el) return;
-                    const curr = parseInt(el.textContent.replace(/[^0-9]+/g, '')) || 0;
-                    if (curr !== cfg.value) animateValue(el, curr, cfg.value, 800);
-                    el.setAttribute('data-value', cfg.value);
+                    animateValue(el, parseInt(el.textContent.replace(/,/g, '')) || 0, u.value);
+                    el.setAttribute('data-value', u.value);
                 });
 
-                // Update last updated
-                lastUpdatedEl.textContent = new Date().toLocaleString();
-
-            } catch (err) {
-                console.error('fetchStats error:', err);
+                lastUpdatedEl.textContent = new Date().toLocaleTimeString();
+            } catch (e) {
+                console.error(e);
+                alert('Erreur lors de la récupération des stats.');
             }
         }
 
         refreshBtn.addEventListener('click', fetchStats);
+
     });
 </script>
 {% endblock %}

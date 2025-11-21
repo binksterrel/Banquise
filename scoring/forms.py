@@ -1,13 +1,13 @@
 from django import forms
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError # Important pour lever les erreurs
+from django.core.exceptions import ValidationError
 from .models import DemandeCredit, TypeEmploi, TypeLogement, ProduitPret, Compte, Transaction, Beneficiaire
 
-# --- UTILITAIRE DE VALIDATION IBAN (Algo ISO 13616) ---
+# --- UTILITAIRE DE VALIDATION IBAN (Version Souple pour Simulation) ---
 def valider_format_iban(iban_value):
     """
-    Vérifie si une chaîne est un IBAN valide selon la norme.
-    Retourne l'IBAN nettoyé ou lève une ValidationError.
+    Vérifie la structure de l'IBAN sans imposer la clé de contrôle bancaire réelle (Modulo 97).
+    Permet d'utiliser des IBANs de test ou internationaux variés.
     """
     if not iban_value:
         return None
@@ -15,32 +15,19 @@ def valider_format_iban(iban_value):
     # 1. Nettoyage (retirer espaces et tirets, mettre en majuscules)
     iban = iban_value.replace(" ", "").replace("-", "").upper()
     
-    # 2. Vérifications de base
-    if not iban.isalnum():
-        raise ValidationError("L'IBAN ne doit contenir que des lettres et des chiffres.")
-    
-    if len(iban) < 15 or len(iban) > 34:
-         raise ValidationError("La longueur de l'IBAN est incorrecte (entre 15 et 34 caractères).")
+    # 2. Vérifications de structure de base
+    # Longueur min: 8 (ex: NO) max: 34
+    if len(iban) < 8 or len(iban) > 34:
+         raise ValidationError("La longueur de l'IBAN est incorrecte (entre 8 et 34 caractères).")
 
-    # 3. Algorithme de contrôle (Modulo 97)
-    # On déplace les 4 premiers caractères à la fin (ex: FR76...)
-    rearranged = iban[4:] + iban[:4]
-    
-    # On remplace les lettres par des nombres (A=10, B=11 ... Z=35)
-    numeric_string = ""
-    for char in rearranged:
-        if char.isdigit():
-            numeric_string += char
-        else:
-            numeric_string += str(ord(char) - 55)
-            
-    # On vérifie si le reste de la division par 97 est égal à 1
-    try:
-        if int(numeric_string) % 97 != 1:
-            raise ValidationError("Numéro IBAN invalide (clé de contrôle incorrecte).")
-    except ValueError:
-        raise ValidationError("Format IBAN invalide.")
-        
+    # Doit commencer par 2 lettres (Code Pays)
+    if not iban[:2].isalpha():
+        raise ValidationError("L'IBAN doit commencer par le code pays (2 lettres).")
+
+    # Le reste doit être alphanumérique (certains pays ont des lettres, mais pour votre cas souvent des chiffres)
+    if not iban.isalnum():
+        raise ValidationError("L'IBAN contient des caractères invalides.")
+
     return iban
 
 # --- AUTHENTIFICATION ---
@@ -79,7 +66,6 @@ class BeneficiaireForm(forms.ModelForm):
             'iban': 'IBAN'
         }
     
-    # Validation spécifique pour le champ 'iban'
     def clean_iban(self):
         iban = self.cleaned_data.get('iban')
         return valider_format_iban(iban)
@@ -95,15 +81,13 @@ class VirementForm(forms.Form):
         empty_label="-- Sélectionner un bénéficiaire --"
     )
     
-    # Ou saisir un nouvel IBAN
+    # Ou saisir un nouvel IBAN (Champ texte simple côté Python, géré par JS côté Template)
     nouveau_beneficiaire_iban = forms.CharField(
-        max_length=34, 
         required=False, 
-        label="Ou IBAN direct",
-        widget=forms.TextInput(attrs={'placeholder': 'FR76 ...'})
+        label="IBAN"
     )
     
-    montant = forms.DecimalField(min_value=1.00, decimal_places=2, label="Montant (€)")
+    montant = forms.DecimalField(min_value=0.01, decimal_places=2, label="Montant (€)")
     motif = forms.CharField(max_length=100, required=False, label="Motif (facultatif)")
 
     def __init__(self, user, *args, **kwargs):
@@ -111,10 +95,10 @@ class VirementForm(forms.Form):
         self.fields['compte_emetteur'].queryset = Compte.objects.filter(user=user, est_actif=True)
         self.fields['beneficiaire_enregistre'].queryset = Beneficiaire.objects.filter(user=user)
 
-    # Validation pour l'IBAN manuel dans le formulaire de virement
     def clean_nouveau_beneficiaire_iban(self):
         iban = self.cleaned_data.get('nouveau_beneficiaire_iban')
         if iban:
+            # On utilise la validation souple définie plus haut
             return valider_format_iban(iban)
         return iban
 
@@ -127,7 +111,7 @@ class VirementForm(forms.Form):
             raise forms.ValidationError("Veuillez sélectionner un bénéficiaire OU saisir un IBAN.")
             
         if bene and iban:
-             # Si l'utilisateur remplit les deux par erreur, on vide l'IBAN manuel pour privilégier le favori
+             # Priorité au bénéficiaire enregistré si les deux sont remplis
              cleaned_data['nouveau_beneficiaire_iban'] = None
              
         return cleaned_data

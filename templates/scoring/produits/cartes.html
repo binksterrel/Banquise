@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Nos Cartes | BANQUISE{% endblock %}
+
+{% block content %}
+<div class="relative py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+                <span class="text-ice-600 font-bold tracking-wider text-sm uppercase">Technologie & Design</span>
+                <h1 class="mt-4 text-4xl font-display font-bold text-slate-900 sm:text-5xl">
+                    Payez avec style, <br>même là où seuls les pingouins ont réseau.
+                </h1>
+                <p class="mt-6 text-lg text-slate-600">
+                    Des cartes virtuelles pour vos achats en ligne aux cartes physiques en métal pour vos voyages.
+                    Contrôlez tout depuis votre poche.
+                </p>
+                <ul class="mt-8 space-y-4">
+                    <li class="flex items-center gap-3 text-slate-700">
+                        <i class="bi bi-check-circle-fill text-ice-500"></i> Sans frais à l'étranger (même au pôle Nord)
+                    </li>
+                    <li class="flex items-center gap-3 text-slate-700">
+                        <i class="bi bi-check-circle-fill text-ice-500"></i> Compatible Apple Pay & Google Pay
+                    </li>
+                    <li class="flex items-center gap-3 text-slate-700">
+                        <i class="bi bi-check-circle-fill text-ice-500"></i> Assurance voyage incluse
+                    </li>
+                </ul>
+            </div>
+
+            <div class="relative">
+                <div
+                    class="absolute inset-0 bg-gradient-to-tr from-ice-200 to-purple-200 rounded-full blur-3xl opacity-50">
+                </div>
+
+                <div
+                    class="relative w-96 h-60 mx-auto bg-gradient-to-br from-slate-800 to-black rounded-3xl p-8 shadow-2xl border border-slate-700 transform rotate-6 hover:rotate-0 transition-all duration-500 group overflow-hidden">
+                    <div class="flex justify-between items-start mb-10 relative z-10">
+                        <i class="bi bi-snow2 text-ice-400 text-3xl"></i>
+                        <i class="bi bi-wifi text-slate-600 text-2xl rotate-90"></i>
+                    </div>
+                    <div class="space-y-6 relative z-10">
+                        <div class="text-slate-400 font-mono text-lg tracking-widest">**** **** **** 4289</div>
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <div class="text-white/80 text-sm">JOHN DOE</div>
+                                <div class="text-white font-bold italic mt-1">VISA</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl pointer-events-none">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -58,7 +58,7 @@ def register(request):
                 user=user, 
                 type_compte='COURANT', 
                 solde=100.00, 
-                numero_compte=f"FR76 {random.randint(1000,9999)} {random.randint(1000,9999)} {random.randint(1000,9999)}",
+                numero_compte=f"FR76{random.randint(1000,9999)}{random.randint(1000,9999)}{random.randint(1000,9999)}",
                 est_actif=True
             )
             Carte.objects.create(
@@ -296,17 +296,21 @@ def ouvrir_compte(request):
         form = OuvrirCompteForm(request.user, request.POST)
         if form.is_valid():
             type_choisi = form.cleaned_data['type_compte']
+            
+            # Vérification si le compte existe déjà
             if Compte.objects.filter(user=request.user, est_actif=True, type_compte=type_choisi).exists():
                 messages.error(request, f"Vous possédez déjà un compte de type {type_choisi}.")
                 return redirect('ouvrir_compte')
 
-            numero = f"FR76 {random.randint(1000,9999)} {random.randint(1000,9999)} {random.randint(1000,9999)}"
+            # --- C'est cette ligne qui manquait ou était incorrecte ---
+            # Génération de l'IBAN (sans espaces pour compatibilité virements)
+            numero = f"FR76{random.randint(1000,9999)}{random.randint(1000,9999)}{random.randint(1000,9999)}"
             
             nouveau_compte = Compte.objects.create(
                 user=request.user,
                 type_compte=type_choisi,
                 solde=0.00,
-                numero_compte=numero,
+                numero_compte=numero, # Utilisation de la variable définie juste au-dessus
                 est_actif=True
             )
             
@@ -323,6 +327,7 @@ def ouvrir_compte(request):
             return redirect('dashboard')
     else:
         form = OuvrirCompteForm(request.user)
+        # Vérifie s'il reste des types de comptes disponibles à ouvrir
         if not form.fields['type_compte'].choices:
             messages.info(request, "Vous possédez déjà tous les types de comptes disponibles.")
             return redirect('dashboard')
@@ -438,6 +443,7 @@ def virement(request):
 
             if compte.solde >= montant:
                 with transaction.atomic():
+                    # 1. Débiter l'émetteur
                     compte.solde -= montant
                     compte.save()
                     Transaction.objects.create(
@@ -447,6 +453,31 @@ def virement(request):
                         type='DEBIT',
                         categorie='VIREMENT' 
                     )
+
+                    # 2. Créditer le destinataire (si c'est un compte interne)
+                    iban_cible = beneficiaire.iban if beneficiaire else nouvel_iban
+                    
+                    try:
+                        # On cherche si un compte avec cet IBAN existe dans notre base
+                        compte_destinataire = Compte.objects.get(numero_compte=iban_cible)
+                        
+                        # Si oui, on le crédite
+                        compte_destinataire.solde += montant
+                        compte_destinataire.save()
+
+                        # Et on crée la transaction "miroir" pour que le destinataire la voie sur son relevé
+                        Transaction.objects.create(
+                            compte=compte_destinataire,
+                            montant=montant,
+                            libelle=f"Virement reçu de {request.user.first_name} {request.user.last_name} - {motif}",
+                            type='CREDIT',
+                            categorie='VIREMENT'
+                        )
+                    except Compte.DoesNotExist:
+                        # Si le compte n'existe pas chez nous (virement vers une autre banque),
+                        # l'argent sort simplement du système.
+                        pass
+
                 messages.success(request, "Virement envoyé avec succès !")
                 return redirect('dashboard')
             else:
@@ -626,3 +657,14 @@ def admin_dashboard_view(request):
         'admin_url_base': '/admin/' 
     }
     return render(request, 'scoring/admin_dashboard.html', context)
+
+# Dans scoring/views.py (Ajoutez à la fin)
+
+def produits_comptes(request):
+    return render(request, 'scoring/produits/comptes.html')
+
+def produits_cartes(request):
+    return render(request, 'scoring/produits/cartes.html')
+
+def produits_epargne(request):
+    return render(request, 'scoring/produits/epargne.html')
