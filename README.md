@@ -9,13 +9,14 @@ Banquise est une néobanque web (Django 4.2) : comptes, cartes, virements, abonn
 4. Arborescence
 5. URLs utiles
 6. Règles métiers
-7. Données / Migrations
-8. Tests manuels
-9. Sécurité
-10. Support / Contact
-11. Licence
-12. Contributeurs
-13. Automatisation
+7. Automatisation
+8. Données / Migrations
+9. Tests manuels
+10. Sécurité
+11. Support / Contact
+12. Licence
+13. Contributeurs
+14. Automatisation
 
 ## 1. Fonctionnalités
 - Authentification, profil, tableau de bord.
@@ -93,10 +94,15 @@ Banquise/
 - Virements internes : transaction miroir crédit, IBAN normalisé pour retrouver les comptes internes.
 - Crédit : avis automatique, statut EN_ATTENTE jusqu’à action admin, notifications.
 
-## 7. Données / Migrations
+
+## 7. Automatisation
+- Commande `python manage.py send_weekly_admin_report` : envoie hebdomadaire aux admins (comptes à surveiller + top catégories).
+- Planifier cette commande via cron/cron-like (ou GitHub Actions) pour recevoir le résumé par mail chaque lundi matin.
+
+## 8. Données / Migrations
 Modèles et migrations dans `scoring/`. Si `db.sqlite3` absent : `python manage.py migrate`. Créer un compte admin pour valider les crédits et répondre au support.
 
-## 8. Tests manuels
+## 9. Tests manuels
 - Création compte, login, profil, changement de mot de passe.
 - Comptes : ouverture/clôture, relevé, PDF (si reportlab).
 - Cartes : blocage/déblocage, options, blocage auto sur dépassement découvert.
@@ -106,23 +112,19 @@ Modèles et migrations dans `scoring/`. Si `db.sqlite3` absent : `python manage.
 - Support : message client, réponse admin, badge non lu.
 - Console admin : actions comptes/cartes/bénéficiaires, transactions visibles.
 
-## 9. Sécurité
+## 10. Sécurité
 - Mode démo : clé secrète en clair, pas d’e-mails/SMS réels. En prod : changer `SECRET_KEY`, désactiver `DEBUG`, activer HTTPS, 2FA/IP allowlist pour staff, externaliser statiques/médias, vérifier CSP (middleware), cookies sécurisés (SESSION/CSRF), config mail SMTP.
 
-## 10. Support / Contact
+## 11. Support / Contact
 📞 Support et contact  
 Pour toute question ou assistance concernant l’installation ou l’utilisation de Banquise, contactez-nous :
-- Email : 43020094@parisnanterre.fr ; 43004280@parisnanterre.fr
+- Email : nuentsa.terrel@gmail.com
 - Site web : http://localhost/banquise
 
-## 11. Licence
+## 12. Licence
 - Projet protégé par droits d’auteur. Tous droits réservés.
 
-## 12. Contributeurs
+## 13. Contributeurs
 - Terrel NUENTSA
-- Mathieu SIEGEL
 - © 2025 Banquise. Tous droits réservés.
 
-## 13. Automatisation
-- Commande `python manage.py send_weekly_admin_report` : envoie hebdomadaire aux admins (comptes à surveiller + top catégories).
-- Planifier cette commande via cron/cron-like (ou GitHub Actions) pour recevoir le résumé par mail chaque lundi matin.
