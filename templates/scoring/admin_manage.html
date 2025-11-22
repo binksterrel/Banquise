@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}Administration - Gestion{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="p-6 md:p-8 rounded-3xl mb-8 relative overflow-hidden bg-gradient-to-r from-slate-900 via-slate-800 to-black text-white shadow-2xl border border-slate-800">
+        <div class="absolute inset-0 opacity-30"
+            style="background: radial-gradient(50% 50% at 10% 10%, rgba(14,165,233,0.4), transparent), radial-gradient(40% 40% at 90% 10%, rgba(59,130,246,0.35), transparent);">
+        </div>
+        <div class="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-[0.2em] text-ice-200">Admin</p>
+                <h1 class="text-3xl font-display font-bold">Console de gestion</h1>
+                <p class="text-sm text-slate-200/80">Filtres rapides, exports CSV, actions groupées. Vue limitée pour garder la lisibilité.</p>
+            </div>
+            <div class="flex flex-col md:flex-row gap-2 md:items-center">
+                <form method="get" class="flex flex-wrap gap-2">
+                    <input type="text" name="q" value="{{ search }}" placeholder="Rechercher (client, IBAN)"
+                        class="px-3 py-2 rounded-lg text-sm text-slate-900 bg-white/90 border border-white/20 focus:ring-2 focus:ring-ice-200">
+                    <select name="type_compte" class="px-3 py-2 rounded-lg text-sm bg-white/90 text-slate-900 border border-white/20">
+                        <option value="">Type de compte</option>
+                        <option value="COURANT" {% if type_compte == 'COURANT' %}selected{% endif %}>Courant</option>
+                        <option value="EPARGNE" {% if type_compte == 'EPARGNE' %}selected{% endif %}>Épargne</option>
+                        <option value="PRO" {% if type_compte == 'PRO' %}selected{% endif %}>Pro</option>
+                    </select>
+                    <select name="card_status" class="px-3 py-2 rounded-lg text-sm bg-white/90 text-slate-900 border border-white/20">
+                        <option value="">Cartes (toutes)</option>
+                        <option value="active" {% if card_status == 'active' %}selected{% endif %}>Actives</option>
+                        <option value="bloquee" {% if card_status == 'bloquee' %}selected{% endif %}>Bloquées</option>
+                    </select>
+                    <button class="px-4 py-2 rounded-xl bg-ice-100 text-ice-900 text-xs font-bold border border-ice-200 hover:bg-ice-200 transition">Filtrer</button>
+                </form>
+                <div class="flex gap-2">
+                    <a href="?export=comptes" class="px-3 py-2 rounded-lg bg-white text-slate-900 text-xs font-bold border border-white/30 hover:-translate-y-0.5 transition">Export comptes</a>
+                    <a href="?export=cartes" class="px-3 py-2 rounded-lg bg-white text-slate-900 text-xs font-bold border border-white/30 hover:-translate-y-0.5 transition">Export cartes</a>
+                    <a href="?export=credits" class="px-3 py-2 rounded-lg bg-white text-slate-900 text-xs font-bold border border-white/30 hover:-translate-y-0.5 transition">Export crédits</a>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <a href="{% url 'admin_dashboard' %}" class="px-4 py-2 rounded-xl bg-white text-slate-900 text-sm font-bold hover:-translate-y-0.5 transition-all shadow-lg">Dashboard</a>
+                <a href="{% url 'admin_validation_credits' %}" class="px-4 py-2 rounded-xl bg-ice-100 text-ice-800 text-sm font-bold border border-ice-200 hover:bg-ice-200 transition">Validation crédits</a>
+                <a href="{% url 'admin_reports' %}" class="px-4 py-2 rounded-xl bg-ice-600 text-white text-sm font-bold hover:-translate-y-0.5 transition shadow-lg">Rapports</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-6">
+        <div class="glass-panel p-6 rounded-3xl">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="font-display font-bold text-lg text-slate-900">Utilisateurs</h2>
+                    <p class="text-xs text-slate-400">Top 20 récents</p>
+                </div>
+                <a href="/admin/auth/user/add/" class="text-xs font-bold text-ice-700 hover:text-ice-900">+ Ajouter</a>
+            </div>
+            <div class="divide-y divide-slate-100 max-h-96 overflow-y-auto no-scrollbar">
+                {% for u in users|slice:":20" %}
+                <div class="py-3 flex items-center justify-between">
+                    <div>
+                        <p class="font-bold text-slate-800">{{ u.username }}</p>
+                        <p class="text-xs text-slate-500">{{ u.email }}</p>
+                    </div>
+                    <a href="/admin/auth/user/{{ u.id }}/change/" class="text-xs font-bold text-ice-700 hover:text-ice-900">Modifier</a>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-500 py-4">Aucun utilisateur.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="glass-panel p-6 rounded-3xl">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-bold text-lg text-slate-900">Comptes</h2>
+                <a href="/admin/scoring/compte/add/" class="text-xs font-bold text-ice-700 hover:text-ice-900">+ Ajouter</a>
+            </div>
+            <div class="space-y-3 max-h-96 overflow-y-auto no-scrollbar">
+                {% for c in comptes|slice:":20" %}
+                <div class="p-3 rounded-2xl border border-slate-100 bg-white/70 flex items-center justify-between">
+                    <div>
+                        <p class="font-bold text-slate-900">{{ c.user.username }} · {{ c.get_type_compte_display }}</p>
+                        <p class="text-xs text-slate-500">IBAN {{ c.numero_compte }} · Solde {{ c.solde }} €</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <a href="/admin/scoring/compte/{{ c.id }}/change/" class="px-3 py-1 text-xs font-bold rounded-lg bg-ice-50 text-ice-700 border border-ice-100 hover:bg-ice-100">Modifier</a>
+                        <form method="post" class="flex items-center gap-2">{% csrf_token %}
+                            <input type="hidden" name="action" value="close_account">
+                            <input type="hidden" name="target_id" value="{{ c.id }}">
+                            {% if c.est_actif %}
+                            <button class="px-3 py-1 text-xs font-bold rounded-lg bg-red-50 text-red-600 border border-red-100 hover:bg-red-100">Clôturer</button>
+                            {% else %}
+                            <span class="text-xs font-bold text-slate-400">Clôturé</span>
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-500">Aucun compte.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="glass-panel p-6 rounded-3xl">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-bold text-lg text-slate-900">Cartes</h2>
+                <a href="/admin/scoring/carte/add/" class="text-xs font-bold text-ice-700 hover:text-ice-900">+ Ajouter</a>
+            </div>
+            <div class="space-y-3 max-h-96 overflow-y-auto no-scrollbar">
+                {% for card in cartes|slice:":20" %}
+                <div class="p-3 rounded-2xl border border-slate-100 bg-white/70 flex items-center justify-between">
+                    <div>
+                        <p class="font-bold text-slate-900">{{ card.compte.user.username }} · **** {{ card.numero_visible }}</p>
+                        <p class="text-xs text-slate-500">Compte {{ card.compte.numero_compte }} · Exp {{ card.date_expiration|date:"m/y" }}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <a href="/admin/scoring/carte/{{ card.id }}/change/" class="px-3 py-1 text-xs font-bold rounded-lg bg-ice-50 text-ice-700 border border-ice-100 hover:bg-ice-100">Modifier</a>
+                        <form method="post" class="flex items-center gap-2">{% csrf_token %}
+                            <input type="hidden" name="action" value="toggle_card">
+                            <input type="hidden" name="target_id" value="{{ card.id }}">
+                            <button class="px-3 py-1 text-xs font-bold rounded-lg {% if card.est_bloquee %}bg-green-50 text-green-600 border border-green-100{% else %}bg-red-50 text-red-600 border border-red-100{% endif %} hover:opacity-80">
+                                {% if card.est_bloquee %}Débloquer{% else %}Bloquer{% endif %}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-500">Aucune carte.</p>
+                {% endfor %}
+            </div>
+            <form method="post" class="mt-4 flex gap-2 items-center">{% csrf_token %}
+                <input type="hidden" name="action" value="bulk_block_cards">
+                <input type="text" name="card_ids" placeholder="IDs carte séparés par des virgules" class="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm" />
+                <button class="px-3 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200 text-xs font-bold hover:bg-red-100">Bloquer en groupe</button>
+            </form>
+        </div>
+
+        <div class="glass-panel p-6 rounded-3xl">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-bold text-lg text-slate-900">Bénéficiaires</h2>
+                <a href="/admin/scoring/beneficiaire/add/" class="text-xs font-bold text-ice-700 hover:text-ice-900">+ Ajouter</a>
+            </div>
+            <div class="space-y-3 max-h-96 overflow-y-auto no-scrollbar">
+                {% for b in beneficiaires|slice:":20" %}
+                <div class="p-3 rounded-2xl border border-slate-100 bg-white/70 flex items-center justify-between">
+                    <div>
+                        <p class="font-bold text-slate-900">{{ b.nom }}</p>
+                        <p class="text-xs text-slate-500">{{ b.iban }} · Client {{ b.user.username }}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <a href="/admin/scoring/beneficiaire/{{ b.id }}/change/" class="px-3 py-1 text-xs font-bold rounded-lg bg-ice-50 text-ice-700 border border-ice-100 hover:bg-ice-100">Modifier</a>
+                        <form method="post">{% csrf_token %}
+                            <input type="hidden" name="action" value="delete_beneficiaire">
+                            <input type="hidden" name="target_id" value="{{ b.id }}">
+                            <button class="px-3 py-1 text-xs font-bold rounded-lg bg-red-50 text-red-600 border border-red-100 hover:bg-red-100">Supprimer</button>
+                        </form>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-500">Aucun bénéficiaire.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="glass-panel p-6 rounded-3xl lg:col-span-2">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-bold text-lg text-slate-900">Transactions récentes</h2>
+                <span class="text-xs text-slate-400">30 dernières</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="text-slate-500 text-xs uppercase border-b border-slate-200">
+                        <tr>
+                            <th class="py-2 text-left">ID</th>
+                            <th class="py-2 text-left">Client</th>
+                            <th class="py-2 text-left">Libellé</th>
+                            <th class="py-2 text-left">Type</th>
+                            <th class="py-2 text-right">Montant</th>
+                            <th class="py-2 text-left">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for tx in transactions|slice:":30" %}
+                        <tr>
+                            <td class="py-2">{{ tx.id }}</td>
+                            <td class="py-2">{{ tx.compte.user.username }}</td>
+                            <td class="py-2">{{ tx.libelle|truncatechars:40 }}</td>
+                            <td class="py-2">{% if tx.type == 'DEBIT' %}Débit{% else %}Crédit{% endif %}</td>
+                            <td class="py-2 text-right {% if tx.type == 'DEBIT' %}text-red-600{% else %}text-green-600{% endif %}">{{ tx.montant }} €</td>
+                            <td class="py-2 text-slate-500 text-xs">{{ tx.date_execution|date:"d M Y H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="py-4 text-slate-500 text-center">Aucune transaction.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="glass-panel p-6 rounded-3xl">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-bold text-lg text-slate-900">Demandes de découvert</h2>
+                <span class="text-xs text-slate-400">30 dernières</span>
+            </div>
+            <div class="space-y-3 max-h-96 overflow-y-auto no-scrollbar">
+                {% for d in demandes_decouvert %}
+                <div class="p-3 rounded-2xl border border-slate-100 bg-white/70">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-bold text-slate-900">{{ d.user.username }} · {{ d.montant_souhaite }} €</p>
+                            <p class="text-xs text-slate-500">Demandé le {{ d.cree_le|date:"d/m/Y H:i" }} {% if d.expire_le %}· expire {{ d.expire_le|date:"d/m/Y" }}{% endif %}</p>
+                            <p class="text-xs font-bold {% if d.statut == 'ACCEPTEE' %}text-green-600{% elif d.statut == 'REFUSEE' %}text-red-600{% else %}text-amber-600{% endif %}">Statut : {{ d.get_statut_display }}</p>
+                            {% if d.commentaire_admin %}<p class="text-xs text-slate-500 mt-1">Note : {{ d.commentaire_admin }}</p>{% endif %}
+                        </div>
+                        <div class="flex gap-2">
+                            {% if d.statut == 'EN_ATTENTE' %}
+                            <form method="post">{% csrf_token %}
+                                <input type="hidden" name="action" value="approve_decouvert">
+                                <input type="hidden" name="target_id" value="{{ d.id }}">
+                                <button class="px-3 py-1 text-xs font-bold rounded-lg bg-green-50 text-green-700 border border-green-100 hover:bg-green-100">Approuver</button>
+                            </form>
+                            <form method="post">{% csrf_token %}
+                                <input type="hidden" name="action" value="reject_decouvert">
+                                <input type="hidden" name="target_id" value="{{ d.id }}">
+                                <button class="px-3 py-1 text-xs font-bold rounded-lg bg-red-50 text-red-700 border border-red-100 hover:bg-red-100">Refuser</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-500">Aucune demande.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="glass-panel p-6 rounded-3xl">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-bold text-lg text-slate-900">Risque découvert</h2>
+                <span class="text-xs text-slate-400">{{ risque_decouvert|length }} cas</span>
+            </div>
+            <div class="space-y-3 max-h-96 overflow-y-auto no-scrollbar">
+                {% for r in risque_decouvert %}
+                <div class="p-3 rounded-2xl border border-red-100 bg-red-50/60">
+                    <p class="font-bold text-red-700">{{ r.compte.user.username }} · {{ r.compte.numero_compte }}</p>
+                    <p class="text-xs text-red-600">Solde {{ r.solde }} € · Limite {{ r.limite }} €</p>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-500">Aucun dépassement.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="glass-panel p-6 rounded-3xl">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-bold text-lg text-slate-900">Crédits (récents)</h2>
+                <span class="text-xs text-slate-400">30 derniers</span>
+            </div>
+            <div class="space-y-3 max-h-96 overflow-y-auto no-scrollbar">
+                {% for c in credits %}
+                <div class="p-3 rounded-2xl border border-slate-100 bg-white/70 flex items-center justify-between">
+                    <div>
+                        <p class="font-bold text-slate-900">{{ c.user.username }} · {{ c.produit.nom if c.produit }}</p>
+                        <p class="text-xs text-slate-500">{{ c.montant_souhaite }} € · {{ c.duree_souhaitee_annees }} ans</p>
+                    </div>
+                    <span class="text-xs font-bold {% if c.statut == 'ACCEPTEE' %}text-green-600{% elif c.statut == 'REFUSEE' %}text-red-600{% else %}text-amber-600{% endif %}">{{ c.get_statut_display }}</span>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-500">Aucun crédit.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

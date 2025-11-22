@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load dict_utils %}
+
+{% block title %}Rapports Admin - Banquise{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <p class="text-xs font-bold uppercase tracking-[0.25em] text-ice-600">Rapports</p>
+            <h1 class="text-3xl font-display font-bold text-slate-900">Comptes à surveiller & Analyse dépenses</h1>
+            <p class="text-sm text-slate-500">Suivi des dépassements de découvert et retours de prélèvements.</p>
+        </div>
+        <a href="{% url 'admin_dashboard' %}" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-bold hover:-translate-y-0.5 transition shadow-lg">Retour dashboard</a>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-6">
+        <div class="glass-panel p-6 rounded-3xl">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-bold text-lg text-slate-900">Comptes à surveiller</h2>
+                <span class="text-xs text-slate-400">{{ comptes_surveiller|length }} cas</span>
+            </div>
+            <div class="space-y-3 max-h-96 overflow-y-auto no-scrollbar">
+                {% for c in comptes_surveiller %}
+                <div class="p-3 rounded-2xl border border-red-100 bg-red-50/60 flex items-center justify-between">
+                    <div>
+                        <p class="font-bold text-red-700">{{ c.compte.user.username }} · {{ c.compte.numero_compte }}</p>
+                        <p class="text-xs text-red-600">Solde {{ c.compte.solde }} € · Limite {{ c.limite }} €</p>
+                    </div>
+                    <span class="text-xs font-bold text-red-700">Alerte</span>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-500">Aucun compte à surveiller.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="glass-panel p-6 rounded-3xl">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-bold text-lg text-slate-900">Retours de prélèvements</h2>
+                <span class="text-xs text-slate-400">20 derniers</span>
+            </div>
+            <div class="space-y-3 max-h-96 overflow-y-auto no-scrollbar">
+                {% for tx in prelevements_retours %}
+                <div class="p-3 rounded-2xl border border-slate-100 bg-white/70">
+                    <p class="font-bold text-slate-900">{{ tx.compte.user.username }} · {{ tx.libelle|truncatechars:50 }}</p>
+                    <p class="text-xs text-slate-500">{{ tx.date_execution|date:"d/m/Y H:i" }} · {{ tx.montant }} €</p>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-500">Aucun retour recensé.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="glass-panel p-6 rounded-3xl lg:col-span-2">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-bold text-lg text-slate-900">Heatmap dépenses par catégorie</h2>
+                <span class="text-xs text-slate-400">6 derniers mois</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr>
+                            <th class="text-left text-xs uppercase text-slate-500 py-2">Catégorie</th>
+                            {% for m in months %}
+                            <th class="text-center text-xs uppercase text-slate-500 py-2 px-2">{{ m }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cat in categories %}
+                        <tr>
+                            <td class="py-2 font-semibold text-slate-700">{{ cat }}</td>
+                            {% for m in months %}
+                            {% with amount=heatmap|get_item:cat|get_item:m %}
+                            {% with r=amount|ratio:max_val %}
+                            <td class="py-2 px-2 text-center">
+                                <div class="rounded-lg text-xs font-semibold"
+                                    style="background: rgba(14,165,233,{{ r|default:0 }}); color: {% if r > 0.6 %}white{% else %}#0f172a{% endif %};">
+                                    {{ amount|default:"0" }}
+                                </div>
+                            </td>
+                            {% endwith %}
+                            {% endwith %}
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

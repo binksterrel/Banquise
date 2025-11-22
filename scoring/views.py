@@ -6,16 +6,20 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
-from django.db import transaction
-from django.db.models import Sum, F
+from django.core.mail import send_mail
+from django.db import transaction, models
+from django.db.models import Sum, F, Q
+import csv
 from django.core.paginator import Paginator
 from django.utils import timezone
 from django.urls import reverse
-from datetime import timedelta
+from datetime import timedelta, datetime
 from decimal import Decimal
 import random
 import io
 import json
+import re
+import csv
 
 # Imports pour PDF (ReportLab)
 try:
@@ -36,8 +40,9 @@ from .forms import (
 )
 from .models import (
     Compte, Carte, Transaction, DemandeCredit, ProfilClient, ProduitPret,
-    Beneficiaire, MessageSupport, Notification
+    Beneficiaire, MessageSupport, Notification, DemandeDecouvert
 )
+from .utils import overdraft_limit_for_user
 
 # BIC Statique pour la démo
 BANQUISE_BIC = "BANQFR76"
@@ -58,16 +63,17 @@ def notifier(user, titre, contenu, type_evt='INFO', url=''):
     )
 
 
-def overdraft_limit_for_user(user):
-    profil, _ = ProfilClient.objects.get_or_create(user=user, defaults={
-        'abonnement': 'ESSENTIEL',
-        'prochaine_facturation': timezone.now().date() + timedelta(days=30)
-    })
-    return {
-        'ESSENTIEL': Decimal("100.00"),
-        'PLUS': Decimal("500.00"),
-        'INFINITE': Decimal("1000.00")
-    }.get(profil.abonnement, Decimal("100.00"))
+def normalize_iban(value: str) -> str:
+    return re.sub(r"[\s-]+", "", (value or "")).upper()
+
+
+def find_account_by_iban(iban_norm: str):
+    """Recherche insensible aux espaces/majuscules."""
+    for c in Compte.objects.all():
+        if normalize_iban(c.numero_compte) == iban_norm:
+            return c
+    return None
+
 
 
 def enforce_overdraft(compte):
@@ -75,6 +81,23 @@ def enforce_overdraft(compte):
     limit = overdraft_limit_for_user(compte.user)
     solsous = compte.solde
     cartes = Carte.objects.filter(compte=compte)
+
+    # Alerte préventive quand on approche du seuil de blocage
+    seuil_alerte = -limit * Decimal("0.8")
+    if solsous <= seuil_alerte:
+        recent_alert = Notification.objects.filter(
+            user=compte.user,
+            titre__icontains="Alerte découvert",
+            date_creation__gte=timezone.now() - timedelta(hours=12)
+        ).exists()
+        if not recent_alert:
+            notifier(
+                compte.user,
+                "Alerte découvert",
+                f"Votre solde ({solsous} €) s'approche de la limite autorisée ({-limit} €).",
+                "INFO",
+                url=reverse('dashboard')
+            )
 
     if solsous < -limit:
         # Blocage si pas déjà bloqué
@@ -168,13 +191,43 @@ def dashboard(request):
         'prochaine_facturation': timezone.now().date() + timedelta(days=30)
     })
     unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
+    overdraft_limit = overdraft_limit_for_user(request.user)
+    overdraft_margins = {c.id: overdraft_limit + c.solde for c in comptes}
+    for c in comptes:
+        c.marge_dispo = overdraft_margins.get(c.id)
+
+    # Analyse dépenses (débits) sur les 6 derniers mois
+    def month_shift(date_obj, shift):
+        year = date_obj.year + (date_obj.month - 1 + shift) // 12
+        month = (date_obj.month - 1 + shift) % 12 + 1
+        return date_obj.replace(year=year, month=month, day=1)
+
+    today = timezone.now().date()
+    start_month = today.replace(day=1)
+    labels = []
+    values = []
+    for i in range(5, -1, -1):
+        m_date = month_shift(start_month, -i)
+        total = Transaction.objects.filter(
+            compte__in=comptes,
+            type='DEBIT',
+            date_execution__year=m_date.year,
+            date_execution__month=m_date.month
+        ).aggregate(total=Sum('montant'))['total'] or 0
+        labels.append(m_date.strftime("%b %y"))
+        values.append(abs(float(total)))
+
     return render(request, 'scoring/dashboard.html', {
         'comptes': comptes,
         'cartes': cartes,
         'transactions_recentes': transactions,
         'profil_client': profil,
         'plans': PLAN_CONFIG,
-        'unread_notifs': unread_notifs
+        'unread_notifs': unread_notifs,
+        'spending_labels': json.dumps(labels),
+        'spending_values': json.dumps(values),
+        'overdraft_limit': overdraft_limit,
+        'overdraft_margins': overdraft_margins,
     })
 
 @login_required
@@ -231,6 +284,42 @@ def changer_abonnement(request):
     profil.save(update_fields=['abonnement', 'prochain_abonnement', 'prochaine_facturation'])
 
     messages.success(request, f"Formule {PLAN_CONFIG[plan]['label']} activée. Prochaine facturation dans 30 jours.")
+    return redirect('dashboard')
+
+
+@login_required
+def demande_decouvert(request):
+    if request.method != 'POST':
+        return redirect('dashboard')
+
+    try:
+        montant = Decimal(request.POST.get('montant', '0'))
+    except Exception:
+        messages.error(request, "Montant invalide.")
+        return redirect('dashboard')
+
+    if montant <= 0:
+        messages.error(request, "Le montant doit être supérieur à 0.")
+        return redirect('dashboard')
+
+    duree_jours = request.POST.get('duree_jours')
+    expire_le = None
+    if duree_jours:
+        try:
+            expire_le = timezone.now().date() + timedelta(days=int(duree_jours))
+        except Exception:
+            expire_le = None
+
+    DemandeDecouvert.objects.create(
+        user=request.user,
+        montant_souhaite=montant,
+        expire_le=expire_le,
+        statut='EN_ATTENTE'
+    )
+    for admin in User.objects.filter(is_staff=True):
+        notifier(admin, "Demande de découvert", f"{request.user.username} demande {montant} € de découvert temporaire.", "INFO", url=reverse('admin_manage'))
+
+    messages.success(request, "Demande de relèvement de découvert envoyée. Un admin doit la valider.")
     return redirect('dashboard')
 
 
@@ -674,16 +763,13 @@ def virement(request):
 
                     # 2. Créditer le destinataire (si c'est un compte interne)
                     iban_cible = beneficiaire.iban if beneficiaire else nouvel_iban
-                    
-                    try:
-                        # On cherche si un compte avec cet IBAN existe dans notre base
-                        compte_destinataire = Compte.objects.get(numero_compte=iban_cible)
-                        
-                        # Si oui, on le crédite
+                    iban_cible_norm = normalize_iban(iban_cible)
+
+                    compte_destinataire = find_account_by_iban(iban_cible_norm)
+                    if compte_destinataire:
                         compte_destinataire.solde += montant
                         compte_destinataire.save()
 
-                        # Et on crée la transaction "miroir" pour que le destinataire la voie sur son relevé
                         Transaction.objects.create(
                             compte=compte_destinataire,
                             montant=montant,
@@ -693,10 +779,6 @@ def virement(request):
                         )
                         notifier(compte_destinataire.user, "Virement reçu", f"Vous avez reçu {montant} € de {request.user.get_full_name()}", "VIREMENT", url=reverse('dashboard'))
                         enforce_overdraft(compte_destinataire)
-                    except Compte.DoesNotExist:
-                        # Si le compte n'existe pas chez nous (virement vers une autre banque),
-                        # l'argent sort simplement du système.
-                        pass
 
                 messages.success(request, "Virement envoyé avec succès !")
                 return redirect('dashboard')
@@ -877,6 +959,181 @@ def admin_validation_credits(request):
     return render(request, 'scoring/admin_credits.html', {'demandes': pending})
 
 
+@staff_member_required
+def admin_manage(request):
+    unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        target_id = request.POST.get('target_id')
+        try:
+            if action == 'close_account':
+                compte = get_object_or_404(Compte, id=target_id)
+                compte.est_actif = False
+                compte.save(update_fields=['est_actif'])
+                notifier(compte.user, "Compte clôturé", f"Votre compte {compte.numero_compte} a été clôturé par un administrateur.", "INFO")
+                messages.success(request, "Compte clôturé.")
+            elif action == 'toggle_card':
+                carte = get_object_or_404(Carte, id=target_id)
+                carte.est_bloquee = not carte.est_bloquee
+                carte.save(update_fields=['est_bloquee'])
+                notifier(carte.compte.user, "Statut carte", f"Votre carte **** {carte.numero_visible} est désormais {'bloquée' if carte.est_bloquee else 'active'}.", "INFO")
+                messages.success(request, "Statut carte mis à jour.")
+            elif action == 'delete_beneficiaire':
+                bene = get_object_or_404(Beneficiaire, id=target_id)
+                bene.delete()
+                messages.success(request, "Bénéficiaire supprimé.")
+            elif action == 'bulk_block_cards':
+                ids = request.POST.get('card_ids', '')
+                id_list = [i for i in ids.split(',') if i]
+                updated = Carte.objects.filter(id__in=id_list, est_bloquee=False).update(est_bloquee=True)
+                messages.success(request, f"{updated} carte(s) bloquée(s).")
+            elif action in ['approve_decouvert', 'reject_decouvert']:
+                demande = get_object_or_404(DemandeDecouvert, id=target_id)
+                if action == 'approve_decouvert':
+                    demande.statut = 'ACCEPTEE'
+                    commentaire = request.POST.get('commentaire', '')
+                    demande.commentaire_admin = commentaire
+                    # Optionnel : durée transmise
+                    expire = request.POST.get('expire_le')
+                    if expire:
+                        try:
+                            demande.expire_le = datetime.strptime(expire, "%Y-%m-%d").date()
+                        except Exception:
+                            pass
+                    demande.save()
+                    notifier(demande.user, "Découvert approuvé", f"Votre découvert temporaire ({demande.montant_souhaite} €) est accepté.", "INFO", url=reverse('dashboard'))
+                    messages.success(request, "Demande de découvert acceptée.")
+                else:
+                    demande.statut = 'REFUSEE'
+                    demande.commentaire_admin = request.POST.get('commentaire', '')
+                    demande.save(update_fields=['statut', 'commentaire_admin'])
+                    notifier(demande.user, "Découvert refusé", "Votre demande de découvert temporaire a été refusée.", "INFO", url=reverse('dashboard'))
+                    messages.info(request, "Demande de découvert refusée.")
+            else:
+                messages.error(request, "Action inconnue.")
+        except Exception as e:
+            messages.error(request, f"Erreur lors du traitement : {e}")
+        return redirect('admin_manage')
+
+    # Filtres
+    search = request.GET.get('q', '')
+    type_compte = request.GET.get('type_compte')
+    card_status = request.GET.get('card_status')
+
+    users = User.objects.all().order_by('-date_joined')[:50]
+    comptes_qs = Compte.objects.select_related('user').order_by('-date_creation')
+    cartes_qs = Carte.objects.select_related('compte', 'compte__user').order_by('-id')
+
+    if search:
+        comptes_qs = comptes_qs.filter(models.Q(user__username__icontains=search) | models.Q(numero_compte__icontains=search))
+        cartes_qs = cartes_qs.filter(models.Q(compte__user__username__icontains=search) | models.Q(compte__numero_compte__icontains=search))
+    if type_compte:
+        comptes_qs = comptes_qs.filter(type_compte=type_compte)
+    if card_status == 'active':
+        cartes_qs = cartes_qs.filter(est_bloquee=False)
+    elif card_status == 'bloquee':
+        cartes_qs = cartes_qs.filter(est_bloquee=True)
+
+    comptes = comptes_qs[:100]
+    cartes = cartes_qs[:100]
+    transactions = Transaction.objects.select_related('compte', 'compte__user').order_by('-date_execution')[:30]
+    beneficiaries = Beneficiaire.objects.select_related('user').order_by('-date_ajout')[:50]
+    credits = DemandeCredit.objects.select_related('user', 'produit').order_by('-date_demande')[:30]
+    demandes_decouvert = DemandeDecouvert.objects.select_related('user').order_by('-cree_le')[:30]
+
+    # Export CSV
+    export = request.GET.get('export')
+    if export:
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{export}.csv"'
+        writer = csv.writer(response)
+        if export == 'comptes':
+            writer.writerow(['Client', 'Type', 'IBAN', 'Solde', 'Actif'])
+            for c in comptes_qs:
+                writer.writerow([c.user.username, c.get_type_compte_display(), c.numero_compte, c.solde, c.est_actif])
+        elif export == 'cartes':
+            writer.writerow(['Client', 'Compte', '4 derniers', 'Exp', 'Bloquée'])
+            for card in cartes_qs:
+                writer.writerow([card.compte.user.username, card.compte.numero_compte, card.numero_visible, card.date_expiration, card.est_bloquee])
+        elif export == 'credits':
+            writer.writerow(['Client', 'Produit', 'Montant', 'Durée (ans)', 'Statut', 'Score'])
+            for d in credits:
+                writer.writerow([d.user.username, d.produit.nom if d.produit else '', d.montant_souhaite, d.duree_souhaitee_annees, d.statut, d.score_calcule])
+        return response
+
+    # Comptes à risque de découvert
+    risque_decouvert = []
+    for c in comptes_qs:
+        limit = overdraft_limit_for_user(c.user)
+        if c.solde < -limit:
+            risque_decouvert.append({'compte': c, 'solde': c.solde, 'limite': limit})
+
+    return render(request, 'scoring/admin_manage.html', {
+        'users': users,
+        'comptes': comptes,
+        'cartes': cartes,
+        'transactions': transactions,
+        'beneficiaires': beneficiaries,
+        'unread_notifs': unread_notifs,
+        'credits': credits,
+        'demandes_decouvert': demandes_decouvert,
+        'risque_decouvert': risque_decouvert,
+        'search': search,
+        'type_compte': type_compte or '',
+        'card_status': card_status or '',
+    })
+
+
+@staff_member_required
+def admin_reports(request):
+    unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
+
+    comptes_qs = Compte.objects.select_related('user').all()
+    comptes_surveiller = []
+    for c in comptes_qs:
+        limit = overdraft_limit_for_user(c.user)
+        if c.solde < -limit or c.solde < Decimal("50.00"):
+            comptes_surveiller.append({'compte': c, 'limite': limit})
+
+    prelevements_retours = Transaction.objects.filter(
+        libelle__icontains="prélèvement",
+        type='CREDIT'
+    ).order_by('-date_execution')[:20]
+
+    # Heatmap dépenses par catégorie sur 6 mois
+    today = timezone.now().date()
+    months = []
+    heatmap_grid = {}
+    categories = [c[0] for c in Transaction.CATEGORIE_CHOICES]
+    data = {}
+    for i in range(5, -1, -1):
+        m_date = today.replace(day=1) - timedelta(days=30 * i)
+        label = m_date.strftime("%b %y")
+        months.append(label)
+        for cat in categories:
+            key = (label, cat)
+            total = Transaction.objects.filter(
+                type='DEBIT',
+                categorie=cat,
+                date_execution__year=m_date.year,
+                date_execution__month=m_date.month
+            ).aggregate(total=Sum('montant'))['total'] or 0
+            data[key] = abs(float(total))
+            heatmap_grid.setdefault(cat, {})[label] = abs(float(total))
+    max_val = max(data.values()) if data else 1
+
+    return render(request, 'scoring/admin_reports.html', {
+        'unread_notifs': unread_notifs,
+        'comptes_surveiller': comptes_surveiller,
+        'prelevements_retours': prelevements_retours,
+        'months': months,
+        'categories': categories,
+        'heatmap': heatmap_grid,
+        'max_val': max_val,
+    })
+
+
 def support(request):
     messages_support = []
     if request.user.is_authenticated:
@@ -910,6 +1167,18 @@ def page_confidentialite(request):
 def page_cookies(request):
     return render(request, 'scoring/cookies.html')
 
+@login_required
+def projet_immobilier(request):
+    profil, _ = ProfilClient.objects.get_or_create(user=request.user, defaults={
+        'abonnement': 'ESSENTIEL',
+        'prochaine_facturation': timezone.now().date() + timedelta(days=30)
+    })
+    unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
+    return render(request, 'scoring/projet_immobilier.html', {
+        'profil_client': profil,
+        'unread_notifs': unread_notifs
+    })
+
 # ==============================================================================
 # 5. PROFIL & ADMIN DASHBOARD
 # ==============================================================================
@@ -936,7 +1205,8 @@ def profil(request):
         elif 'update_info' in request.POST:
             try:
                 request.user.first_name = request.POST.get('first_name')
-                request.user.last_name = request.POST.get('last_name')
+                ln = request.POST.get('last_name')
+                request.user.last_name = ln.upper() if ln else ''
                 request.user.email = request.POST.get('email')
                 request.user.save()
 

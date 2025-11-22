@@ -1,0 +1,148 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\geometry{margin=2.5cm}
+
+\title{Cahier des charges \\ \large Banquise 2.0 (Django)}
+\author{Banquise Team}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Contexte et objectifs}
+Banquise est une néobanque web visant une expérience claire et sécurisée. L'application doit permettre la gestion des comptes, cartes, virements, abonnements, crédit avec avis automatique, notifications et support client, tout en offrant un back-office admin pour la supervision et la validation des crédits. Le produit est en mode démo avec trajectoire d’industrialisation (sécurité, observabilité, scalabilité).
+
+\section{Acteurs et rôles}
+\begin{itemize}[leftmargin=1.2cm]
+    \item \textbf{Client} : ouvre des comptes, gère ses cartes, effectue des virements, lance des simulations de crédit, reçoit des notifications et sollicite le support.
+    \item \textbf{Staff (admin)} : supervise l’activité, valide/refuse les demandes de crédit, répond au support, gère comptes/cartes/bénéficiaires/transactions via la console dédiée.
+    \item \textbf{Système} : calcule l’avis automatique crédit, applique les règles de découvert, notifie les événements, sécurise les flux.
+\end{itemize}
+
+\section{Glossaire}
+\begin{description}[style=nextline]
+    \item[Découvert autorisé] Plafond de solde négatif toléré selon l'abonnement.
+    \item[DTI] Debt-to-Income : ratio d'endettement mensuel.
+    \item[LTV] Loan-to-Value : ratio montant prêt / valeur financée.
+    \item[Avis automatique] Résultat de l'algorithme de scoring crédit, toujours validé par un humain.
+    \item[Notification] Message stocké en base, état lu/non lu, lien optionnel.
+\end{description}
+
+\section{Périmètre fonctionnel}
+\begin{itemize}[leftmargin=1.2cm]
+    \item \textbf{Authentification} : inscription, connexion, déconnexion, gestion du profil, changement de mot de passe.
+    \item \textbf{Comptes} : ouverture/fermeture, solde, relevé paginé, export PDF (reportlab optionnel), RIB.
+    \item \textbf{Cartes} : affichage des cartes, blocage/déblocage, sans-contact, paiement étranger, plafonds paiement/retrait, blocage automatique si dépassement du découvert autorisé (Essentiel 100 €, Plus 500 €, Infinite 1000 €), déblocage automatique quand le solde repasse au-dessus.
+    \item \textbf{Virements} : bénéficiaires enregistrés, IBAN saisi, vérification de solde, création de transaction miroir si IBAN interne Banquise (normalisation IBAN : espaces/traits retirés, insensible à la casse).
+    \item \textbf{Abonnements} : plans Essentiel/Plus/Infinite, débit immédiat, transaction associée, prochaine facturation à J+30, résiliation fin de période, notifications de changement.
+    \item \textbf{Crédits} : simulation avec avis automatique (score, DTI, LTV, tolérance de risque), statut en attente de validation humaine, historique des demandes, page résultat dédiée, validation/refus par admin.
+    \item \textbf{Notifications} : centre utilisateur, badge sur l'avatar, alertes pour virements, transactions d'abonnement, dépassement de découvert, décisions de crédit, messages support.
+    \item \textbf{Support} : chat client ↔ admin, notifications côté staff et client, liste des conversations et filtres par utilisateur.
+    \item \textbf{Admin} : dashboard (utilisateurs, comptes actifs, solde total, crédits en attente, transactions récentes, top dépenses), validation des crédits en attente, console de gestion (comptes/cartes/bénéficiaires/transactions), accès Django admin.
+\end{itemize}
+
+\section{Exigences non fonctionnelles}
+\begin{itemize}[leftmargin=1.2cm]
+    \item \textbf{Sécurité} : authentification Django, CSRF, rôle staff, HTTPS recommandé, rotation de clés, 2FA/IP allowlist pour staff, journal d’audit minimal (blocage cartes, clôture compte, validation crédit).
+    \item \textbf{Performance} : pagination sur relevés, limitation des listes (20/30 éléments) en console admin, calculs de simulation côté serveur.
+    \item \textbf{Disponibilité/Monitoring} : journalisation des événements clés (virements, crédits, blocages cartes), sauvegardes régulières de la base, alertes sur erreurs et dépassements.
+    \item \textbf{Scalabilité} : base PostgreSQL en cible, stockage statique dédié, possibilité de files d’attente pour notifications externes.
+    \item \textbf{Conformité} : bonnes pratiques RGPD (données minimales, droits d’accès), traçabilité des décisions de crédit.
+\end{itemize}
+
+\section{Architecture et données}
+\begin{itemize}[leftmargin=1.2cm]
+    \item \textbf{Backend} : Django 4.2, app \texttt{scoring}, MVC classique.
+    \item \textbf{Modèles clés} : User, ProfilClient (abonnement), Compte, Carte, Transaction, Beneficiaire, DemandeCredit (score, avis IA, statut), Notification, MessageSupport.
+    \item \textbf{Notifications} : en base, badge non lu, événements (virement, crédit, support, découvert, abonnement), email de bienvenue via backend configuré.
+    \item \textbf{Interfaces admin} : console web dédiée (`/console/manage`, `/console/credits`) + Django admin si besoin CRUD complet.
+\end{itemize}
+
+\section{User stories principales}
+\begin{itemize}[leftmargin=1.2cm]
+    \item En tant que client, je veux consulter mes comptes, cartes et transactions récentes pour suivre mes finances.
+    \item En tant que client, je veux être notifié lors d’un virement, d’un dépassement de découvert ou d’une décision de crédit.
+    \item En tant que client, je veux bloquer/débloquer ma carte et ajuster mes plafonds.
+    \item En tant que client, je veux simuler un crédit et obtenir un avis automatique avant validation humaine.
+    \item En tant que staff, je veux valider/refuser des crédits après avis IA.
+    \item En tant que staff, je veux gérer comptes/cartes/bénéficiaires via une console dédiée (hors admin Django).
+    \item En tant que staff, je veux répondre aux messages support et être notifié des nouvelles conversations.
+\end{itemize}
+
+\section{Parcours clés}
+\begin{itemize}[leftmargin=1.2cm]
+    \item \textbf{Client} : inscription $\rightarrow$ tableau de bord (comptes, cartes, virements) $\rightarrow$ simulation crédit (avis auto) $\rightarrow$ notification et consultation historique $\rightarrow$ attente décision admin.
+    \item \textbf{Admin} : connexion staff $\rightarrow$ dashboard admin (statistiques, transactions) $\rightarrow$ validation des crédits en attente $\rightarrow$ notifications envoyées aux clients.
+    \item \textbf{Support} : client envoie un message $\rightarrow$ notifications staff $\rightarrow$ admin répond $\rightarrow$ notification client.
+\end{itemize}
+
+\section{Règles métier}
+\begin{itemize}[leftmargin=1.2cm]
+    \item Découvert autorisé par abonnement : Essentiel 100 €, Plus 500 €, Infinite 1000 €. Blocage cartes si solde $<$ $- \text{limite}$, déblocage automatique ensuite.
+    \item Abonnements : changement entraîne un débit immédiat et une transaction, prochaine facturation J+30, résiliation programmée à la fin de la période.
+    \item Virement interne : transaction miroir crédit pour le destinataire, avec notification.
+    \item Crédit : avis automatique (IA) conservé, statut reste \textit{EN\_ATTENTE} jusqu'à décision admin. Notifications à chaque étape (soumission, décision admin).
+    \item Notifications : badge rouge si non lu; événements concernés (virement, transaction abonnement, dépassement découvert, crédit, support).
+\end{itemize}
+
+\section{Exigences techniques}
+\begin{itemize}[leftmargin=1.2cm]
+    \item \textbf{Stack} : Python 3.9+, Django 4.2.25, crispy-forms + bootstrap5, mathfilters, SQLite par défaut, Tailwind CDN + Bootstrap Icons.
+    \item \textbf{Assets} : templates HTML/Tailwind, pas de build frontend requis.
+    \item \textbf{PDF} : ReportLab optionnel pour l'export de relevé/RIB.
+    \item \textbf{Notifications} : stockées en base (modèle Notification), affichées avec badge non lu.
+    \item \textbf{Sécurité} : authentification Django, CSRF activé, rôle staff pour accès admin/validation crédits, middleware de sécurité (CSP, nosniff, referrer policy), cookies sécurisés, HTTPS recommandé, rotation de clés, protection admin (2FA / IP allowlist).
+    \item \textbf{Performances} : pagination sur relevés, limites sur listes admin, calculs de simulation côté serveur.
+    \item \textbf{Disponibilité/Monitoring} : journalisation des événements clés (virements, crédits, blocages cartes), supervision et alertes, sauvegardes régulières de la base.
+    \item \textbf{Déploiement} : désactivation de DEBUG, rotation de SECRET\_KEY, base de données serveur (PostgreSQL recommandé), stockage statique/médias dédié, configuration e-mail/SMS pour notifications externes à terme.
+\end{itemize}
+
+\section{Critères d'acceptation}
+\begin{itemize}[leftmargin=1.2cm]
+    \item Simulation affiche un avis automatique, statut reste \textit{EN\_ATTENTE} jusqu'à action admin ; notifications envoyées.
+    \item Blocage carte automatique lorsque le solde passe sous la limite de découvert autorisé selon l’abonnement ; déblocage automatique quand le seuil est repassé.
+    \item Console admin (hors Django admin) accessible aux staff : listage et actions basiques (édition via liens CRUD, blocage/déblocage, suppression bénéficiaire, clôture compte).
+    \item Centre de notifications avec badge non lu et marquage en lu.
+    \item Chat support bi-directionnel avec notifications staff/client.
+\end{itemize}
+
+\section{Plan de tests manuel}
+\begin{itemize}[leftmargin=1.2cm]
+    \item Authentification : création compte, login, changement mot de passe, profil.
+    \item Comptes : ouverture/fermeture, relevé, export PDF (si reportlab).
+    \item Cartes : blocage/déblocage, sans-contact/paiement étranger, blocage auto sur dépassement découvert.
+    \item Virements : interne/externe, miroir crédit, notifications émetteur/destinataire.
+    \item Abonnements : upgrade/downgrade, débit, notification, résiliation fin de période.
+    \item Crédit : simulation (avis auto), statut en attente, validation/refus admin, notifications.
+    \item Support : message client, notif staff, réponse staff, notif client, badge non lu.
+    \item Console admin : actions comptes/cartes/bénéficiaires, visibilité transactions, liens CRUD.
+\end{itemize}
+
+\section{Risques et hypothèses}
+\begin{itemize}[leftmargin=1.2cm]
+    \item \textbf{Hypothèses} : données démo, pas d’email/SMS en prod, charge faible, usage interne.
+    \item \textbf{Risques} : fuite de SECRET\_KEY, absence d’HTTPS, audit insuffisant, pas de tests auto.
+    \item \textbf{Mitigation} : durcir la config avant prod, ajouter audit/logs, prévoir tests automatisés, supervision, migration vers PostgreSQL et stockage statique dédié.
+\end{itemize}
+
+\section{Roadmap indicative}
+\begin{itemize}[leftmargin=1.2cm]
+    \item \textbf{Lot 1} : Comptes / cartes / virements / notifications / console admin.
+    \item \textbf{Lot 2} : Crédit (avis auto + validation admin), export PDF, overdraft auto.
+    \item \textbf{Lot 3} : Notifications externes (email/SMS), audit avancé, KYC/2FA.
+    \item \textbf{Lot 4} : Scalabilité (PostgreSQL, cache, CDN statique), monitoring/alerting complet.
+\end{itemize}
+
+\section{Livrables}
+\begin{itemize}[leftmargin=1.2cm]
+    \item Code Django complet (app \texttt{scoring}), migrations, templates.
+    \item README (installation, commandes, URLs).
+    \item Cahier des charges (ce document) pour cadrer périmètre et règles métier.
+\end{itemize}
+
+\end{document}

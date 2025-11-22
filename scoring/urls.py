@@ -33,11 +33,13 @@ urlpatterns = [
     path('historique/', views.page_historique, name='historique'),
     path('api/calcul-pret/', views.api_calcul_pret_dynamique, name='api_calcul_pret'),
     path('changer-abonnement/', views.changer_abonnement, name='changer_abonnement'),
+    path('demande-decouvert/', views.demande_decouvert, name='demande_decouvert'),
 
     # --- AUTRES ---
     path('support/', views.support, name='support'),
     path('profil/', views.profil, name='profil'),
     path('admin-dashboard/', views.admin_dashboard_view, name='admin_dashboard'),
+    path('admin-reports/', views.admin_reports, name='admin_reports'),
     path('api/admin-stats/', views.admin_stats_api, name='admin_stats_api'),
     path('produits/comptes/', views.produits_comptes, name='produits_comptes'),
     path('produits/cartes/', views.produits_cartes, name='produits_cartes'),
@@ -55,9 +57,11 @@ urlpatterns = [
     path('cookies/', views.page_cookies, name='cookies'),
     path('abonnements/', views.page_abonnements, name='abonnements'),
     path('notifications/', views.notifications_view, name='notifications'),
+    path('projet-immobilier/', views.projet_immobilier, name='projet_immobilier'),
 
     # --- CHAT SUPPORT ---
     path('support/chat/', views.chat_support, name='chat_support'),
     path('support/admin-chat/', views.chat_support_admin, name='chat_support_admin'),
-    path('admin/credits/', views.admin_validation_credits, name='admin_validation_credits'),
+    path('console/credits/', views.admin_validation_credits, name='admin_validation_credits'),
+    path('console/manage/', views.admin_manage, name='admin_manage'),
 ]

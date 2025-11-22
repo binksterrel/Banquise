@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Projet Immobilier - Banquise{% endblock %}
+
+{% block content %}
+<div class="relative min-h-screen overflow-hidden bg-slate-50">
+    <div class="absolute inset-0 pointer-events-none">
+        <div class="absolute -left-10 top-10 w-80 h-80 bg-ice-200 rounded-full blur-3xl opacity-50"></div>
+        <div class="absolute right-0 top-0 w-96 h-96 bg-purple-200 rounded-full blur-[120px] opacity-40"></div>
+    </div>
+
+    <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-10">
+            <div>
+                <p class="text-xs font-bold uppercase text-ice-600 tracking-[0.25em]">Immobilier</p>
+                <h1 class="text-4xl font-display font-bold text-slate-900">Donnez forme à votre projet</h1>
+                <p class="text-slate-500 mt-2 max-w-2xl">Simulation avec avis automatique, validation par conseiller, suivi clair dans votre espace. Taux ajusté selon votre profil.</p>
+            </div>
+            <a href="{% url 'simulation' %}" class="px-5 py-3 rounded-xl bg-slate-900 text-white font-bold shadow-lg hover:-translate-y-0.5 transition-all">Lancer une simulation</a>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-6 mb-10">
+            <div class="p-6 rounded-2xl bg-white border border-slate-100 shadow-sm">
+                <div class="w-12 h-12 rounded-xl bg-ice-50 text-ice-600 flex items-center justify-center text-xl mb-4"><i class="bi bi-graph-up"></i></div>
+                <h3 class="font-display font-bold text-lg text-slate-900 mb-2">Avis automatique</h3>
+                <p class="text-sm text-slate-500">Score, DTI, LTV calculés côté serveur. Statut reste en attente jusqu’à validation humaine.</p>
+            </div>
+            <div class="p-6 rounded-2xl bg-white border border-slate-100 shadow-sm">
+                <div class="w-12 h-12 rounded-xl bg-green-50 text-green-600 flex items-center justify-center text-xl mb-4"><i class="bi bi-bank"></i></div>
+                <h3 class="font-display font-bold text-lg text-slate-900 mb-2">Conseiller</h3>
+                <p class="text-sm text-slate-500">Validation/refus par un admin staff, notifications envoyées à chaque étape.</p>
+            </div>
+            <div class="p-6 rounded-2xl bg-white border border-slate-100 shadow-sm">
+                <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl mb-4"><i class="bi bi-shield-check"></i></div>
+                <h3 class="font-display font-bold text-lg text-slate-900 mb-2">Suivi clair</h3>
+                <p class="text-sm text-slate-500">Historique des demandes, notifications, centre de messages. Tout reste visible dans votre espace.</p>
+            </div>
+        </div>
+
+        <div class="glass-panel p-6 rounded-3xl mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-bold text-xl text-slate-900">Préparez vos infos</h2>
+                <a href="{% url 'simulation' %}" class="text-sm font-bold text-ice-700 hover:text-ice-900">Aller à la simulation</a>
+            </div>
+            <div class="grid md:grid-cols-2 gap-6 text-sm text-slate-600">
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <p class="font-bold text-slate-900 mb-1">Revenus & charges</p>
+                    <p>Revenus nets, loyer/charges, autres crédits en cours.</p>
+                </div>
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <p class="font-bold text-slate-900 mb-1">Projet</p>
+                    <p>Montant souhaité, durée, apport personnel.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 rounded-3xl bg-slate-900 text-white relative overflow-hidden">
+            <div class="absolute inset-0 opacity-20"
+                style="background: radial-gradient(40% 40% at 80% 20%, rgba(56,189,248,0.4), transparent), radial-gradient(30% 30% at 20% 10%, rgba(168,85,247,0.35), transparent);">
+            </div>
+            <div class="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-[0.25em] text-ice-200 mb-2">Immobilier</p>
+                    <h3 class="text-2xl font-display font-bold">Passez du rêve à la réalité</h3>
+                    <p class="text-slate-300 text-sm mt-2">Un avis auto pour aller vite, puis un conseiller pour valider. On garde la glace sous vos pieds.</p>
+                </div>
+                <a href="{% url 'simulation' %}" class="px-5 py-3 rounded-xl bg-white text-slate-900 font-bold text-sm shadow-lg hover:-translate-y-0.5 transition-all">Lancer une simulation</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

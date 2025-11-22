@@ -56,6 +56,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     const ctx = document.getElementById('spendingChart').getContext('2d');
+    const labels = JSON.parse('{{ spending_labels|escapejs }}');
+    const dataPoints = JSON.parse('{{ spending_values|escapejs }}');
     const gradient = ctx.createLinearGradient(0, 0, 0, 300);
     gradient.addColorStop(0, 'rgba(14, 165, 233, 0.4)');
     gradient.addColorStop(1, 'rgba(14, 165, 233, 0.0)');
@@ -63,10 +65,10 @@
     new Chart(ctx, {
         type: 'line',
         data: {
-            labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'],
+            labels: labels,
             datasets: [{
                 label: 'Dépenses',
-                data: [1200, 1900, 1500, 2200, 1800, 2500],
+                data: dataPoints,
                 borderColor: '#0ea5e9',
                 backgroundColor: gradient,
                 borderWidth: 3,
@@ -153,6 +155,9 @@
                         <div>
                             <p class="text-sm text-slate-500 font-medium">{{ compte.get_type_compte_display }}</p>
                             <h3 class="text-2xl font-display font-bold text-slate-900 mt-1">{{ compte.solde }} €</h3>
+                            <p class="text-xs mt-1 {% if compte.marge_dispo < 0 %}text-red-600{% else %}text-slate-500{% endif %}">
+                                Marge avant blocage : {{ compte.marge_dispo }} € (limite {{ overdraft_limit }} €)
+                            </p>
                         </div>
 
                         <div class="flex justify-between items-end">
@@ -165,6 +170,7 @@
                     </div>
                     {% endfor %}
 
+                    {% if comptes|length < 3 %}
                     <a href="{% url 'ouvrir_compte' %}"
                         class="border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center text-slate-400 hover:border-ice-300 hover:text-ice-500 hover:bg-ice-50/50 transition-all duration-300 h-40 gap-2 group cursor-pointer">
                         <div
@@ -173,6 +179,7 @@
                         </div>
                         <span class="font-bold text-sm">Ouvrir un compte</span>
                     </a>
+                    {% endif %}
                 </div>
 
                 <div class="glass-panel p-6 md:p-8 rounded-3xl">
@@ -240,6 +247,44 @@
 
             <div class="lg:w-1/3 space-y-8">
 
+                <div
+                    class="relative h-56 w-full bg-gradient-to-br from-slate-800 to-black rounded-3xl p-8 shadow-2xl border border-slate-700 group transform hover:scale-105 transition-all duration-500 overflow-hidden cursor-pointer">
+                    <div class="flex justify-between items-start mb-10 relative z-10">
+                        <i class="bi bi-snow2 text-ice-400 text-3xl"></i>
+                        <i class="bi bi-wifi text-slate-600 text-2xl rotate-90"></i>
+                    </div>
+
+                    <div class="space-y-6 relative z-10">
+                        <div class="text-slate-400 font-mono text-xl tracking-widest">
+                            {% if cartes %}
+                            **** **** **** {{ cartes.0.numero_visible }}
+                            {% else %}
+                            **** **** **** 0000
+                            {% endif %}
+                        </div>
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <div class="text-white/60 text-[10px] font-bold uppercase tracking-wider mb-1">Titulaire
+                                </div>
+                                <div class="text-white font-bold tracking-wide uppercase text-sm truncate">
+                                    {{ user.first_name }} {{ user.last_name|upper }}
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-white/60 text-[10px] font-bold uppercase tracking-wider mb-1">Validité
+                                </div>
+                                <div class="text-white font-bold text-sm">
+                                    {% if cartes %}{{ cartes.0.date_expiration|date:"m/y" }}{% else %}00/00{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        class="absolute inset-0 bg-gradient-to-br from-ice-500/10 via-transparent to-amber-500/10 opacity-60"></div>
+                    <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/5 rounded-full blur-3xl"></div>
+                </div>
+
                 <div class="glass-panel p-6 rounded-3xl space-y-4">
                     <div class="flex items-start justify-between gap-3">
                         <div>
@@ -286,42 +331,28 @@
                     {% endif %}
                 </div>
 
-                <div
-                    class="relative h-56 w-full bg-gradient-to-br from-slate-800 to-black rounded-3xl p-8 shadow-2xl border border-slate-700 group transform hover:scale-105 transition-all duration-500 overflow-hidden cursor-pointer">
-                    <div class="flex justify-between items-start mb-10 relative z-10">
-                        <i class="bi bi-snow2 text-ice-400 text-3xl"></i>
-                        <i class="bi bi-wifi text-slate-600 text-2xl rotate-90"></i>
-                    </div>
-
-                    <div class="space-y-6 relative z-10">
-                        <div class="text-slate-400 font-mono text-xl tracking-widest">
-                            {% if cartes %}
-                            **** **** **** {{ cartes.0.numero_visible }}
-                            {% else %}
-                            **** **** **** 0000
-                            {% endif %}
+                <div class="glass-panel p-6 rounded-3xl space-y-3">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">Découvert</p>
+                            <h3 class="font-display font-bold text-slate-900 text-xl">Relèvement temporaire</h3>
+                            <p class="text-xs text-slate-500">Limite actuelle : {{ overdraft_limit }} €</p>
                         </div>
-                        <div class="flex justify-between items-end">
+                    </div>
+                    <form method="post" action="{% url 'demande_decouvert' %}" class="space-y-2">{% csrf_token %}
+                        <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <div class="text-white/60 text-[10px] font-bold uppercase tracking-wider mb-1">Titulaire
-                                </div>
-                                <div class="text-white font-bold tracking-wide uppercase text-sm truncate">
-                                    {{ user.last_name|upper }} {{ user.first_name|upper }}
-                                </div>
+                                <label class="text-xs text-slate-500">Montant souhaité (€)</label>
+                                <input type="number" name="montant" min="50" step="10" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" required>
                             </div>
-                            <div class="text-right">
-                                <div class="text-white/60 text-[10px] font-bold uppercase tracking-wider mb-1">Exp.
-                                </div>
-                                <div class="text-white font-mono text-sm font-bold">
-                                    {% if cartes %}{{ cartes.0.date_expiration|date:"m/y" }}{% else %}12/99{% endif %}
-                                </div>
+                            <div>
+                                <label class="text-xs text-slate-500">Durée (jours)</label>
+                                <input type="number" name="duree_jours" min="7" step="1" value="30" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm">
                             </div>
                         </div>
-                    </div>
-
-                    <div
-                        class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl pointer-events-none">
-                    </div>
+                        <button type="submit" class="w-full px-4 py-3 rounded-xl bg-ice-600 text-white font-bold text-sm hover:bg-ice-700 transition">Demander</button>
+                        <p class="text-[11px] text-slate-500">Notification envoyée aux admins pour validation.</p>
+                    </form>
                 </div>
 
                 <div class="glass-panel p-6 rounded-3xl">
@@ -374,7 +405,7 @@
                         <h3 class="font-display font-bold text-lg mb-2">Projet Immobilier ?</h3>
                         <p class="text-slate-400 text-sm mb-6 leading-relaxed">Profitez de nos taux préférentiels pour
                             les membres Banquise.</p>
-                        <a href="#"
+                        <a href="{% url 'projet_immobilier' %}"
                             class="block w-full py-3 bg-white text-slate-900 font-bold text-center rounded-xl text-sm hover:bg-ice-50 transition-colors">Découvrir
                             l'offre</a>
                     </div>
