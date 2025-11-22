@@ -873,19 +873,9 @@ def page_simulation(request):
 
             score = int(max(0, min(100, score)))
 
-            # Seuils dynamiques : on relâche légèrement pour les dossiers très gros ou revenus élevés
-            dti_limit = 40
-            if demande.revenus_mensuels >= 6000:
-                dti_limit = 45
-            ltv_limit = 90
-            if demande.montant_souhaite >= Decimal("100000") and demande.apport_personnel >= demande.montant_souhaite * Decimal("0.1"):
-                ltv_limit = 95
-            if demande.montant_souhaite >= Decimal("250000") and demande.apport_personnel >= demande.montant_souhaite * Decimal("0.15"):
-                ltv_limit = 97
-
             # Décision IA préliminaire
-            ia_decision = 'ACCEPTEE' if (dti <= dti_limit and ltv <= ltv_limit and score >= 60) else 'REFUSEE'
-            recommendation = "Avis automatique favorable" if ia_decision == 'ACCEPTEE' else f"Avis automatique défavorable (dti {dti:.1f}%, ltv {ltv:.1f}%, seuils {dti_limit}%/{ltv_limit}%)"
+            ia_decision = 'ACCEPTEE' if (dti <= 40 and ltv <= 90 and score >= 60) else 'REFUSEE'
+            recommendation = "Avis automatique favorable" if ia_decision == 'ACCEPTEE' else "Avis automatique défavorable (à confirmer)"
 
             # Taux ajusté en fonction du risque
             surcharge_risque = Decimal(max(0, (70 - score)) * 0.02).quantize(Decimal("0.01"))
