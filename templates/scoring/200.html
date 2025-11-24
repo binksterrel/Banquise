@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Bienvenue sur Banquise{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-b from-slate-900 to-black text-white flex items-center justify-center">
+    <div class="max-w-3xl text-center space-y-6 px-6 py-16">
+        <p class="text-xs uppercase tracking-[0.5em] text-ice-300">Code 200</p>
+        <h1 class="text-4xl font-display font-bold">Tout fonctionne comme prévu</h1>
+        <p class="text-slate-300 leading-relaxed">Ce message peut servir de page de maintenance rapide ou de template transparent pour votre monitoring.</p>
+        <div class="flex justify-center gap-4">
+            <a href="{% url 'dashboard' %}" class="px-6 py-3 rounded-full bg-ice-400 text-slate-900 font-bold">Accéder au dashboard</a>
+            <a href="{% url 'support' %}" class="px-6 py-3 rounded-full border border-white/40">Besoin d’aide ?</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

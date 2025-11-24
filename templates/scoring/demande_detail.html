@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Demande crédit {{ demande.id }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 py-12">
+    <div class="max-w-5xl mx-auto space-y-6 px-4">
+        <div class="flex justify-between items-center">
+            <div>
+                <p class="text-xs uppercase tracking-[0.4em] text-slate-400">Demande crédit</p>
+                <h1 class="text-3xl font-display font-bold text-slate-900">Dossier #{{ demande.id }}</h1>
+                <p class="text-sm text-slate-500">Utilisateur · {{ borrower.get_full_name }} ({{ borrower.username }})</p>
+            </div>
+            <div class="text-right">
+                <p class="text-xs text-slate-500">Score IA</p>
+                <p class="text-4xl font-bold text-ice-600">{{ demande.score_calcule|default:"0" }}</p>
+                <p class="text-xs {% if demande.ia_decision == 'ACCEPTEE' %}text-green-600{% else %}text-red-600{% endif %}">{{ demande.get_ia_decision_display }}</p>
+                <form method="post" action="{% url 'admin_validation_credits' %}" class="mt-3 flex gap-2 justify-end">{% csrf_token %}
+                    <input type="hidden" name="demande_id" value="{{ demande.id }}">
+                    <button name="action" value="REFUSEE" class="px-3 py-2 rounded-lg border border-red-200 text-red-600 text-xs font-bold hover:bg-red-50">Refuser</button>
+                    <button name="action" value="ACCEPTEE" class="px-3 py-2 rounded-lg bg-ice-600 text-white text-xs font-bold hover:bg-ice-700">Accepter</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-4">
+            <div class="p-5 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-2">
+                <p class="text-xs uppercase font-bold tracking-[0.3em] text-slate-400">Profil</p>
+                <p class="text-sm text-slate-700"><strong>Abonnement :</strong> {% if profil %}{{ profil.get_abonnement_display }}{% else %}N/A{% endif %}</p>
+                <p class="text-sm text-slate-700"><strong>Téléphone :</strong> {% if profil and profil.telephone %}{{ profil.telephone }}{% else %}—{% endif %}</p>
+                <p class="text-sm text-slate-700"><strong>Ville :</strong> {% if profil and profil.ville_naissance %}{{ profil.ville_naissance }}{% else %}—{% endif %}</p>
+                <p class="text-sm text-slate-700"><strong>Solde total :</strong> {{ total_solde }} €</p>
+            </div>
+            <div class="p-5 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-2">
+                <p class="text-xs uppercase font-bold tracking-[0.3em] text-slate-400">Demande</p>
+                <p class="text-sm text-slate-700"><strong>Montant :</strong> {{ demande.montant_souhaite }} €</p>
+                <p class="text-sm text-slate-700"><strong>Durée :</strong> {{ demande.duree_souhaitee_annees }} ans</p>
+                <p class="text-sm text-slate-700"><strong>Apport :</strong> {{ demande.apport_personnel }} €</p>
+                <p class="text-sm text-slate-700"><strong>Taux IA :</strong> {{ demande.taux_calcule|default:"—" }}%</p>
+                <p class="text-sm text-slate-700"><strong>Mensualité ciblée :</strong> {{ demande.mensualite_calculee }} €</p>
+                <p class="text-sm text-slate-700"><strong>Recommandation :</strong> {{ demande.recommendation }}</p>
+            </div>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-4">
+            <div class="p-5 rounded-3xl bg-white shadow-sm border border-slate-100">
+                <p class="text-xs uppercase font-bold tracking-[0.3em] text-slate-400 mb-3">Comptes actifs</p>
+                <div class="space-y-3">
+                    {% for compte in comptes %}
+                    <div class="rounded-2xl border border-slate-100 p-3 bg-slate-50">
+                        <p class="font-bold text-slate-900">{{ compte.get_type_compte_display }}</p>
+                        <p class="text-xs text-slate-500">IBAN {{ compte.numero_compte }}</p>
+                        <p class="text-sm text-slate-700">Solde : {{ compte.solde }} €</p>
+                    </div>
+                    {% empty %}
+                    <p class="text-sm text-slate-500">Aucun compte actif.</p>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="p-5 rounded-3xl bg-white shadow-sm border border-slate-100">
+                <p class="text-xs uppercase font-bold tracking-[0.3em] text-slate-400 mb-3">Transactions récentes</p>
+                <div class="space-y-3">
+                    {% for tx in transactions %}
+                    <div class="flex justify-between">
+                        <div>
+                            <p class="text-sm font-bold text-slate-900">{{ tx.libelle }}</p>
+                            <p class="text-xs text-slate-500">{{ tx.date_execution|date:"d/m/Y" }}</p>
+                        </div>
+                            <p class="text-sm font-mono {% if tx.montant > 0 %}text-green-600{% else %}text-slate-700{% endif %}">{{ tx.montant }}€</p>
+                    </div>
+                    {% empty %}
+                    <p class="text-sm text-slate-500">Pas de transactions récentes.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="p-5 rounded-3xl bg-white shadow-sm border border-slate-100">
+            <p class="text-xs uppercase font-bold tracking-[0.3em] text-slate-400">Historique IA</p>
+            <p class="text-sm text-slate-600 mt-3">{{ demande.ia_decision }} · {{ demande.date_demande|date:"d/m/Y H:i" }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

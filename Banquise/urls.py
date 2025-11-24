@@ -13,3 +13,6 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')), 
     path('', include('scoring.urls')),
 ]
+
+handler404 = 'scoring.views.custom_404'
+handler200 = 'scoring.views.custom_200'

@@ -87,6 +87,7 @@ Banquise/
 - `/admin-dashboard/`
 - `/admin/` (Django admin)
 - `/admin-reports/` (heatmap dépenses & comptes à surveiller)
+- `/credit/<id>/` (vue détaillée d’une demande IA)
 
 ## 6. Règles métiers
 - Découverts : Essentiel 100 €, Plus 500 €, Infinite 1000 € ; blocage/déblocage auto des cartes selon le seuil.
@@ -127,4 +128,3 @@ Pour toute question ou assistance concernant l’installation ou l’utilisation
 ## 13. Contributeurs
 - Terrel NUENTSA
 - © 2025 Banquise. Tous droits réservés.
-

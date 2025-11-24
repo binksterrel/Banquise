@@ -75,6 +75,22 @@ def find_account_by_iban(iban_norm: str):
     return None
 
 
+def custom_404(request, exception):
+    return render(request, 'scoring/404.html', status=404)
+
+
+def custom_200(request):
+    return render(request, 'scoring/200.html', status=200)
+
+
+def preview_404(request):
+    return render(request, 'scoring/404.html', status=404)
+
+
+def preview_200(request):
+    return render(request, 'scoring/200.html', status=200)
+
+
 
 def enforce_overdraft(compte):
     """Blocage/déblocage des cartes en fonction du découvert autorisé."""
@@ -841,43 +857,56 @@ def page_simulation(request):
         if form.is_valid():
             demande = form.save(commit=False)
             demande.user = request.user
+            # Valeurs par défaut pour éviter les None / chaînes vides
+            demande.dettes_mensuelles = demande.dettes_mensuelles or 0
+            demande.loyer_actuel = demande.loyer_actuel or 0
+            demande.revenus_mensuels = demande.revenus_mensuels or 0
+            demande.apport_personnel = demande.apport_personnel or 0
+            demande.montant_souhaite = demande.montant_souhaite or 0
+            demande.duree_souhaitee_annees = demande.duree_souhaitee_annees or 1
             
-            # --- Simulation plus réaliste ---
+            # --- Simulation robuste ---
             base_rate = demande.produit.taux_ref if demande.produit else Decimal("3.50")
-            taux_mensuel = float(base_rate) / 100 / 12
-            nb_mois = demande.duree_souhaitee_annees * 12
+            nb_mois = max(1, (demande.duree_souhaitee_annees or 0) * 12)
+            taux_mensuel = (Decimal(base_rate) / Decimal("100")) / Decimal("12")
 
-            if taux_mensuel > 0 and nb_mois > 0:
-                mensualite = demande.montant_souhaite * (taux_mensuel) / (1 - (1 + taux_mensuel) ** (-nb_mois))
+            if taux_mensuel > 0:
+                mensualite = Decimal(demande.montant_souhaite) * taux_mensuel / (1 - (1 + taux_mensuel) ** (-nb_mois))
             else:
-                mensualite = demande.montant_souhaite / max(1, nb_mois)
+                mensualite = Decimal(demande.montant_souhaite) / nb_mois
 
-            # Ratios clés
-            dettes_totales = demande.dettes_mensuelles + demande.loyer_actuel
-            dti = ((mensualite + dettes_totales) / max(1, demande.revenus_mensuels)) * 100  # taux d'endettement
-            ltv = 100 * (1 - (demande.apport_personnel / max(1, demande.montant_souhaite)))  # loan-to-value
+            dettes_totales = Decimal(demande.dettes_mensuelles or 0) + Decimal(demande.loyer_actuel or 0)
+            revenus = Decimal(demande.revenus_mensuels or 1)
+            dti = ((mensualite + dettes_totales) / revenus) * Decimal("100")
+            ltv = Decimal("100") * (Decimal("1") - (Decimal(demande.apport_personnel or 0) / Decimal(max(1, demande.montant_souhaite or 1))))
 
-            score = 100
-            if dti > 30:
-                score -= (dti - 30) * 1.5
-            if ltv > 80:
-                score -= (ltv - 80) * 0.5
-            if demande.revenus_mensuels < 2000:
-                score -= 10
-            if demande.apport_personnel >= demande.montant_souhaite * 0.2:
-                score += 8
+            score = Decimal("100")
+            if dti > Decimal("30"):
+                score -= (dti - Decimal("30")) * Decimal("1.5")
+            if ltv > Decimal("80"):
+                score -= (ltv - Decimal("80")) * Decimal("0.5")
+            if revenus < Decimal("2000"):
+                score -= Decimal("10")
+            if Decimal(demande.apport_personnel or 0) >= Decimal(demande.montant_souhaite or 0) * Decimal("0.2"):
+                score += Decimal("8")
             if demande.sante_snapshot == 'BON':
-                score += 2
+                score += Decimal("2")
             if demande.emploi_snapshot and demande.emploi_snapshot.nom.lower().startswith('cdi'):
-                score += 5
+                score += Decimal("5")
 
             score = int(max(0, min(100, score)))
 
-            # Décision IA préliminaire
-            ia_decision = 'ACCEPTEE' if (dti <= 40 and ltv <= 90 and score >= 60) else 'REFUSEE'
-            recommendation = "Avis automatique favorable" if ia_decision == 'ACCEPTEE' else "Avis automatique défavorable (à confirmer)"
+            # Seuils dynamiques
+            dti_limit = 40 if demande.revenus_mensuels < 6000 else 45
+            ltv_limit = 90
+            if demande.montant_souhaite and demande.montant_souhaite >= Decimal("100000") and demande.apport_personnel >= demande.montant_souhaite * Decimal("0.10"):
+                ltv_limit = 95
+            if demande.montant_souhaite and demande.montant_souhaite >= Decimal("250000") and demande.apport_personnel >= demande.montant_souhaite * Decimal("0.15"):
+                ltv_limit = 97
 
-            # Taux ajusté en fonction du risque
+            ia_decision = 'ACCEPTEE' if ( score >= 60) else 'REFUSEE'
+            recommendation = f"Avis automatique {ia_decision.lower()} (score {score}, dti {dti:.1f}% / seuil {dti_limit}%, ltv {ltv:.1f}% / seuil {ltv_limit}%)"
+
             surcharge_risque = Decimal(max(0, (70 - score)) * 0.02).quantize(Decimal("0.01"))
             taux_final = Decimal(base_rate) + surcharge_risque
 
@@ -909,6 +938,68 @@ def page_resultat(request, demande_id):
         'mensualite_max_possible': mensualite_max,
         'unread_notifs': unread_notifs,
         'gauge_offset': gauge_offset
+    })
+
+
+@login_required
+def api_update_resultat(request, demande_id):
+    demande = get_object_or_404(DemandeCredit, id=demande_id)
+    if demande.user != request.user and not request.user.is_staff:
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method_not_allowed'}, status=405)
+    try:
+        payload = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        payload = request.POST
+
+    try:
+        duree = int(payload.get('duree', demande.duree_souhaitee_annees or 1))
+    except Exception:
+        duree = demande.duree_souhaitee_annees or 1
+    try:
+        mensualite = Decimal(str(payload.get('mensualite', demande.mensualite_calculee or 0)))
+    except Exception:
+        mensualite = Decimal(demande.mensualite_calculee or 0)
+
+    taux_ref = demande.taux_calcule or (demande.produit.taux_ref if demande.produit else Decimal("3.50"))
+    n = max(1, duree * 12)
+    r = Decimal(taux_ref) / Decimal("100") / Decimal("12")
+    if r > 0:
+        principal = mensualite * (1 - (1 + r) ** (-n)) / r
+    else:
+        principal = mensualite * n
+
+    demande.duree_souhaitee_annees = duree
+    demande.mensualite_calculee = mensualite
+    demande.montant_souhaite = principal.quantize(Decimal("0.01"))
+    demande.recommendation = f"Simulation ajustée ({duree} ans, {mensualite} €/mois)."
+    demande.save(update_fields=['duree_souhaitee_annees', 'mensualite_calculee', 'montant_souhaite', 'recommendation'])
+
+    return JsonResponse({
+        'principal': float(principal),
+        'duree': duree,
+        'mensualite': float(mensualite),
+        'taux': float(taux_ref),
+    })
+
+
+@staff_member_required
+def demande_credit_detail(request, demande_id):
+    demande = get_object_or_404(DemandeCredit, id=demande_id)
+    comptes = Compte.objects.filter(user=demande.user)
+    profil = getattr(demande.user, 'profil', None)
+    transactions = Transaction.objects.filter(compte__in=comptes).order_by('-date_execution')[:5]
+    unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
+    total_solde = comptes.aggregate(total=Sum('solde'))['total'] or 0
+    return render(request, 'scoring/demande_detail.html', {
+        'demande': demande,
+        'borrower': demande.user,
+        'comptes': comptes,
+        'profil': profil,
+        'total_solde': total_solde,
+        'transactions': transactions,
+        'unread_notifs': unread_notifs
     })
 
 @login_required
@@ -1138,6 +1229,24 @@ def support(request):
     messages_support = []
     if request.user.is_authenticated:
         messages_support = MessageSupport.objects.filter(user=request.user)
+
+    if request.method == 'POST' and request.user.is_authenticated:
+        contenu = request.POST.get('message', '').strip()
+        sujet = request.POST.get('sujet', 'Support')
+        if contenu:
+            MessageSupport.objects.create(
+                user=request.user,
+                contenu=f"[{sujet}] {contenu}",
+                est_admin=False
+            )
+            notifier(request.user, "Message envoyé", "Votre message a été envoyé au support.", "INFO", url=reverse('chat_support'))
+            for admin in User.objects.filter(is_staff=True):
+                notifier(admin, "Nouveau message client", f"{request.user.username}: {contenu[:80]}", "INFO", url=f"{reverse('chat_support_admin')}?user={request.user.id}")
+            messages.success(request, "Message envoyé au support.")
+            return redirect('support')
+        else:
+            messages.error(request, "Le message ne peut pas être vide.")
+
     return render(request, 'scoring/support.html', {'messages_support': messages_support})
 
 def page_a_propos(request):

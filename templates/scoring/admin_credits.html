@@ -25,6 +25,7 @@
                     </div>
                     <form method="post" class="flex items-center gap-2">{% csrf_token %}
                         <input type="hidden" name="demande_id" value="{{ d.id }}">
+                        <a href="{% url 'demande_credit_detail' d.id %}" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition">Détail</a>
                         <button name="action" value="REFUSEE" class="px-4 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-bold hover:bg-red-50">Refuser</button>
                         <button name="action" value="ACCEPTEE" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-bold hover:-translate-y-0.5 transition-all duration-200 shadow-lg">Accepter</button>
                     </form>

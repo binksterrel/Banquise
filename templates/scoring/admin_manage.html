@@ -259,7 +259,7 @@
                 {% for c in credits %}
                 <div class="p-3 rounded-2xl border border-slate-100 bg-white/70 flex items-center justify-between">
                     <div>
-                        <p class="font-bold text-slate-900">{{ c.user.username }} · {{ c.produit.nom if c.produit }}</p>
+                        <p class="font-bold text-slate-900">{{ c.user.username }} · {% if c.produit %}{{ c.produit.nom }}{% else %}Produit inconnu{% endif %}</p>
                         <p class="text-xs text-slate-500">{{ c.montant_souhaite }} € · {{ c.duree_souhaitee_annees }} ans</p>
                     </div>
                     <span class="text-xs font-bold {% if c.statut == 'ACCEPTEE' %}text-green-600{% elif c.statut == 'REFUSEE' %}text-red-600{% else %}text-amber-600{% endif %}">{{ c.get_statut_display }}</span>

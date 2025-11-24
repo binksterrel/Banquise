@@ -64,4 +64,8 @@ urlpatterns = [
     path('support/admin-chat/', views.chat_support_admin, name='chat_support_admin'),
     path('console/credits/', views.admin_validation_credits, name='admin_validation_credits'),
     path('console/manage/', views.admin_manage, name='admin_manage'),
+    path('404/', views.preview_404, name='preview_404'),
+    path('200/', views.preview_200, name='preview_200'),
+    path('credit/<int:demande_id>/', views.demande_credit_detail, name='demande_credit_detail'),
+    path('api/resultat/<int:demande_id>/update/', views.api_update_resultat, name='api_update_resultat'),
 ]

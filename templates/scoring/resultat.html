@@ -11,16 +11,68 @@
         const rangeMensualite = document.getElementById('rangeMensualite');
         const valDuree = document.getElementById('valDuree');
         const valMensualite = document.getElementById('valMensualite');
+        const affichageMontant = document.getElementById('affichage-montant');
+
+        // Base rate from simulation (fallback 3.5)
+        const baseRate = parseFloat("{{ demande.taux_calcule|default:demande.produit.taux_ref|default:'3.5' }}") || 3.5;
+        const updateUrl = "{% url 'api_update_resultat' demande.id %}";
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function computePrincipal(mensualite, dureeAnnees) {
+            const n = Math.max(1, dureeAnnees * 12);
+            const r = baseRate / 100 / 12;
+            if (r > 0) {
+                return mensualite * (1 - Math.pow(1 + r, -n)) / r;
+            }
+            return mensualite * n;
+        }
+
+        let debounceTimer = null;
+        function pushUpdate(duree, mensualite) {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                fetch(updateUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify({ duree: duree, mensualite: mensualite })
+                }).catch(() => {});
+            }, 400);
+        }
 
         function updateCalc() {
             if (valDuree && rangeDuree) valDuree.innerText = rangeDuree.value;
             if (valMensualite && rangeMensualite) valMensualite.innerText = rangeMensualite.value;
+            if (affichageMontant && rangeDuree && rangeMensualite) {
+                const mensualite = parseFloat(rangeMensualite.value || 0);
+                const duree = parseInt(rangeDuree.value || 1);
+                const principal = computePrincipal(mensualite, duree);
+                affichageMontant.innerText = principal.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' €';
+                pushUpdate(duree, mensualite);
+            }
         }
 
         if (rangeDuree) {
             if (valMensualite && rangeMensualite) valMensualite.innerText = rangeMensualite.value;
             rangeDuree.addEventListener('input', updateCalc);
             if (rangeMensualite) rangeMensualite.addEventListener('input', updateCalc);
+            updateCalc();
         }
     });
 </script>

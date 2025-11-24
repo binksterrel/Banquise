@@ -1,148 +1,1959 @@
-\documentclass[11pt,a4paper]{article}
+\documentclass[12pt,a4paper]{report}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[french]{babel}
 \usepackage{geometry}
 \usepackage{enumitem}
 \usepackage{hyperref}
+\usepackage{graphicx} % gestion des images
+\usepackage{float}
+\usepackage{tikz}
+\usepackage{pgf-umlcd}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{colortbl}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{tocloft}
+\usepackage{array}
+\usepackage{amsmath}  % pour \text, formules...
+\usepackage{amssymb}  % pour \checkmark, symboles maths
+% Ajout de la bibliothèque pour les diagrammes UML améliorés
+\usetikzlibrary{positioning, arrows.meta, shapes, calc}
+
 \geometry{margin=2.5cm}
 
-\title{Cahier des charges \\ \large Banquise 2.0 (Django)}
-\author{Banquise Team}
-\date{}
+% === Réglages pour les captures ===
+% Vos images seront cherchées dans le dossier ./captures/
+\graphicspath{{captures/}}
+% Vous pouvez déposer des PNG/JPG/JPEG/PDF sans préciser l'extension
+\DeclareGraphicsExtensions{.png,.jpg,.jpeg,.pdf}
+
+% Configuration des liens hypertextes
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    citecolor=green,
+}
+
+% En-têtes et pieds de page
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\leftmark}
+\fancyhead[R]{Banquise}
+\fancyfoot[C]{\thepage}
+
+% Couleurs personnalisées
+\definecolor{banquiseblue}{RGB}{0,102,204}
+\definecolor{lightgray}{RGB}{245,245,245}
+
+% Titre
+\title{
+    \Huge{\textbf{Cahier des Charges}} \\
+    \vspace{1cm}
+    \LARGE{Banquise} \\
+    \vspace{0.5cm}
+    \Large{Plateforme de Néobanque Web}
+}
+\author{Équipe Banquise}
+\date{\today}
 
 \begin{document}
-\maketitle
 
-\section{Contexte et objectifs}
-Banquise est une néobanque web visant une expérience claire et sécurisée. L'application doit permettre la gestion des comptes, cartes, virements, abonnements, crédit avec avis automatique, notifications et support client, tout en offrant un back-office admin pour la supervision et la validation des crédits. Le produit est en mode démo avec trajectoire d’industrialisation (sécurité, observabilité, scalabilité).
+% Page de garde personnalisée
+\begin{titlepage}
+\begin{tikzpicture}[remember picture,overlay]
+    \fill[banquiseblue!5] (current page.south west) rectangle (current page.north east);
+    \fill[banquiseblue!20] ([xshift=-2cm,yshift=-2cm]current page.north east) circle (6cm);
+    \fill[banquiseblue!10] ([xshift=1cm,yshift=1cm]current page.south west) circle (5cm);
+\end{tikzpicture}
 
-\section{Acteurs et rôles}
-\begin{itemize}[leftmargin=1.2cm]
-    \item \textbf{Client} : ouvre des comptes, gère ses cartes, effectue des virements, lance des simulations de crédit, reçoit des notifications et sollicite le support.
-    \item \textbf{Staff (admin)} : supervise l’activité, valide/refuse les demandes de crédit, répond au support, gère comptes/cartes/bénéficiaires/transactions via la console dédiée.
-    \item \textbf{Système} : calcule l’avis automatique crédit, applique les règles de découvert, notifie les événements, sécurise les flux.
+\begin{center}
+    \vspace*{2cm}
+    {\Large\textsc{Université Paris Nanterre}}\\[0.8cm]
+    {\huge\bfseries Cahier des Charges}\\[0.4cm]
+    {\Large\bfseries Banquise — Plateforme de Néobanque Web}\\[0.6cm]
+    \rule{0.6\linewidth}{0.4pt}\\[0.6cm]
+    {\large Version du \today}\\[2.5cm]
+
+    \begin{tabular}{p{3cm}p{9cm}}
+        \textbf{Projet} : & Banquise (Django 4.2) \\
+        \textbf{Équipe} : & Terrel NUENTSA \\[-2pt]
+                          & Romain THIERRY \\[-2pt]
+                          & Daniel BADOYAN \\
+        \textbf{Contact} : & 43020094@parisnanterre.fr \\
+    \end{tabular}
+
+    \vfill
+    \textit{Un système bancaire numérique complet : comptes, cartes, virements, abonnements, crédits avec scoring IA, notifications et back-office admin.}
+\end{center}
+\end{titlepage}
+
+\newpage
+\thispagestyle{empty}
+\tableofcontents
+
+\newpage
+
+% ============================================================================
+% CHAPITRE 1 : CONTEXTE GÉNÉRAL DU PROJET
+% ============================================================================
+\chapter{Contexte général du projet}
+
+\section{Introduction}
+Ce document constitue le cahier des charges du projet Banquise, une plateforme de néobanque web développée avec Django. L'objectif est de fournir une expérience bancaire digitale claire, sécurisée et complète, permettant la gestion de comptes, cartes, virements, abonnements, crédits avec scoring automatique, notifications et support client.
+
+Le projet s'inscrit dans une démarche de transformation numérique du secteur bancaire, en proposant une solution moderne, accessible et centrée sur l'utilisateur.
+
+\section{Présentation de l'organisme}
+\subsection{Présentation générale}
+Banquise est une néobanque française visant à démocratiser l'accès aux services bancaires par le biais d'une plateforme web intuitive et sécurisée. Le projet est actuellement en mode démo avec une trajectoire d'industrialisation progressive.
+
+\subsection{Vision et mission}
+\begin{itemize}[leftmargin=1.5cm]
+    \item \textbf{Vision} : Devenir la néobanque de référence pour les particuliers en France
+    \item \textbf{Mission} : Offrir des services bancaires accessibles, transparents et innovants
+    \item \textbf{Valeurs} : Simplicité, sécurité, transparence, innovation
 \end{itemize}
+
+\section{Présentation du projet}
+
+\subsection{Analyse de l'existant}
+Actuellement, le secteur bancaire traditionnel présente plusieurs limitations :
+\begin{itemize}[leftmargin=1.5cm]
+    \item Processus lourds et bureaucratiques
+    \item Frais bancaires élevés et peu transparents
+    \item Interface utilisateur complexe et peu intuitive
+    \item Délais de traitement importants pour les opérations
+    \item Faible réactivité du service client
+\end{itemize}
+
+\subsection{Problématique}
+\textbf{Comment concevoir et mettre en œuvre une plateforme bancaire digitale moderne qui offre une expérience utilisateur optimale, une sécurité renforcée et des services innovants tout en garantissant la conformité réglementaire et la scalabilité du système ?}
+
+\subsection{Solution proposée}
+Banquise propose une plateforme web complète comprenant :
+\begin{itemize}[leftmargin=1.5cm]
+    \item Gestion multi-comptes (courant, épargne, professionnel)
+    \item Cartes bancaires virtuelles avec contrôle total
+    \item Système de virements instantanés
+    \item Abonnements flexibles (Essentiel, Plus, Infinite)
+    \item Simulation et demande de crédit avec scoring IA
+    \item Notifications en temps réel
+    \item Support client intégré
+    \item Back-office administrateur complet
+\end{itemize}
+
+\subsection{Choix de la méthodologie}
+Le projet adopte une \textbf{méthodologie Agile} avec des itérations courtes permettant :
+\begin{itemize}[leftmargin=1.5cm]
+    \item Livraisons incrémentales de fonctionnalités
+    \item Adaptation rapide aux retours utilisateurs
+    \item Amélioration continue de la qualité
+    \item Gestion flexible des priorités
+\end{itemize}
+
+\section{Conclusion}
+Ce chapitre a posé les fondations du projet Banquise en présentant le contexte, la problématique et la solution proposée. Les chapitres suivants détailleront les besoins fonctionnels, l'architecture technique et les spécifications détaillées.
+
+% ============================================================================
+% CHAPITRE 2 : ANALYSE ET SPÉCIFICATION DES BESOINS
+% ============================================================================
+\chapter{Analyse et spécification des besoins}
+
+\section{Introduction}
+Ce chapitre présente l'analyse détaillée des besoins fonctionnels et non fonctionnels du système, ainsi que l'identification des acteurs et leurs rôles.
+
+\section{Identification des acteurs}
+
+Le système Banquise implique trois acteurs principaux :
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Acteur} & \textbf{Rôle et responsabilités} \\
+\hline
+\textbf{Client} & 
+\begin{itemize}[leftmargin=0.5cm]
+    \item Ouvre et gère ses comptes bancaires
+    \item Gère ses cartes (blocage, plafonds)
+    \item Effectue des virements
+    \item Simule et demande des crédits
+    \item Consulte ses notifications
+    \item Contacte le support
+\end{itemize} \\
+\hline
+\textbf{Staff (Admin)} & 
+\begin{itemize}[leftmargin=0.5cm]
+    \item Supervise l'activité globale
+    \item Valide ou refuse les demandes de crédit
+    \item Gère les comptes, cartes et transactions
+    \item Répond aux demandes de support
+    \item Accède au tableau de bord administratif
+\end{itemize} \\
+\hline
+\textbf{Système} & 
+\begin{itemize}[leftmargin=0.5cm]
+    \item Calcule l'avis automatique de crédit
+    \item Applique les règles de découvert
+    \item Génère les notifications
+    \item Sécurise les transactions
+    \item Gère les abonnements automatiques
+\end{itemize} \\
+\hline
+\end{tabular}
+\caption{Identification des acteurs du système}
+\end{table}
 
 \section{Glossaire}
-\begin{description}[style=nextline]
-    \item[Découvert autorisé] Plafond de solde négatif toléré selon l'abonnement.
-    \item[DTI] Debt-to-Income : ratio d'endettement mensuel.
-    \item[LTV] Loan-to-Value : ratio montant prêt / valeur financée.
-    \item[Avis automatique] Résultat de l'algorithme de scoring crédit, toujours validé par un humain.
-    \item[Notification] Message stocké en base, état lu/non lu, lien optionnel.
+
+\begin{description}[style=nextline, leftmargin=3cm]
+    \item[Découvert autorisé] Plafond de solde négatif toléré selon l'abonnement (Essentiel : 100€, Plus : 500€, Infinite : 1000€)
+    \item[DTI] Debt-to-Income : ratio d'endettement mensuel calculé pour l'évaluation de crédit
+    \item[LTV] Loan-to-Value : ratio entre le montant du prêt et la valeur du bien financé
+    \item[Scoring] Algorithme d'évaluation automatique de la solvabilité d'un client
+    \item[Notification] Message système stocké en base avec statut lu/non lu
+    \item[IBAN] International Bank Account Number : numéro de compte bancaire international
+    \item[BIC] Bank Identifier Code : code d'identification de la banque
 \end{description}
 
-\section{Périmètre fonctionnel}
-\begin{itemize}[leftmargin=1.2cm]
-    \item \textbf{Authentification} : inscription, connexion, déconnexion, gestion du profil, changement de mot de passe.
-    \item \textbf{Comptes} : ouverture/fermeture, solde, relevé paginé, export PDF (reportlab optionnel), RIB.
-    \item \textbf{Cartes} : affichage des cartes, blocage/déblocage, sans-contact, paiement étranger, plafonds paiement/retrait, blocage automatique si dépassement du découvert autorisé (Essentiel 100 €, Plus 500 €, Infinite 1000 €), déblocage automatique quand le solde repasse au-dessus.
-    \item \textbf{Virements} : bénéficiaires enregistrés, IBAN saisi, vérification de solde, création de transaction miroir si IBAN interne Banquise (normalisation IBAN : espaces/traits retirés, insensible à la casse).
-    \item \textbf{Abonnements} : plans Essentiel/Plus/Infinite, débit immédiat, transaction associée, prochaine facturation à J+30, résiliation fin de période, notifications de changement.
-    \item \textbf{Crédits} : simulation avec avis automatique (score, DTI, LTV, tolérance de risque), statut en attente de validation humaine, historique des demandes, page résultat dédiée, validation/refus par admin.
-    \item \textbf{Notifications} : centre utilisateur, badge sur l'avatar, alertes pour virements, transactions d'abonnement, dépassement de découvert, décisions de crédit, messages support.
-    \item \textbf{Support} : chat client ↔ admin, notifications côté staff et client, liste des conversations et filtres par utilisateur.
-    \item \textbf{Admin} : dashboard (utilisateurs, comptes actifs, solde total, crédits en attente, transactions récentes, top dépenses), validation des crédits en attente, console de gestion (comptes/cartes/bénéficiaires/transactions), accès Django admin.
+\section{Besoins fonctionnels}
+
+\subsection{Module Authentification}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Inscription avec validation des informations
+    \item Connexion sécurisée
+    \item Déconnexion
+    \item Gestion du profil utilisateur
+    \item Changement de mot de passe
+    \item Réinitialisation de mot de passe
 \end{itemize}
 
-\section{Exigences non fonctionnelles}
-\begin{itemize}[leftmargin=1.2cm]
-    \item \textbf{Sécurité} : authentification Django, CSRF, rôle staff, HTTPS recommandé, rotation de clés, 2FA/IP allowlist pour staff, journal d’audit minimal (blocage cartes, clôture compte, validation crédit).
-    \item \textbf{Performance} : pagination sur relevés, limitation des listes (20/30 éléments) en console admin, calculs de simulation côté serveur.
-    \item \textbf{Disponibilité/Monitoring} : journalisation des événements clés (virements, crédits, blocages cartes), sauvegardes régulières de la base, alertes sur erreurs et dépassements.
-    \item \textbf{Scalabilité} : base PostgreSQL en cible, stockage statique dédié, possibilité de files d’attente pour notifications externes.
-    \item \textbf{Conformité} : bonnes pratiques RGPD (données minimales, droits d’accès), traçabilité des décisions de crédit.
+\subsection{Module Gestion des Comptes}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Ouverture de compte (Courant, Épargne, Pro)
+    \item Fermeture de compte
+    \item Consultation du solde en temps réel
+    \item Relevé de compte paginé
+    \item Export PDF du relevé
+    \item Génération de RIB
+    \item Consultation de l'IBAN et BIC
 \end{itemize}
 
-\section{Architecture et données}
-\begin{itemize}[leftmargin=1.2cm]
-    \item \textbf{Backend} : Django 4.2, app \texttt{scoring}, MVC classique.
-    \item \textbf{Modèles clés} : User, ProfilClient (abonnement), Compte, Carte, Transaction, Beneficiaire, DemandeCredit (score, avis IA, statut), Notification, MessageSupport.
-    \item \textbf{Notifications} : en base, badge non lu, événements (virement, crédit, support, découvert, abonnement), email de bienvenue via backend configuré.
-    \item \textbf{Interfaces admin} : console web dédiée (`/console/manage`, `/console/credits`) + Django admin si besoin CRUD complet.
+\subsection{Module Cartes Bancaires}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Affichage des cartes associées
+    \item Blocage/déblocage manuel des cartes
+    \item Activation/désactivation sans-contact
+    \item Activation/désactivation paiements étrangers
+    \item Gestion des plafonds de paiement
+    \item Gestion des plafonds de retrait
+    \item Blocage automatique en cas de dépassement du découvert autorisé
+    \item Déblocage automatique lorsque le solde repasse au-dessus
 \end{itemize}
 
-\section{User stories principales}
-\begin{itemize}[leftmargin=1.2cm]
-    \item En tant que client, je veux consulter mes comptes, cartes et transactions récentes pour suivre mes finances.
-    \item En tant que client, je veux être notifié lors d’un virement, d’un dépassement de découvert ou d’une décision de crédit.
-    \item En tant que client, je veux bloquer/débloquer ma carte et ajuster mes plafonds.
-    \item En tant que client, je veux simuler un crédit et obtenir un avis automatique avant validation humaine.
-    \item En tant que staff, je veux valider/refuser des crédits après avis IA.
-    \item En tant que staff, je veux gérer comptes/cartes/bénéficiaires via une console dédiée (hors admin Django).
-    \item En tant que staff, je veux répondre aux messages support et être notifié des nouvelles conversations.
+\subsection{Module Virements}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Ajout de bénéficiaires (IBAN)
+    \item Gestion des bénéficiaires enregistrés
+    \item Virement vers bénéficiaire existant
+    \item Virement vers IBAN saisi manuellement
+    \item Vérification du solde disponible
+    \item Transaction miroir pour virements internes Banquise
+    \item Normalisation IBAN (insensible casse et espaces)
+    \item Notifications émetteur et destinataire
 \end{itemize}
 
-\section{Parcours clés}
-\begin{itemize}[leftmargin=1.2cm]
-    \item \textbf{Client} : inscription $\rightarrow$ tableau de bord (comptes, cartes, virements) $\rightarrow$ simulation crédit (avis auto) $\rightarrow$ notification et consultation historique $\rightarrow$ attente décision admin.
-    \item \textbf{Admin} : connexion staff $\rightarrow$ dashboard admin (statistiques, transactions) $\rightarrow$ validation des crédits en attente $\rightarrow$ notifications envoyées aux clients.
-    \item \textbf{Support} : client envoie un message $\rightarrow$ notifications staff $\rightarrow$ admin répond $\rightarrow$ notification client.
+\subsection{Module Abonnements}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Plans disponibles : Essentiel (gratuit), Plus (9,90€), Infinite (19,90€)
+    \item Changement d'abonnement avec débit immédiat
+    \item Création d'une transaction associée
+    \item Prochaine facturation à J+30
+    \item Résiliation programmée en fin de période
+    \item Notifications de changement d'abonnement
+    \item Découvert autorisé selon le plan
 \end{itemize}
 
-\section{Règles métier}
-\begin{itemize}[leftmargin=1.2cm]
-    \item Découvert autorisé par abonnement : Essentiel 100 €, Plus 500 €, Infinite 1000 €. Blocage cartes si solde $<$ $- \text{limite}$, déblocage automatique ensuite.
-    \item Abonnements : changement entraîne un débit immédiat et une transaction, prochaine facturation J+30, résiliation programmée à la fin de la période.
-    \item Virement interne : transaction miroir crédit pour le destinataire, avec notification.
-    \item Crédit : avis automatique (IA) conservé, statut reste \textit{EN\_ATTENTE} jusqu'à décision admin. Notifications à chaque étape (soumission, décision admin).
-    \item Notifications : badge rouge si non lu; événements concernés (virement, transaction abonnement, dépassement découvert, crédit, support).
+\subsection{Module Crédit}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Simulation de crédit avec formulaire détaillé
+    \item Calcul automatique du score de solvabilité
+    \item Avis IA basé sur DTI, LTV et tolérance au risque
+    \item Statut initial « En attente de validation humaine »
+    \item Historique des demandes de crédit
+    \item Page résultat dédiée avec détails
+    \item Validation/refus par administrateur
+    \item Notifications à chaque étape
 \end{itemize}
 
-\section{Exigences techniques}
-\begin{itemize}[leftmargin=1.2cm]
-    \item \textbf{Stack} : Python 3.9+, Django 4.2.25, crispy-forms + bootstrap5, mathfilters, SQLite par défaut, Tailwind CDN + Bootstrap Icons.
-    \item \textbf{Assets} : templates HTML/Tailwind, pas de build frontend requis.
-    \item \textbf{PDF} : ReportLab optionnel pour l'export de relevé/RIB.
-    \item \textbf{Notifications} : stockées en base (modèle Notification), affichées avec badge non lu.
-    \item \textbf{Sécurité} : authentification Django, CSRF activé, rôle staff pour accès admin/validation crédits, middleware de sécurité (CSP, nosniff, referrer policy), cookies sécurisés, HTTPS recommandé, rotation de clés, protection admin (2FA / IP allowlist).
-    \item \textbf{Performances} : pagination sur relevés, limites sur listes admin, calculs de simulation côté serveur.
-    \item \textbf{Disponibilité/Monitoring} : journalisation des événements clés (virements, crédits, blocages cartes), supervision et alertes, sauvegardes régulières de la base.
-    \item \textbf{Déploiement} : désactivation de DEBUG, rotation de SECRET\_KEY, base de données serveur (PostgreSQL recommandé), stockage statique/médias dédié, configuration e-mail/SMS pour notifications externes à terme.
+\subsection{Module Notifications}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Centre de notifications utilisateur
+    \item Badge sur l'avatar indiquant les notifications non lues
+    \item Notifications pour virements reçus/émis
+    \item Notifications pour transactions d'abonnement
+    \item Alertes de dépassement de découvert
+    \item Notifications de décision de crédit
+    \item Notifications de messages support
+    \item Marquage en lu
 \end{itemize}
 
-\section{Critères d'acceptation}
-\begin{itemize}[leftmargin=1.2cm]
-    \item Simulation affiche un avis automatique, statut reste \textit{EN\_ATTENTE} jusqu'à action admin ; notifications envoyées.
-    \item Blocage carte automatique lorsque le solde passe sous la limite de découvert autorisé selon l’abonnement ; déblocage automatique quand le seuil est repassé.
-    \item Console admin (hors Django admin) accessible aux staff : listage et actions basiques (édition via liens CRUD, blocage/déblocage, suppression bénéficiaire, clôture compte).
-    \item Centre de notifications avec badge non lu et marquage en lu.
-    \item Chat support bi-directionnel avec notifications staff/client.
+\subsection{Module Support Client}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Chat bidirectionnel client $\leftrightarrow$ admin
+    \item Envoi de messages par le client
+    \item Réponses des administrateurs
+    \item Notifications côté client et staff
+    \item Liste des conversations pour les admins
+    \item Filtrage par utilisateur
 \end{itemize}
 
-\section{Plan de tests manuel}
-\begin{itemize}[leftmargin=1.2cm]
-    \item Authentification : création compte, login, changement mot de passe, profil.
-    \item Comptes : ouverture/fermeture, relevé, export PDF (si reportlab).
-    \item Cartes : blocage/déblocage, sans-contact/paiement étranger, blocage auto sur dépassement découvert.
-    \item Virements : interne/externe, miroir crédit, notifications émetteur/destinataire.
-    \item Abonnements : upgrade/downgrade, débit, notification, résiliation fin de période.
-    \item Crédit : simulation (avis auto), statut en attente, validation/refus admin, notifications.
-    \item Support : message client, notif staff, réponse staff, notif client, badge non lu.
-    \item Console admin : actions comptes/cartes/bénéficiaires, visibilité transactions, liens CRUD.
+\subsection{Module Administration}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Dashboard avec statistiques clés :
+    \begin{itemize}
+        \item Nombre d'utilisateurs
+        \item Comptes actifs
+        \item Solde total de la plateforme
+        \item Crédits en attente
+        \item Transactions récentes
+        \item Top dépenses
+    \end{itemize}
+    \item Console de validation des crédits
+    \item Gestion des comptes/cartes/bénéficiaires
+    \item Consultation des transactions
+    \item Accès Django admin pour CRUD complet
 \end{itemize}
 
-\section{Risques et hypothèses}
-\begin{itemize}[leftmargin=1.2cm]
-    \item \textbf{Hypothèses} : données démo, pas d’email/SMS en prod, charge faible, usage interne.
-    \item \textbf{Risques} : fuite de SECRET\_KEY, absence d’HTTPS, audit insuffisant, pas de tests auto.
-    \item \textbf{Mitigation} : durcir la config avant prod, ajouter audit/logs, prévoir tests automatisés, supervision, migration vers PostgreSQL et stockage statique dédié.
+\section{Besoins non fonctionnels}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{4cm}|p{10cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Critère} & \textbf{Exigences} \\
+\hline
+\textbf{Sécurité} & 
+\begin{itemize}[leftmargin=0.5cm]
+    \item Authentification Django sécurisée
+    \item Protection CSRF activée
+    \item Gestion des rôles (staff/client)
+    \item HTTPS recommandé en production
+    \item Rotation des clés secrètes
+    \item 2FA pour les administrateurs
+    \item Journal d'audit des actions sensibles
+\end{itemize} \\
+\hline
+\textbf{Performance} & 
+\begin{itemize}[leftmargin=0.5cm]
+    \item Pagination sur les relevés (20 items/page)
+    \item Limitation des listes (30 éléments max)
+    \item Calculs de simulation côté serveur
+    \item Temps de réponse < 2 secondes
+\end{itemize} \\
+\hline
+\textbf{Disponibilité} & 
+\begin{itemize}[leftmargin=0.5cm]
+    \item Journalisation des événements clés
+    \item Sauvegardes régulières de la base
+    \item Alertes sur erreurs critiques
+    \item Disponibilité cible : 99\%
+\end{itemize} \\
+\hline
+\textbf{Scalabilité} & 
+\begin{itemize}[leftmargin=0.5cm]
+    \item Base PostgreSQL en production
+    \item Stockage statique dédié (CDN)
+    \item Files d'attente pour notifications
+    \item Architecture horizontalement scalable
+\end{itemize} \\
+\hline
+\textbf{Conformité} & 
+\begin{itemize}[leftmargin=0.5cm]
+    \item Respect du RGPD
+    \item Données personnelles minimales
+    \item Droits d'accès et de suppression
+    \item Traçabilité des décisions de crédit
+\end{itemize} \\
+\hline
+\textbf{Ergonomie} & 
+\begin{itemize}[leftmargin=0.5cm]
+    \item Interface responsive
+    \item Design moderne avec Tailwind CSS
+    \item Navigation intuitive
+    \item Accessibilité (WCAG 2.1)
+\end{itemize} \\
+\hline
+\end{tabular}
+\caption{Besoins non fonctionnels}
+\end{table}
+
+\section{Diagramme de cas d'utilisation général}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    scale=0.7, transform shape,
+    actor/.style={draw, shape=circle, minimum size=0.9cm, font=\small, fill=banquiseblue!20},
+    usecase/.style={draw, ellipse, minimum width=2.8cm, minimum height=1.1cm, font=\scriptsize, fill=lightgray},
+    sys/.style={thick, rounded corners=8pt, fill=white}
+]
+    \node[actor] (client) at (-2,0) {Client};
+    \node[actor] (admin) at (-2,-7) {Admin};
+
+    \node[sys, minimum width=12cm, minimum height=11cm, anchor=center] (box) at (5,-4) {};
+    \node[font=\small, anchor=north] at (5,1.3) {\textbf{Système Banquise}};
+
+    \node[usecase] (auth) at (3,0.5) {S'authentifier};
+    \node[usecase] (compte) at (7,0.5) {Gérer comptes};
+    \node[usecase] (carte) at (3,-1.4) {Gérer cartes};
+    \node[usecase] (virement) at (7,-1.4) {Faire virement};
+    \node[usecase] (credit) at (3,-3.3) {Simuler \& demander crédit};
+    \node[usecase] (notif) at (7,-3.3) {Voir notifications};
+    \node[usecase] (support) at (5,-5.1) {Contacter support};
+
+    \node[usecase, fill=banquiseblue!15] (dash) at (3,-6.8) {Dashboard admin};
+    \node[usecase, fill=banquiseblue!15] (valid) at (7,-6.8) {Valider crédits};
+    \node[usecase, fill=banquiseblue!15] (manage) at (5,-8.3) {Gérer système \& support};
+
+    \draw[-] (client) -- (auth);
+    \draw[-] (client) -- (compte);
+    \draw[-] (client) -- (carte);
+    \draw[-] (client) -- (virement);
+    \draw[-] (client) -- (credit);
+    \draw[-] (client) -- (notif);
+    \draw[-] (client) -- (support);
+
+    \draw[-] (admin) -- (dash);
+    \draw[-] (admin) -- (valid);
+    \draw[-] (admin) -- (manage);
+    \draw[-] (admin) -- (support);
+\end{tikzpicture}
+\caption{Diagramme de cas d'utilisation général (Figure 2.1)}
+\end{figure}
+
+\section{Arborescence du site}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  scale=0.8,
+  transform shape,
+  level 1/.style={sibling distance=4cm, level distance=1.8cm},
+  level 2/.style={sibling distance=2.2cm, level distance=1.4cm},
+  edge from parent/.style={draw, -latex, thick},
+  every node/.style={font=\scriptsize, inner sep=3pt}
+]
+
+\node[draw, rectangle, fill=banquiseblue!30, minimum width=1.8cm, minimum height=0.7cm] {Accueil}
+  child {node[draw, rectangle, fill=lightgray, minimum width=1.6cm, minimum height=0.6cm] {Espace Client}
+    child {node[draw, rectangle, minimum width=1.6cm, minimum height=0.5cm] {Dashboard}}
+    child {node[draw, rectangle, minimum width=1.6cm, minimum height=0.5cm] {Comptes}}
+    child {node[draw, rectangle, minimum width=1.6cm, minimum height=0.5cm] {Cartes}}
+    child {node[draw, rectangle, minimum width=1.6cm, minimum height=0.5cm] {Notifications}}
+  }
+  child {node[draw, rectangle, fill=lightgray, minimum width=1.6cm, minimum height=0.6cm] {Virements}
+    child {node[draw, rectangle, minimum width=1.6cm, minimum height=0.5cm] {Bénéficiaires}}
+    child {node[draw, rectangle, minimum width=1.6cm, minimum height=0.5cm] {Nouveau virement}}
+  }
+  child {node[draw, rectangle, fill=lightgray, minimum width=1.6cm, minimum height=0.6cm] {Services}
+    child {node[draw, rectangle, minimum width=1.6cm, minimum height=0.5cm] {Crédit (simulation)}}
+    child {node[draw, rectangle, minimum width=1.6cm, minimum height=0.5cm] {Abonnements}}
+    child {node[draw, rectangle, minimum width=1.6cm, minimum height=0.5cm] {Support \& chat}}
+  }
+  child {node[draw, rectangle, fill=banquiseblue!15, minimum width=1.6cm, minimum height=0.6cm] {Admin}
+    child {node[draw, rectangle, minimum width=1.6cm, minimum height=0.5cm] {Dashboard admin}}
+    child {node[draw, rectangle, minimum width=1.6cm, minimum height=0.5cm] {Crédits (validation)}}
+    child {node[draw, rectangle, minimum width=1.6cm, minimum height=0.5cm] {Console gestion}}
+    child {node[draw, rectangle, minimum width=1.6cm, minimum height=0.5cm] {Rapports/Heatmap}}
+  };
+\end{tikzpicture}
+\caption{Arborescence du site (Figure 2.2)}
+\end{figure}
+
+\section{User Stories principales}
+
+\begin{longtable}{|c|p{2.5cm}|p{7cm}|c|c|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{N°} & \textbf{Module} & \textbf{User Story} & \textbf{Priorité} & \textbf{Points} \\
+\hline
+\endfirsthead
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{N°} & \textbf{Module} & \textbf{User Story} & \textbf{Priorité} & \textbf{Points} \\
+\hline
+\endhead
+
+1 & Authentification & En tant qu'utilisateur, je veux m'inscrire avec mes informations personnelles & Haute & 8 \\
+\hline
+2 & Authentification & En tant qu'utilisateur, je veux me connecter de manière sécurisée & Haute & 5 \\
+\hline
+3 & Authentification & En tant qu'utilisateur, je veux changer mon mot de passe & Haute & 3 \\
+\hline
+4 & Comptes & En tant que client, je veux ouvrir un nouveau compte & Haute & 5 \\
+\hline
+5 & Comptes & En tant que client, je veux consulter mes soldes en temps réel & Haute & 3 \\
+\hline
+6 & Comptes & En tant que client, je veux consulter mon relevé de compte & Moyenne & 5 \\
+\hline
+7 & Comptes & En tant que client, je veux exporter mon relevé en PDF & Basse & 8 \\
+\hline
+8 & Cartes & En tant que client, je veux bloquer/débloquer ma carte & Haute & 3 \\
+\hline
+9 & Cartes & En tant que client, je veux gérer mes plafonds de paiement & Moyenne & 5 \\
+\hline
+10 & Cartes & En tant que système, je veux bloquer automatiquement les cartes en cas de dépassement & Haute & 8 \\
+\hline
+11 & Virements & En tant que client, je veux ajouter un bénéficiaire & Haute & 3 \\
+\hline
+12 & Virements & En tant que client, je veux effectuer un virement & Haute & 5 \\
+\hline
+13 & Virements & En tant que client, je veux être notifié des virements reçus & Haute & 3 \\
+\hline
+14 & Abonnements & En tant que client, je veux changer mon abonnement & Moyenne & 5 \\
+\hline
+15 & Abonnements & En tant que client, je veux résilier mon abonnement & Moyenne & 3 \\
+\hline
+16 & Crédit & En tant que client, je veux simuler un crédit & Haute & 13 \\
+\hline
+17 & Crédit & En tant que système, je veux calculer un score de solvabilité & Haute & 13 \\
+\hline
+18 & Crédit & En tant qu'admin, je veux valider ou refuser un crédit & Haute & 5 \\
+\hline
+19 & Notifications & En tant que client, je veux consulter mes notifications & Haute & 3 \\
+\hline
+20 & Notifications & En tant que client, je veux voir un badge de notifications non lues & Moyenne & 2 \\
+\hline
+21 & Support & En tant que client, je veux envoyer un message au support & Moyenne & 3 \\
+\hline
+22 & Support & En tant qu'admin, je veux répondre aux messages clients & Moyenne & 5 \\
+\hline
+23 & Admin & En tant qu'admin, je veux consulter le dashboard avec statistiques & Haute & 8 \\
+\hline
+24 & Admin & En tant qu'admin, je veux gérer les comptes/cartes & Haute & 8 \\
+\hline
+
+\caption{Backlog des User Stories}
+\end{longtable}
+
+% ============================================================================
+% CHAPITRE 3 : ARCHITECTURE TECHNIQUE ET SÉCURITÉ
+% ============================================================================
+\chapter{Architecture technique et sécurité}
+
+\section{Architecture cible}
+\begin{itemize}[leftmargin=1.5cm]
+    \item \textbf{Backend} : Django 4.2, Python 3.9+
+    \item \textbf{Base de données} : SQLite en développement, PostgreSQL recommandé en production
+    \item \textbf{Front} : Templates Django + Tailwind CDN + Bootstrap Icons
+    \item \textbf{Notifications} : modèle interne (table Notification), extensible vers e-mail/SMS
+    \item \textbf{Stockage statique} : collectstatic vers un bucket/CDN en production
+    \item \textbf{Tâches planifiées} : commande cron pour rapport hebdo (crédits, comptes à risque)
+    \item \textbf{Monitoring} : journaux applicatifs (errors, accès), alertes sur erreurs critiques
 \end{itemize}
 
-\section{Roadmap indicative}
-\begin{itemize}[leftmargin=1.2cm]
-    \item \textbf{Lot 1} : Comptes / cartes / virements / notifications / console admin.
-    \item \textbf{Lot 2} : Crédit (avis auto + validation admin), export PDF, overdraft auto.
-    \item \textbf{Lot 3} : Notifications externes (email/SMS), audit avancé, KYC/2FA.
-    \item \textbf{Lot 4} : Scalabilité (PostgreSQL, cache, CDN statique), monitoring/alerting complet.
+\section{Sécurité}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Authentification Django sécurisée, CSRF activé, rôles (client/staff)
+    \item Découvert : blocage/déblocage automatique des cartes, notifications préventives
+    \item Scoring crédit : décision IA conservée, validation humaine obligatoire
+    \item Cookies sécurisés en production (HTTPS, Secure, SameSite), rotation de la SECRET\_KEY
+    \item 2FA recommandé pour les comptes staff et accès back-office
+    \item Journal d'audit des actions sensibles (blocage carte, validation crédit, changement d'abonnement)
+    \item Conformité RGPD : minimisation des données, droit de suppression, consentement explicite pour notifications
+\end{itemize}
+
+\section{Règles métiers clés}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Découvert autorisé : Essentiel 100 €, Plus 500 €, Infinite 1000 € ; relèvement temporaire sur demande admin
+    \item Scoring crédit : DTI, LTV, score IA, seuils dynamiques selon revenus et montants
+    \item Virements : miroir interne si IBAN Banquise, normalisation IBAN (espaces/casse ignorés), notification émetteur/destinataire
+    \item Abonnements : débit immédiat, prochaine facturation J+30, résiliation fin de période
+\end{itemize}
+
+% ============================================================================
+% CHAPITRE 4 : PLANIFICATION ET LIVRABLES
+% ============================================================================
+\chapter{Planification et livrables}
+
+\section{Jalons}
+\begin{itemize}[leftmargin=1.5cm]
+    \item \textbf{MVP} : Auth, comptes, virements, cartes (blocage manuel), notifications de base
+    \item \textbf{V1} : Abonnements, scoring crédit IA, validation admin, support chat
+    \item \textbf{V2} : Découvert dynamique, rapports admin (heatmap, comptes à risque), tâches planifiées
+    \item \textbf{V3} : Déploiement cloud (PostgreSQL, stockage statique), durcissement sécurité (2FA, HSTS)
 \end{itemize}
 
 \section{Livrables}
-\begin{itemize}[leftmargin=1.2cm]
-    \item Code Django complet (app \texttt{scoring}), migrations, templates.
-    \item README (installation, commandes, URLs).
-    \item Cahier des charges (ce document) pour cadrer périmètre et règles métier.
+\begin{itemize}[leftmargin=1.5cm]
+    \item Code source Django + templates
+    \item Base de données migrée (migrations Django)
+    \item Documentation d’installation (dev/prod) et d’exploitation (collectstatic, migrations, tâches cron)
+    \item Cahier des charges (ce document) et guides utilisateur/admin
+    \item Jeux de tests (unitaires/integ) et rapports de test
 \end{itemize}
+
+% ============================================================================
+% CHAPITRE 5 : QUALITÉ ET TESTS
+% ============================================================================
+\chapter{Qualité et tests}
+
+\section{Types de tests}
+\begin{itemize}[leftmargin=1.5cm]
+    \item \textbf{Unitaires} : calculs métier (scoring, découvert, miroir virement)
+    \item \textbf{Intégration} : parcours clés (login, virement interne/externe, changement d’abonnement, blocage carte)
+    \item \textbf{End-to-end} : navigation dashboard, simulation crédit jusqu’à validation admin
+    \item \textbf{Performance} : temps de réponse des pages critiques < 2s (dashboard, virement)
+    \item \textbf{Sécurité} : CSRF, sessions, droits staff vs client, audit des actions sensibles
+\end{itemize}
+
+\section{Critères d’acceptation principaux}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Ouverture de compte, virement, blocage carte et changement d’abonnement fonctionnent sans erreur
+    \item Le scoring IA produit un score et une décision, mais l’admin reste décisionnaire
+    \item Les notifications critiques (virement, crédit, découvert) sont créées et visibles
+    \item Les tâches planifiées (rapport hebdo) s’exécutent sans erreur
+\end{itemize}
+
+\section{Règles métier}
+
+\subsection{Découverts autorisés}
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|c|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Abonnement} & \textbf{Prix mensuel} & \textbf{Découvert autorisé} \\
+\hline
+Essentiel & 0,00 € & 100 € \\
+\hline
+Plus & 9,90 € & 500 € \\
+\hline
+Infinite & 19,90 € & 1 000 € \\
+\hline
+\end{tabular}
+\caption{Découverts autorisés par abonnement}
+\end{table}
+
+\subsection{Blocage automatique des cartes}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Si solde $<$ $-$limite découvert : blocage automatique de toutes les cartes
+    \item Si solde $\geq$ $-$limite découvert : déblocage automatique
+    \item Notification envoyée à chaque changement de statut
+    \item Alerte préventive à 80\% de la limite
+\end{itemize}
+
+\subsection{Virements internes}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Détection automatique des IBAN Banquise (FR76)
+    \item Création d'une transaction miroir en crédit pour le destinataire
+    \item Notification émetteur : « Virement de X€ effectué »
+    \item Notification destinataire : « Virement de X€ reçu »
+    \item Normalisation IBAN : insensible à la casse et aux espaces
+\end{itemize}
+
+\subsection{Scoring crédit}
+Le calcul du score de crédit prend en compte :
+\begin{itemize}[leftmargin=1.5cm]
+    \item \textbf{DTI (Debt-to-Income)} : ratio dettes/revenus
+    \item \textbf{LTV (Loan-to-Value)} : ratio montant prêt/valeur financée
+    \item \textbf{Situation professionnelle} : CDI, CDD, indépendant, retraité
+    \item \textbf{État de santé} : bon, moyen, faible
+    \item \textbf{Nombre d'enfants à charge}
+    \item \textbf{Apport personnel}
+\end{itemize}
+
+\textbf{Formule de scoring} :
+\[
+\text{Score} = 1000 - (\text{DTI} \times 10) - (\text{LTV} \times 5) + \text{bonus\_emploi} + \text{bonus\_santé}
+\]
+
+\subsection{Cycle de vie du crédit}
+\begin{enumerate}
+    \item Client remplit le formulaire de simulation
+    \item Système calcule le score et génère un avis IA
+    \item Statut initial : « EN\_ATTENTE »
+    \item Notification envoyée au client et aux admins
+    \item Admin examine la demande et décide
+    \item Statut mis à jour : « ACCEPTEE » ou « REFUSEE »
+    \item Notification de décision envoyée au client
+\end{enumerate}
+
+\section{Conclusion}
+Ce chapitre a présenté l'ensemble des besoins fonctionnels et non fonctionnels, les acteurs, les user stories et les règles métier. Le chapitre suivant détaillera l'architecture technique et la conception du système.
+
+% ============================================================================
+% CHAPITRE 3 : ARCHITECTURE ET CONCEPTION
+% ============================================================================
+\chapter{Architecture et conception}
+
+\section{Introduction}
+Ce chapitre présente l'architecture logique et physique du système, ainsi que les diagrammes UML de conception.
+
+\section{Architecture logique}
+
+\subsection{Architecture MVC Django}
+
+% Réduction de la taille et réorganisation pour meilleur affichage
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=2.2cm, auto, >=latex', font=\small]
+    % Définition des styles
+    \tikzstyle{block} = [rectangle, draw, fill=blue!20, text width=4.5em, text centered, rounded corners, minimum height=2.5em]
+    \tikzstyle{line} = [draw, -latex', thick]
+    
+    % Nœuds
+    \node [block] (client) {Client Web};
+    \node [block, below of=client, node distance=2cm] (urls) {URLs Router};
+    \node [block, below of=urls, node distance=2cm] (views) {Views};
+    \node [block, left of=views, node distance=3.5cm] (models) {Models};
+    \node [block, right of=views, node distance=3.5cm] (templates) {Templates};
+    \node [block, below of=views, node distance=2cm] (db) {Base de données};
+    
+    % Connexions
+    \path [line] (client) -- node[right, font=\scriptsize] {HTTP Request} (urls);
+    \path [line] (urls) -- (views);
+    \path [line] (views) -- (models);
+    \path [line] (models) -- (db);
+    \path [line] (views) -- (templates);
+    \path [line] (templates) -- node[right, font=\scriptsize] {HTTP Response} (client);
+    \path [line] (db) -- (models);
+\end{tikzpicture}
+\caption{Architecture MVC Django}
+\end{figure}
+
+\subsection{Structure des modules}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{4cm}|p{10cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Module} & \textbf{Responsabilités} \\
+\hline
+\texttt{scoring.models} & Définition des modèles de données (User, Compte, Carte, Transaction, etc.) \\
+\hline
+\texttt{scoring.views} & Logique métier et contrôleurs (dashboard, virements, crédit, etc.) \\
+\hline
+\texttt{scoring.forms} & Formulaires Django (inscription, virement, simulation crédit) \\
+\hline
+\texttt{scoring.urls} & Configuration des routes URL \\
+\hline
+\texttt{scoring.utils} & Fonctions utilitaires (calcul découvert, scoring, normalisation IBAN) \\
+\hline
+\texttt{templates/} & Templates HTML avec Tailwind CSS et Bootstrap Icons \\
+\hline
+\texttt{static/} & Fichiers CSS, JavaScript et images statiques \\
+\hline
+\end{tabular}
+\caption{Structure des modules}
+\end{table}
+
+\section{Architecture physique}
+
+\subsection{Architecture client-serveur}
+
+% Simplification du diagramme client-serveur
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=2.5cm, auto, font=\small]
+    \tikzstyle{block} = [rectangle, draw, fill=green!20, text width=5em, text centered, minimum height=3em]
+    \tikzstyle{line} = [draw, -latex', thick]
+    
+    % Clients
+    \node [block] (browser) {Navigateur Web};
+    \node [block, below of=browser, node distance=1.8cm] (mobile) {Mobile};
+    
+    % Serveur Web
+    \node [block, right of=browser, node distance=4.5cm, yshift=-0.9cm] (nginx) {Nginx};
+    
+    % Serveur Application
+    \node [block, right of=nginx, node distance=4.5cm] (django) {Django + Gunicorn};
+    
+    % Base de données
+    \node [block, below of=django, node distance=2.5cm] (postgres) {PostgreSQL};
+    
+    % Stockage
+    \node [block, above of=django, node distance=2.5cm] (storage) {Stockage};
+    
+    % Connexions
+    \path [line] (browser) -- node[above, font=\scriptsize] {HTTPS} (nginx);
+    \path [line] (mobile) -- (nginx);
+    \path [line] (nginx) -- node[above, font=\scriptsize] {WSGI} (django);
+    \path [line] (django) -- node[right, font=\scriptsize] {SQL} (postgres);
+    \path [line] (django) -- (storage);
+\end{tikzpicture}
+\caption{Architecture client-serveur}
+\end{figure}
+
+\subsection{Diagramme de déploiement}
+
+% Réduction de la taille du diagramme de déploiement
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=2cm, font=\small]
+    % Serveur Web
+    \node[draw, rectangle, minimum width=3.5cm, minimum height=2.5cm] (web) at (0,0) {};
+    \node at (0,1.1) {\textbf{Serveur Web}};
+    \node[draw, rectangle, fill=yellow!20, font=\scriptsize] at (0,0.3) {Nginx};
+    \node[draw, rectangle, fill=yellow!20, font=\scriptsize] at (0,-0.4) {SSL};
+    
+    % Serveur Application
+    \node[draw, rectangle, minimum width=3.5cm, minimum height=2.5cm] (app) at (5,0) {};
+    \node at (5,1.1) {\textbf{Serveur App}};
+    \node[draw, rectangle, fill=orange!20, font=\scriptsize] at (5,0.3) {Django 4.2};
+    \node[draw, rectangle, fill=orange!20, font=\scriptsize] at (5,-0.4) {Gunicorn};
+    
+    % Base de données
+    \node[draw, rectangle, minimum width=3.5cm, minimum height=2.5cm] (db) at (5,-3.5) {};
+    \node at (5,-2.4) {\textbf{Base de données}};
+    \node[draw, rectangle, fill=blue!20, font=\scriptsize] at (5,-3.2) {PostgreSQL};
+    \node[draw, rectangle, fill=blue!20, font=\scriptsize] at (5,-3.9) {Redis};
+    
+    % Stockage
+    \node[draw, rectangle, minimum width=3.5cm, minimum height=2.5cm] (storage) at (0,-3.5) {};
+    \node at (0,-2.4) {\textbf{Stockage}};
+    \node[draw, rectangle, fill=green!20, font=\scriptsize] at (0,-3.2) {Statiques};
+    \node[draw, rectangle, fill=green!20, font=\scriptsize] at (0,-3.9) {Médias};
+    
+    % Connexions
+    \draw[->, thick] (web) -- (app);
+    \draw[->, thick] (app) -- (db);
+    \draw[->, thick] (app) -- (storage);
+\end{tikzpicture}
+\caption{Diagramme de déploiement}
+\end{figure}
+
+\section{Diagramme de classes}
+
+% Restructuration complète du diagramme de classes pour format A4 en paysage
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.48, transform shape, font=\tiny]
+
+% Ligne 1
+\begin{class}[text width=4cm]{User}{0,0}
+    \attribute{+ id : Integer}
+    \attribute{+ username : String}
+    \attribute{+ email : String}
+    \attribute{+ password : String}
+    \attribute{+ first\_name : String}
+    \attribute{+ last\_name : String}
+    \attribute{+ is\_staff : Boolean}
+    \operation{+ save() : void}
+    \operation{+ delete() : void}
+\end{class}
+
+\begin{class}[text width=4cm]{ProfilClient}{6,0}
+    \attribute{+ user : User}
+    \attribute{+ date\_naissance : Date}
+    \attribute{+ ville\_naissance : String}
+    \attribute{+ telephone : String}
+    \attribute{+ abonnement : String}
+    \attribute{+ prochain\_abonnement : String}
+    \attribute{+ prochaine\_facturation : Date}
+    \operation{+ calculer\_decouvert() : Decimal}
+\end{class}
+
+\begin{class}[text width=4cm]{Compte}{12,0}
+    \attribute{+ id : Integer}
+    \attribute{+ user : User}
+    \attribute{+ type\_compte : String}
+    \attribute{+ solde : Decimal}
+    \attribute{+ numero\_compte : String}
+    \attribute{+ date\_creation : DateTime}
+    \attribute{+ est\_actif : Boolean}
+    \operation{+ crediter(montant) : void}
+    \operation{+ debiter(montant) : void}
+\end{class}
+
+\begin{class}[text width=4cm]{Carte}{18,0}
+    \attribute{+ id : Integer}
+    \attribute{+ compte : Compte}
+    \attribute{+ numero\_visible : String}
+    \attribute{+ date\_expiration : Date}
+    \attribute{+ plafond\_paiement : Integer}
+    \attribute{+ plafond\_retrait : Integer}
+    \attribute{+ est\_bloquee : Boolean}
+    \attribute{+ sans\_contact\_actif : Boolean}
+    \operation{+ bloquer() : void}
+    \operation{+ debloquer() : void}
+\end{class}
+
+% Ligne 2
+\begin{class}[text width=4cm]{Transaction}{0,-8}
+    \attribute{+ id : Integer}
+    \attribute{+ compte : Compte}
+    \attribute{+ montant : Decimal}
+    \attribute{+ libelle : String}
+    \attribute{+ date\_execution : DateTime}
+    \attribute{+ type : String}
+    \attribute{+ categorie : String}
+    \operation{+ executer() : void}
+\end{class}
+
+\begin{class}[text width=4cm]{Beneficiaire}{6,-8}
+    \attribute{+ id : Integer}
+    \attribute{+ user : User}
+    \attribute{+ nom : String}
+    \attribute{+ iban : String}
+    \attribute{+ date\_ajout : DateTime}
+    \operation{+ valider\_iban() : Boolean}
+\end{class}
+
+\begin{class}[text width=4cm]{DemandeCredit}{12,-8}
+    \attribute{+ id : Integer}
+    \attribute{+ user : User}
+    \attribute{+ produit : String}
+    \attribute{+ montant\_souhaite : Integer}
+    \attribute{+ duree\_annees : Integer}
+    \attribute{+ score\_calcule : Integer}
+    \attribute{+ statut : String}
+    \attribute{+ ia\_decision : String}
+    \operation{+ calculer\_score() : Integer}
+\end{class}
+
+\begin{class}[text width=4cm]{Notification}{18,-8}
+    \attribute{+ id : Integer}
+    \attribute{+ user : User}
+    \attribute{+ titre : String}
+    \attribute{+ contenu : Text}
+    \attribute{+ type : String}
+    \attribute{+ est\_lu : Boolean}
+    \attribute{+ date\_creation : DateTime}
+    \operation{+ marquer\_lu() : void}
+\end{class}
+
+% Relations simplifiées
+\draw[->] (User) -- (ProfilClient);
+\draw[->] (User) -- (Compte);
+\draw[->] (Compte) -- (Carte);
+\draw[->] (Compte) -- (Transaction);
+\draw[->] (User) to[out=270,in=90] (Beneficiaire);
+\draw[->] (User) to[out=270,in=90] (DemandeCredit);
+\draw[->] (User) to[out=270,in=90] (Notification);
+
+\end{tikzpicture}
+\caption{Diagramme de classes UML (vue simplifiée)}
+\end{figure}
+
+\section{Diagramme de séquence - Virement}
+
+% Réduction et simplification du diagramme de séquence virement
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>=stealth, node distance=1.8cm, font=\small]
+    % Acteurs et objets
+    \node (client) {Client};
+    \node[right=of client] (interface) {Interface};
+    \node[right=of interface] (view) {View};
+    \node[right=of view] (compte) {Compte};
+    \node[right=of compte] (notif) {Notif};
+    
+    % Lignes de vie
+    \draw[dashed] (client) -- ++(0,-7);
+    \draw[dashed] (interface) -- ++(0,-7);
+    \draw[dashed] (view) -- ++(0,-7);
+    \draw[dashed] (compte) -- ++(0,-7);
+    \draw[dashed] (notif) -- ++(0,-7);
+    
+    % Messages
+    \draw[->, thick] (0,-1) -- node[above, font=\scriptsize] {1: Saisir} ++(1.8,0);
+    \draw[->, thick] (1.8,-1.5) -- node[above, font=\scriptsize] {2: Valider} ++(1.8,0);
+    \draw[->, thick] (3.6,-2) -- node[above, font=\scriptsize] {3: Vérifier} ++(1.8,0);
+    \draw[->, thick] (5.4,-2.5) -- node[right, font=\scriptsize] {4: OK} ++(-1.8,0);
+    \draw[->, thick] (3.6,-3) -- node[above, font=\scriptsize] {5: Débiter} ++(1.8,0);
+    \draw[->, thick] (5.4,-3.5) -- node[above, font=\scriptsize] {6: Transaction} ++(1.8,0);
+    \draw[->, thick] (3.6,-4) -- node[above, font=\scriptsize, sloped] {7: Notifier} ++(3.6,0);
+    \draw[->, thick] (0,-5) -- node[above, font=\scriptsize] {8: Confirmer} ++(1.8,0);
+\end{tikzpicture}
+\caption{Diagramme de séquence - Virement}
+\end{figure}
+
+\section{Diagramme de séquence - Validation de crédit}
+
+% Réduction et simplification du diagramme de séquence crédit
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>=stealth, node distance=2cm, font=\small]
+    % Acteurs et objets
+    \node (client) {Client};
+    \node[right=2cm of client] (interface) {Interface};
+    \node[right=2cm of interface] (view) {View};
+    \node[right=2cm of view] (scoring) {Scoring};
+    \node[right=2cm of scoring] (admin) {Admin};
+    
+    % Lignes de vie
+    \draw[dashed] (client) -- ++(0,-8);
+    \draw[dashed] (interface) -- ++(0,-8);
+    \draw[dashed] (view) -- ++(0,-8);
+    \draw[dashed] (scoring) -- ++(0,-8);
+    \draw[dashed] (admin) -- ++(0,-8);
+    
+    % Messages
+    \draw[->, thick] (0,-1) -- node[above, font=\scriptsize] {1: Formulaire} ++(2,0);
+    \draw[->, thick] (2,-1.5) -- node[above, font=\scriptsize] {2: Soumettre} ++(2,0);
+    \draw[->, thick] (4,-2) -- node[above, font=\scriptsize] {3: Calculer} ++(2,0);
+    \draw[->, thick] (6,-2.5) -- node[right, font=\scriptsize] {4: Score} ++(-2,0);
+    \draw[->, thick] (4,-3) -- node[above, font=\scriptsize] {5: EN\_ATTENTE} ++(4,0);
+    \draw[->, thick] (8,-3.5) -- node[above, font=\scriptsize] {6: Examiner} ++(-4,0);
+    \draw[->, thick] (4,-4) -- node[above, font=\scriptsize] {7: Décision} ++(-2,0);
+    \draw[->, thick] (2,-4.5) -- node[above, font=\scriptsize] {8: Notifier} ++(-2,0);
+\end{tikzpicture}
+\caption{Diagramme de séquence - Validation de crédit}
+\end{figure}
+
+\section{Conclusion}
+Ce chapitre a présenté l'architecture logique et physique du système, ainsi que les diagrammes UML de conception. Le prochain chapitre détaillera la base de données et les tables.
+
+% ============================================================================
+% CHAPITRE 4 : BASE DE DONNÉES
+% ============================================================================
+\chapter{Base de données}
+
+\section{Introduction}
+Ce chapitre décrit la structure de la base de données, les tables et leurs relations.
+
+\section{Modèle relationnel}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=2cm]
+    % Table User
+    \node[draw, rectangle] (user) at (0,0) {
+        \begin{tabular}{l}
+            \textbf{auth\_user} \\
+            \hline
+            PK: id \\
+            username \\
+            email \\
+            password \\
+            first\_name \\
+            last\_name \\
+            is\_staff
+        \end{tabular}
+    };
+    
+    % Table ProfilClient
+    \node[draw, rectangle] (profil) at (0,-4) {
+        \begin{tabular}{l}
+            \textbf{profil\_client} \\
+            \hline
+            PK: id \\
+            FK: user\_id \\
+            date\_naissance \\
+            ville\_naissance \\
+            telephone \\
+            abonnement
+        \end{tabular}
+    };
+    
+    % Table Compte
+    \node[draw, rectangle] (compte) at (6,0) {
+        \begin{tabular}{l}
+            \textbf{compte} \\
+            \hline
+            PK: id \\
+            FK: user\_id \\
+            type\_compte \\
+            solde \\
+            numero\_compte \\
+            est\_actif
+        \end{tabular}
+    };
+    
+    % Table Carte
+    \node[draw, rectangle] (carte) at (6,-4) {
+        \begin{tabular}{l}
+            \textbf{carte} \\
+            \hline
+            PK: id \\
+            FK: compte\_id \\
+            numero\_visible \\
+            date\_expiration \\
+            plafond\_paiement \\
+            est\_bloquee
+        \end{tabular}
+    };
+    
+    % Table Transaction
+    \node[draw, rectangle] (transaction) at (12,0) {
+        \begin{tabular}{l}
+            \textbf{transaction} \\
+            \hline
+            PK: id \\
+            FK: compte\_id \\
+            montant \\
+            libelle \\
+            type \\
+            categorie \\
+            date\_execution
+        \end{tabular}
+    };
+    
+    % Table Notification
+    \node[draw, rectangle] (notification) at (12,-4) {
+        \begin{tabular}{l}
+            \textbf{notification} \\
+            \hline
+            PK: id \\
+            FK: user\_id \\
+            titre \\
+            contenu \\
+            type \\
+            est\_lu
+        \end{tabular}
+    };
+    
+    % Relations
+    \draw[->, thick] (user) -- (profil);
+    \draw[->, thick] (user) -- (compte);
+    \draw[->, thick] (compte) -- (carte);
+    \draw[->, thick] (compte) -- (transaction);
+    \draw[->, thick] (user) -- (notification);
+\end{tikzpicture}
+\caption{Modèle relationnel simplifié}
+\end{figure}
+
+\section{Dictionnaire des données}
+
+\subsection{Table: auth\_user}
+\begin{longtable}{|p{3.5cm}|p{2.5cm}|p{2cm}|p{6cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Champ} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\
+\hline
+\endfirsthead
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Champ} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\
+\hline
+\endhead
+
+id & Integer & PK, AUTO & Identifiant unique de l'utilisateur \\
+\hline
+username & String(150) & UNIQUE, NOT NULL & Nom d'utilisateur pour la connexion \\
+\hline
+email & String(254) & NOT NULL & Adresse email \\
+\hline
+password & String(128) & NOT NULL & Mot de passe hashé \\
+\hline
+first\_name & String(150) & NULL & Prénom de l'utilisateur \\
+\hline
+last\_name & String(150) & NULL & Nom de famille \\
+\hline
+is\_staff & Boolean & DEFAULT FALSE & Indicateur de rôle administrateur \\
+\hline
+is\_active & Boolean & DEFAULT TRUE & Compte actif ou non \\
+\hline
+date\_joined & DateTime & NOT NULL & Date d'inscription \\
+\hline
+
+\caption{Structure de la table auth\_user}
+\end{longtable}
+
+\subsection{Table: profil\_client}
+\begin{longtable}{|p{3.5cm}|p{2.5cm}|p{2cm}|p{6cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Champ} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\
+\hline
+\endfirsthead
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Champ} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\
+\hline
+\endhead
+
+id & Integer & PK, AUTO & Identifiant unique du profil \\
+\hline
+user\_id & Integer & FK, UNIQUE & Référence vers auth\_user (relation 1:1) \\
+\hline
+date\_naissance & Date & NULL & Date de naissance du client \\
+\hline
+ville\_naissance & String(100) & NULL & Ville de naissance \\
+\hline
+telephone & String(15) & NULL & Numéro de téléphone \\
+\hline
+abonnement & String(15) & NOT NULL & Type d'abonnement (ESSENTIEL, PLUS, INFINITE) \\
+\hline
+prochain\_abonnement & String(15) & NULL & Abonnement prévu après résiliation \\
+\hline
+prochaine\_facturation & Date & NOT NULL & Date de la prochaine facturation \\
+\hline
+
+\caption{Structure de la table profil\_client}
+\end{longtable}
+
+\subsection{Table: compte}
+\begin{longtable}{|p{3.5cm}|p{2.5cm}|p{2cm}|p{6cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Champ} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\
+\hline
+\endfirsthead
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Champ} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\
+\hline
+\endhead
+
+id & Integer & PK, AUTO & Identifiant unique du compte \\
+\hline
+user\_id & Integer & FK & Référence vers auth\_user \\
+\hline
+type\_compte & String(20) & NOT NULL & Type : COURANT, EPARGNE, PRO \\
+\hline
+solde & Decimal(12,2) & DEFAULT 0 & Solde actuel du compte \\
+\hline
+numero\_compte & String(30) & UNIQUE & IBAN du compte (format FR76...) \\
+\hline
+date\_creation & DateTime & AUTO & Date de création du compte \\
+\hline
+est\_actif & Boolean & DEFAULT TRUE & Compte actif ou fermé \\
+\hline
+
+\caption{Structure de la table compte}
+\end{longtable}
+
+\subsection{Table: carte}
+\begin{longtable}{|p{3.5cm}|p{2.5cm}|p{2cm}|p{6cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Champ} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\
+\hline
+\endfirsthead
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Champ} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\
+\hline
+\endhead
+
+id & Integer & PK, AUTO & Identifiant unique de la carte \\
+\hline
+compte\_id & Integer & FK & Référence vers compte \\
+\hline
+numero\_visible & String(4) & NOT NULL & 4 derniers chiffres de la carte \\
+\hline
+date\_expiration & Date & NOT NULL & Date d'expiration de la carte \\
+\hline
+plafond\_paiement & Integer & DEFAULT 2000 & Plafond de paiement mensuel (€) \\
+\hline
+plafond\_retrait & Integer & DEFAULT 500 & Plafond de retrait mensuel (€) \\
+\hline
+est\_bloquee & Boolean & DEFAULT FALSE & Carte bloquée ou non \\
+\hline
+sans\_contact\_actif & Boolean & DEFAULT TRUE & Paiement sans contact activé \\
+\hline
+paiement\_etranger\_actif & Boolean & DEFAULT FALSE & Paiements à l'étranger autorisés \\
+\hline
+
+\caption{Structure de la table carte}
+\end{longtable}
+
+\subsection{Table: transaction}
+\begin{longtable}{|p{3.5cm}|p{2.5cm}|p{2cm}|p{6cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Champ} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\
+\hline
+\endfirsthead
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Champ} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\
+\hline
+\endhead
+
+id & Integer & PK, AUTO & Identifiant unique de la transaction \\
+\hline
+compte\_id & Integer & FK & Référence vers compte \\
+\hline
+montant & Decimal(10,2) & NOT NULL & Montant de la transaction \\
+\hline
+libelle & String(100) & NULL & Description de la transaction \\
+\hline
+date\_execution & DateTime & DEFAULT NOW & Date et heure d'exécution \\
+\hline
+type & String(10) & NOT NULL & DEBIT ou CREDIT \\
+\hline
+categorie & String(20) & NOT NULL & Catégorie (ALIM, LOGEMENT, TRANSPORT, etc.) \\
+\hline
+
+\caption{Structure de la table transaction}
+\end{longtable}
+
+\subsection{Table: beneficiaire}
+\begin{longtable}{|p{3.5cm}|p{2.5cm}|p{2cm}|p{6cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Champ} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\
+\hline
+\endfirsthead
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Champ} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\
+\hline
+\endhead
+
+id & Integer & PK, AUTO & Identifiant unique du bénéficiaire \\
+\hline
+user\_id & Integer & FK & Référence vers auth\_user \\
+\hline
+nom & String(100) & NOT NULL & Nom du bénéficiaire \\
+\hline
+iban & String(34) & NOT NULL & IBAN du bénéficiaire \\
+\hline
+date\_ajout & DateTime & AUTO & Date d'ajout du bénéficiaire \\
+\hline
+
+\caption{Structure de la table beneficiaire}
+\end{longtable}
+
+\subsection{Table: demande\_credit}
+\begin{longtable}{|p{3.5cm}|p{2.5cm}|p{2cm}|p{6cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Champ} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\
+\hline
+\endfirsthead
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Champ} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\
+\hline
+\endhead
+
+id & Integer & PK, AUTO & Identifiant unique de la demande \\
+\hline
+user\_id & Integer & FK & Référence vers auth\_user \\
+\hline
+produit\_id & Integer & FK & Référence vers produit\_pret \\
+\hline
+montant\_souhaite & Integer & NOT NULL & Montant du crédit demandé (€) \\
+\hline
+duree\_annees & Integer & NOT NULL & Durée souhaitée en années \\
+\hline
+apport\_personnel & Integer & NOT NULL & Montant de l'apport personnel (€) \\
+\hline
+revenus\_mensuels & Integer & NOT NULL & Revenus mensuels nets (€) \\
+\hline
+loyer\_actuel & Integer & NULL & Loyer actuel (€) \\
+\hline
+dettes\_mensuelles & Integer & NOT NULL & Charges de dettes mensuelles (€) \\
+\hline
+enfants\_a\_charge & Integer & DEFAULT 0 & Nombre d'enfants à charge \\
+\hline
+emploi\_snapshot\_id & Integer & FK & Type d'emploi au moment de la demande \\
+\hline
+logement\_snapshot\_id & Integer & FK & Type de logement actuel \\
+\hline
+sante\_snapshot & String(10) & NOT NULL & État de santé (BON, MOYEN, FAIBLE) \\
+\hline
+score\_calcule & Integer & NULL & Score calculé par l'algorithme \\
+\hline
+taux\_calcule & Decimal(5,2) & NULL & Taux d'intérêt calculé (\%) \\
+\hline
+recommendation & String(50) & NULL & Recommandation IA \\
+\hline
+statut & String(20) & DEFAULT EN\_ATTENTE & EN\_ATTENTE, ACCEPTEE, REFUSEE \\
+\hline
+date\_demande & DateTime & AUTO & Date de soumission de la demande \\
+\hline
+ia\_decision & String(20) & NULL & Avis automatique de l'IA \\
+\hline
+mensualite\_calculee & Decimal(10,2) & NULL & Mensualité estimée (€) \\
+\hline
+
+\caption{Structure de la table demande\_credit}
+\end{longtable}
+
+\subsection{Table: notification}
+\begin{longtable}{|p{3.5cm}|p{2.5cm}|p{2cm}|p{6cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Champ} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\
+\hline
+\endfirsthead
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Champ} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\
+\hline
+\endhead
+
+id & Integer & PK, AUTO & Identifiant unique de la notification \\
+\hline
+user\_id & Integer & FK & Référence vers auth\_user \\
+\hline
+titre & String(100) & NOT NULL & Titre de la notification \\
+\hline
+contenu & Text & NOT NULL & Contenu détaillé \\
+\hline
+type & String(20) & NOT NULL & VIREMENT, TRANSACTION, CREDIT, INFO \\
+\hline
+url & String(250) & NULL & Lien optionnel vers une page \\
+\hline
+est\_lu & Boolean & DEFAULT FALSE & Notification lue ou non \\
+\hline
+date\_creation & DateTime & AUTO & Date de création \\
+\hline
+
+\caption{Structure de la table notification}
+\end{longtable}
+
+\subsection{Table: message\_support}
+\begin{longtable}{|p{3.5cm}|p{2.5cm}|p{2cm}|p{6cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Champ} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\
+\hline
+\endfirsthead
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Champ} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\
+\hline
+\endhead
+
+id & Integer & PK, AUTO & Identifiant unique du message \\
+\hline
+user\_id & Integer & FK & Référence vers auth\_user \\
+\hline
+contenu & Text & NOT NULL & Contenu du message \\
+\hline
+est\_admin & Boolean & DEFAULT FALSE & Message envoyé par admin ou client \\
+\hline
+date\_envoi & DateTime & AUTO & Date et heure d'envoi \\
+\hline
+est\_lu & Boolean & DEFAULT FALSE & Message lu ou non \\
+\hline
+
+\caption{Structure de la table message\_support}
+\end{longtable}
+
+\section{Schéma de la base de données}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.65, every node/.style={scale=0.65}]
+    % Légende
+    \node at (-2,8) {\textbf{Schéma de la base de données Banquise}};
+    
+    % Relations principales
+    \draw[->, very thick, blue] (0,6) -- node[above] {1:1} (3,6);
+    \node at (1.5,6.5) {Un à un};
+    
+    \draw[->, very thick, green] (0,5) -- node[above] {1:N} (3,5);
+    \node at (1.5,5.5) {Un à plusieurs};
+    
+\end{tikzpicture}
+\caption{Légende du schéma de base de données}
+\end{figure}
+
+\section{Index et optimisations}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{4cm}|p{5cm}|p{5cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Table} & \textbf{Index} & \textbf{Justification} \\
+\hline
+compte & user\_id, numero\_compte & Recherches fréquentes par utilisateur et IBAN \\
+\hline
+transaction & compte\_id, date\_execution & Requêtes de relevé paginées par date \\
+\hline
+carte & compte\_id & Affichage des cartes d'un compte \\
+\hline
+notification & user\_id, est\_lu & Comptage des non lues, affichage par utilisateur \\
+\hline
+demande\_credit & user\_id, statut & Filtrage des demandes en attente \\
+\hline
+beneficiaire & user\_id & Listage des bénéficiaires d'un utilisateur \\
+\hline
+message\_support & user\_id, date\_envoi & Tri chronologique des conversations \\
+\hline
+\end{tabular}
+\caption{Index de la base de données}
+\end{table}
+
+\section{Conclusion}
+Ce chapitre a détaillé la structure complète de la base de données avec toutes les tables, champs, contraintes et relations. Le prochain chapitre présentera l'environnement technique et les technologies utilisées.
+
+% ============================================================================
+% CHAPITRE 5 : ENVIRONNEMENT TECHNIQUE
+% ============================================================================
+\chapter{Environnement technique}
+
+\section{Introduction}
+Ce chapitre présente les technologies, outils et frameworks utilisés pour développer Banquise.
+
+\section{Stack technique}
+
+\subsection{Backend}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{4cm}|p{4cm}|p{6cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Technologie} & \textbf{Version} & \textbf{Utilisation} \\
+\hline
+Python & 3.9+ & Langage de programmation principal \\
+\hline
+Django & 4.2.25 & Framework web MVC \\
+\hline
+django-crispy-forms & Latest & Rendu des formulaires \\
+\hline
+crispy-bootstrap5 & Latest & Templates Bootstrap 5 pour forms \\
+\hline
+django-mathfilters & Latest & Filtres mathématiques dans templates \\
+\hline
+\end{tabular}
+\caption{Technologies Backend}
+\end{table}
+
+\subsection{Frontend}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{4cm}|p{4cm}|p{6cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Technologie} & \textbf{Version} & \textbf{Utilisation} \\
+\hline
+HTML5 & - & Structure des pages \\
+\hline
+Tailwind CSS & CDN & Framework CSS utilitaire \\
+\hline
+Bootstrap Icons & CDN & Bibliothèque d'icônes \\
+\hline
+JavaScript & ES6+ & Interactivité côté client \\
+\hline
+Chart.js & 4.x & Graphiques et statistiques \\
+\hline
+\end{tabular}
+\caption{Technologies Frontend}
+\end{table}
+
+\subsection{Base de données}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{4cm}|p{4cm}|p{6cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Technologie} & \textbf{Version} & \textbf{Utilisation} \\
+\hline
+SQLite & 3.x & Base de données de développement \\
+\hline
+PostgreSQL & 13+ & Base de données de production (recommandé) \\
+\hline
+\end{tabular}
+\caption{Technologies Base de données}
+\end{table}
+
+\subsection{Outils de développement}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{4cm}|p{4cm}|p{6cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Outil} & \textbf{Version} & \textbf{Utilisation} \\
+\hline
+Git & Latest & Gestion de version \\
+\hline
+VS Code & Latest & Éditeur de code \\
+\hline
+Django Debug Toolbar & Latest & Débogage et profilage \\
+\hline
+pip & Latest & Gestionnaire de paquets Python \\
+\hline
+virtualenv / venv & Latest & Environnements virtuels Python \\
+\hline
+\end{tabular}
+\caption{Outils de développement}
+\end{table}
+
+\newpage
+
+\section{Architecture des fichiers}
+
+\begin{verbatim}
+Banquise2.0/
+|-- Banquise/              # Configuration Django
+|   |-- __init__.py
+|   |-- settings.py        # Configuration principale
+|   |-- urls.py            # Routes principales
+|   |-- asgi.py
+|   `-- wsgi.py
+|-- scoring/               # Application principale
+|   |-- models.py          # Modèles de données
+|   |-- views.py           # Contrôleurs et logique métier
+|   |-- forms.py           # Formulaires Django
+|   |-- urls.py            # Routes de l'application
+|   |-- utils.py           # Fonctions utilitaires
+|   |-- admin.py           # Configuration Django Admin
+|   `-- middleware.py      # Middleware personnalisé
+|-- templates/             # Templates HTML
+|   |-- base.html          # Template de base
+|   |-- registration/      # Templates authentification
+|   `-- scoring/           # Templates de l'app
+|-- static/                # Fichiers statiques
+|   |-- css/
+|   |-- js/
+|   `-- images/
+|-- media/                 # Fichiers uploadés
+|-- manage.py              # Commandes Django
+`-- requirements.txt       # Dépendances Python
+\end{verbatim}
+
+\section{Configuration de sécurité}
+
+\subsection{Paramètres Django (settings.py)}
+\begin{itemize}[leftmargin=1.5cm]
+    \item \texttt{DEBUG = False} en production
+    \item \texttt{SECRET\_KEY} rotatée et sécurisée
+    \item \texttt{ALLOWED\_HOSTS} configuré
+    \item \texttt{CSRF\_COOKIE\_SECURE = True}
+    \item \texttt{SESSION\_COOKIE\_SECURE = True}
+    \item \texttt{SECURE\_SSL\_REDIRECT = True}
+    \item \texttt{SECURE\_HSTS\_SECONDS = 31536000}
+    \item \texttt{X\_FRAME\_OPTIONS = 'DENY'}
+\end{itemize}
+
+\subsection{Middleware de sécurité}
+\begin{itemize}[leftmargin=1.5cm]
+    \item \texttt{SecurityMiddleware} : Headers de sécurité
+    \item \texttt{CsrfViewMiddleware} : Protection CSRF
+    \item \texttt{AuthenticationMiddleware} : Gestion de session
+    \item \texttt{MessageMiddleware} : Messages flash
+\end{itemize}
+
+\section{Déploiement}
+
+\subsection{Configuration de production}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{5cm}|p{9cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Composant} & \textbf{Configuration recommandée} \\
+\hline
+Serveur Web & Nginx avec SSL/TLS (Let's Encrypt) \\
+\hline
+Serveur Application & Gunicorn avec 4-8 workers \\
+\hline
+Base de données & PostgreSQL 13+ avec connexions poolées \\
+\hline
+Cache & Redis pour sessions et cache \\
+\hline
+Stockage statique & CDN (Cloudflare, AWS S3) \\
+\hline
+Monitoring & Sentry pour erreurs, Prometheus pour métriques \\
+\hline
+Logs & Centralisation avec ELK Stack ou équivalent \\
+\hline
+Backups & Sauvegardes quotidiennes automatisées \\
+\hline
+\end{tabular}
+\caption{Configuration de production}
+\end{table}
+
+\subsection{Commandes de déploiement}
+\begin{verbatim}
+# Installer les dépendances
+pip install -r requirements.txt
+
+# Appliquer les migrations
+python manage.py migrate
+
+# Collecter les fichiers statiques
+python manage.py collectstatic --noinput
+
+# Créer un superutilisateur
+python manage.py createsuperuser
+
+# Lancer le serveur (développement)
+python manage.py runserver
+
+# Lancer avec Gunicorn (production)
+gunicorn Banquise.wsgi:application --bind 0.0.0.0:8000
+\end{verbatim}
+
+\section{Tests}
+
+\subsection{Stratégie de tests}
+\begin{itemize}[leftmargin=1.5cm]
+    \item \textbf{Tests unitaires} : Validation des modèles et fonctions
+    \item \textbf{Tests d'intégration} : Validation des flux métier complets
+    \item \textbf{Tests de sécurité} : Validation CSRF, XSS, injection SQL
+    \item \textbf{Tests de performance} : Charge et temps de réponse
+\end{itemize}
+
+\subsection{Commandes de tests}
+\begin{verbatim}
+# Lancer tous les tests
+python manage.py test
+
+# Tests avec couverture
+coverage run --source='.' manage.py test
+coverage report
+\end{verbatim}
+
+\section{Environnement matériel}
+
+\subsection{Configuration minimale (développement)}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{5cm}|p{9cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Composant} & \textbf{Spécification} \\
+\hline
+Processeur & Intel Core i5 ou équivalent \\
+\hline
+RAM & 8 GB minimum \\
+\hline
+Disque dur & 50 GB disponibles \\
+\hline
+Système d'exploitation & Windows 10+, macOS 10.15+, Linux (Ubuntu 20.04+) \\
+\hline
+\end{tabular}
+\caption{Configuration minimale}
+\end{table}
+
+\subsection{Configuration recommandée (production)}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{5cm}|p{9cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Composant} & \textbf{Spécification} \\
+\hline
+Serveur Application & 4 vCPU, 8 GB RAM \\
+\hline
+Serveur Base de données & 2 vCPU, 4 GB RAM, SSD 100 GB \\
+\hline
+Bande passante & 100 Mbps minimum \\
+\hline
+Disponibilité & Load balancing, failover automatique \\
+\hline
+\end{tabular}
+\caption{Configuration recommandée}
+\end{table}
+
+\section{Conclusion}
+Ce chapitre a détaillé l'environnement technique complet, les technologies utilisées, la configuration de sécurité et les spécifications de déploiement.
+
+% ============================================================================
+% CHAPITRE 6 : CONCLUSION ET PERSPECTIVES
+% ============================================================================
+\chapter{Conclusion et perspectives}
+
+\section{Synthèse du projet}
+Banquise représente une solution complète de néobanque digitale, intégrant les fonctionnalités essentielles d'une banque moderne :
+\begin{itemize}[leftmargin=1.5cm]
+    \item Gestion multi-comptes et multi-cartes
+    \item Système de virements sécurisés
+    \item Scoring automatique de crédit
+    \item Notifications en temps réel
+    \item Support client intégré
+    \item Back-office administrateur complet
+\end{itemize}
+
+Le projet a été développé en respectant les meilleures pratiques de sécurité, performance et maintenabilité, tout en adoptant une méthodologie agile permettant une évolution continue.
+
+\section{Objectifs atteints}
+\begin{itemize}[leftmargin=1.5cm]
+    \item \checkmark{} Plateforme web fonctionnelle et sécurisée
+    \item \checkmark{} Interface utilisateur intuitive et responsive
+    \item \checkmark{} Architecture scalable et maintenable
+    \item \checkmark{} Système de notifications complet
+    \item \checkmark{} Scoring crédit avec IA
+    \item \checkmark{} Gestion des découverts automatisée
+    \item \checkmark{} Support client bidirectionnel
+    \item \checkmark{} Dashboard administrateur avec statistiques
+\end{itemize}
+
+\section{Perspectives d'évolution}
+
+\subsection{Court terme (3-6 mois)}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Mise en place de notifications email/SMS
+    \item Intégration d'un système de 2FA pour tous les utilisateurs
+    \item Export PDF avancé des relevés
+    \item Amélioration du module de statistiques
+    \item Tests automatisés complets
+\end{itemize}
+
+\subsection{Moyen terme (6-12 mois)}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Application mobile native (iOS/Android)
+    \item KYC (Know Your Customer) automatisé
+    \item Intégration de paiements tiers (PayPal, Stripe)
+    \item Système de cashback et récompenses
+    \item Comptes joints et multi-utilisateurs
+    \item Module d'épargne automatique
+\end{itemize}
+
+\subsection{Long terme (1-2 ans)}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Agrégation de comptes externes
+    \item Assistant IA pour conseil financier
+    \item Marketplace de produits financiers partenaires
+    \item Investissements (actions, crypto, obligations)
+    \item Open Banking (PSD2) et API publique
+    \item Expansion internationale
+\end{itemize}
+
+\section{Risques et mitigation}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{4cm}|p{5cm}|p{5cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Risque} & \textbf{Impact} & \textbf{Mitigation} \\
+\hline
+Faille de sécurité & Très élevé & Audits réguliers, pen testing, bug bounty \\
+\hline
+Surcharge serveur & Élevé & Scalabilité horizontale, CDN, cache \\
+\hline
+Perte de données & Très élevé & Backups quotidiens, réplication \\
+\hline
+Non-conformité RGPD & Élevé & Audit légal, DPO dédié \\
+\hline
+Fraude utilisateur & Moyen & Monitoring IA, alertes anomalies \\
+\hline
+\end{tabular}
+\caption{Analyse des risques}
+\end{table}
+
+\section{Conclusion finale}
+Banquise constitue une base solide pour une néobanque moderne et évolutive. Le projet démontre la faisabilité technique d'une plateforme bancaire complète en mode web, tout en laissant de nombreuses opportunités d'amélioration et d'innovation.
+
+L'architecture modulaire et la méthodologie agile adoptées permettront d'intégrer facilement de nouvelles fonctionnalités et de s'adapter aux évolutions du marché et aux besoins des utilisateurs.
+
+% ============================================================================
+% ANNEXES
+% ============================================================================
+\appendix
+
+\chapter{Glossaire technique}
+
+\begin{description}[style=nextline, leftmargin=4cm]
+    \item[API] Application Programming Interface : interface de programmation
+    \item[CSRF] Cross-Site Request Forgery : attaque par requête falsifiée
+    \item[CRUD] Create, Read, Update, Delete : opérations de base
+    \item[DTO] Data Transfer Object : objet de transfert de données
+    \item[HTTPS] HTTP Secure : protocole de communication sécurisé
+    \item[JWT] JSON Web Token : jeton d'authentification
+    \item[MVC] Model-View-Controller : patron d'architecture
+    \item[ORM] Object-Relational Mapping : mapping objet-relationnel
+    \item[REST] Representational State Transfer : style d'architecture API
+    \item[SQL] Structured Query Language : langage de requête
+    \item[TLS] Transport Layer Security : protocole de sécurité
+    \item[WSGI] Web Server Gateway Interface : interface serveur web Python
+    \item[XSS] Cross-Site Scripting : injection de script malveillant
+\end{description}
+
+\chapter{Bibliographie et références}
+
+\begin{enumerate}
+    \item Django Documentation - \url{https://docs.djangoproject.com/}
+    \item Tailwind CSS Documentation - \url{https://tailwindcss.com/docs}
+    \item RGPD - Règlement Général sur la Protection des Données
+    \item OWASP Top 10 - Risques de sécurité web
+    \item PSD2 - Payment Services Directive 2
+    \item PostgreSQL Documentation - \url{https://www.postgresql.org/docs/}
+    \item Gunicorn Documentation - \url{https://docs.gunicorn.org/}
+\end{enumerate}
+
+% Ajout de sections vides pour les futures captures d'écran
+\chapter{Captures d'écran de l'interface}
+
+\section{Interface utilisateur}
+
+\subsection{Page d'accueil et connexion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{accueil_connexion.png}
+    \caption{Page d'accueil et écran de connexion}
+    \label{fig:accueil-connexion}
+\end{figure}
+
+\subsection{Dashboard client}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{dashboard_client.png}
+    \caption{Dashboard client}
+    \label{fig:dashboard-client}
+\end{figure}
+
+\subsection{Gestion des cartes}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{gestion_cartes.png}
+    \caption{Interface de gestion des cartes}
+    \label{fig:gestion-cartes}
+\end{figure}
+
+\subsection{Formulaire de virement}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{formulaire_virement.png}
+    \caption{Formulaire de virement}
+    \label{fig:formulaire-virement}
+\end{figure}
+
+\subsection{Simulation de crédit}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{simulation_credit.png}
+    \caption{Simulation de crédit}
+    \label{fig:simulation-credit}
+\end{figure}
+
+\subsection{Centre de notifications}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{centre_notifications.png}
+    \caption{Centre de notifications}
+    \label{fig:centre-notifications}
+\end{figure}
+
+\section{Interface administrateur}
+
+\subsection{Dashboard admin avec statistiques}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{admin_dashboard_statistiques.png}
+    \caption{Dashboard administrateur avec statistiques}
+    \label{fig:admin-dashboard}
+\end{figure}
+
+\subsection{Console de validation des crédits}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{admin_console_validation_credits.png}
+    \caption{Console de validation des crédits}
+    \label{fig:admin-console-credits}
+\end{figure}
+
+\subsection{Gestion des comptes et cartes}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{admin_gestion_comptes_cartes.png}
+    \caption{Gestion des comptes et des cartes (administration)}
+    \label{fig:admin-gestion-comptes-cartes}
+\end{figure}
+
+\subsection{Interface de support client}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{admin_support_client.png}
+    \caption{Interface de support client (côté admin)}
+    \label{fig:admin-support-client}
+\end{figure}
 
 \end{document}

@@ -209,7 +209,7 @@
                             <p class="text-slate-500 text-sm mt-1">Une réponse vous sera apportée sous 24h.</p>
                         </div>
 
-                        <form action="#" method="POST" class="space-y-5">
+                        <form action="{% url 'support' %}" method="POST" class="space-y-5">
                             {% csrf_token %}
 
                             <div>
@@ -221,12 +221,12 @@
                                         class="absolute left-0 top-0 bottom-0 w-12 flex items-center justify-center text-slate-400 pointer-events-none">
                                         <i class="bi bi-tag-fill"></i>
                                     </div>
-                                    <select
+                                    <select name="sujet"
                                         class="w-full pl-12 pr-4 py-3.5 rounded-xl input-glass text-slate-700 font-medium appearance-none cursor-pointer">
-                                        <option>Question générale</option>
-                                        <option>Problème technique</option>
-                                        <option>Réclamation</option>
-                                        <option>Urgence sécurité</option>
+                                        <option value="Question générale">Question générale</option>
+                                        <option value="Problème technique">Problème technique</option>
+                                        <option value="Réclamation">Réclamation</option>
+                                        <option value="Urgence sécurité">Urgence sécurité</option>
                                     </select>
                                     <div
                                         class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
@@ -244,7 +244,7 @@
                                         class="absolute left-0 top-4 w-12 flex justify-center text-slate-400 pointer-events-none">
                                         <i class="bi bi-chat-left-text-fill"></i>
                                     </div>
-                                    <textarea rows="5"
+                                    <textarea rows="5" name="message"
                                         class="w-full pl-12 pr-4 py-3.5 rounded-xl input-glass text-slate-700 font-medium resize-none placeholder:text-slate-400"
                                         placeholder="Bonjour, je vous contacte car..."></textarea>
                                 </div>
