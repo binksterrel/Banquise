@@ -358,8 +358,7 @@
     {% endblock %}
 
     <!-- Dock d’actions rapides (caché sur login/register) -->
-    {% if request.resolver_match and request.resolver_match.url_name != 'login' and request.resolver_match.url_name !=
-    'register' and request.resolver_match.url_name != 'support' %}
+    {% if request.resolver_match and request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'register' and request.resolver_match.url_name != 'support' %}
     <div class="floating-dock flex">
         {% if user.is_authenticated %}
         {% if user.is_staff %}
