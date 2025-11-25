@@ -434,7 +434,9 @@
         // Empêcher Safari (BFCache) de réafficher une page protégée après logout
         window.addEventListener('pageshow', (e) => {
             if (e.persisted) {
-                // Forcer un reload pour récupérer l'état serveur (session expirée)
+                // Cache Safari/Firefox : masquer immédiatement puis recharger
+                document.body.style.opacity = '0';
+                document.body.style.transition = 'opacity 0.05s ease';
                 window.location.reload();
             }
         });
