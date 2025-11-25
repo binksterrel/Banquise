@@ -51,6 +51,7 @@
 </head>
 
 <body
+    data-auth="{{ user.is_authenticated|yesno:'1,0' }}"
     class="text-slate-800 antialiased flex flex-col min-h-screen overflow-x-hidden selection:bg-ice-200 selection:text-ice-900">
 
     {% block navbar %}
@@ -429,6 +430,16 @@
                 setTimeout(() => toast.remove(), 500);
             }, delay);
         });
+
+        // Empêcher Safari (BFCache) de réafficher une page protégée après logout
+        window.addEventListener('pageshow', (e) => {
+            if (e.persisted) {
+                // Forcer un reload pour récupérer l'état serveur (session expirée)
+                window.location.reload();
+            }
+        });
+        // Certains navigateurs ne déclenchent pas unload => no-op pour invalider BFCache
+        window.addEventListener('unload', () => {});
     </script>
     {% block extra_js %}{% endblock %}
 </body>
