@@ -172,7 +172,7 @@
                     </h2>
                 </div>
 
-                {% if demande.ia_decision != 'REFUSEE' %}
+                {% if demande.ia_decision != 'REFUSEE' and demande.statut != 'ACCEPTEE' %}
                 <div class="space-y-8 mt-10">
                     <div>
                         <div class="flex justify-between mb-4">
@@ -209,24 +209,30 @@
                 {% endif %}
 
                 <div class="mt-10 flex flex-col sm:flex-row gap-4">
-                    <a href="{% url 'simulation' %}?montant={{ demande.montant_souhaite }}&duree={{ demande.duree_souhaitee_annees }}&apport={{ demande.apport_personnel }}&revenus={{ demande.revenus_mensuels }}&loyer={{ demande.loyer_actuel }}&dettes={{ demande.dettes_mensuelles }}&enfants={{ demande.enfants_a_charge }}&produit={{ demande.produit.id|default_if_none:'' }}&emploi={{ demande.emploi_snapshot.id|default_if_none:'' }}&logement={{ demande.logement_snapshot.id|default_if_none:'' }}&sante={{ demande.sante_snapshot }}"
-                        class="px-8 py-4 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors text-center">Recommencer</a>
-                    {% if demande.soumise %}
-                    <div class="flex-grow px-5 py-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold shadow-lg text-center flex flex-col gap-1 justify-center">
-                        <span>Déjà envoyée aux conseillers</span>
-                        <span class="text-xs text-white/80 font-medium">Brouillon verrouillé — les conseillers ont été notifiés</span>
-                    </div>
+                    {% if demande.statut != 'ACCEPTEE' %}
+                        <a href="{% url 'simulation' %}?montant={{ demande.montant_souhaite }}&duree={{ demande.duree_souhaitee_annees }}&apport={{ demande.apport_personnel }}&revenus={{ demande.revenus_mensuels }}&loyer={{ demande.loyer_actuel }}&dettes={{ demande.dettes_mensuelles }}&enfants={{ demande.enfants_a_charge }}&produit={{ demande.produit.id|default_if_none:'' }}&emploi={{ demande.emploi_snapshot.id|default_if_none:'' }}&logement={{ demande.logement_snapshot.id|default_if_none:'' }}&sante={{ demande.sante_snapshot }}"
+                            class="px-8 py-4 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors text-center">Recommencer</a>
+                        {% if demande.soumise %}
+                        <div class="flex-grow px-5 py-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold shadow-lg text-center flex flex-col gap-1 justify-center">
+                            <span>Déjà envoyée aux conseillers</span>
+                            <span class="text-xs text-white/80 font-medium">Brouillon verrouillé — les conseillers ont été notifiés</span>
+                        </div>
+                        {% else %}
+                        <div class="flex flex-col gap-2 flex-grow">
+                            <p class="text-xs text-slate-500 font-medium text-center sm:text-left">La simulation est encore en brouillon. Valide pour prévenir un conseiller.</p>
+                            <form method="post" action="{% url 'valider_demande_credit' demande.id %}" class="flex-grow">
+                                {% csrf_token %}
+                                <button type="submit"
+                                    class="w-full px-8 py-4 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 text-white font-bold shadow-lg text-center hover:-translate-y-0.5 transition-all duration-300">
+                                    Valider et envoyer aux conseillers
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
                     {% else %}
-                    <div class="flex flex-col gap-2 flex-grow">
-                        <p class="text-xs text-slate-500 font-medium text-center sm:text-left">La simulation est encore en brouillon. Valide pour prévenir un conseiller.</p>
-                        <form method="post" action="{% url 'valider_demande_credit' demande.id %}" class="flex-grow">
-                            {% csrf_token %}
-                            <button type="submit"
-                                class="w-full px-8 py-4 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 text-white font-bold shadow-lg text-center hover:-translate-y-0.5 transition-all duration-300">
-                                Valider et envoyer aux conseillers
-                            </button>
-                        </form>
-                    </div>
+                        <div class="w-full px-8 py-4 rounded-xl bg-slate-900 text-white font-bold shadow-lg text-center">
+                            Crédit accepté — toute modification passe par le support.
+                        </div>
                     {% endif %}
                 </div>
             </div>

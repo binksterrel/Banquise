@@ -15,7 +15,7 @@
                 <p class="text-xs text-slate-500">Score IA</p>
                 <p class="text-4xl font-bold text-ice-600">{{ demande.score_calcule|default:"0" }}</p>
                 <p class="text-xs {% if demande.ia_decision == 'ACCEPTEE' %}text-green-600{% else %}text-red-600{% endif %}">{{ demande.get_ia_decision_display }}</p>
-                <form method="post" action="{% url 'admin_validation_credits' %}" class="mt-3 flex gap-2 justify-end">{% csrf_token %}
+                <form method="post" action="{% url 'admin_manage_credits' %}" class="mt-3 flex gap-2 justify-end">{% csrf_token %}
                     <input type="hidden" name="demande_id" value="{{ demande.id }}">
                     <button name="action" value="REFUSEE" class="px-3 py-2 rounded-lg border border-red-200 text-red-600 text-xs font-bold hover:bg-red-50">Refuser</button>
                     <button name="action" value="ACCEPTEE" class="px-3 py-2 rounded-lg bg-ice-600 text-white text-xs font-bold hover:bg-ice-700">Accepter</button>

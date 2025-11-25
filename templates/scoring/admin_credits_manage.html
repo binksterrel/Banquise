@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion crédits - Admin{% endblock %}
+
+{% block content %}
+<div class="relative min-h-screen bg-slate-50 overflow-hidden">
+    <div class="absolute inset-0 ambient-surface" aria-hidden="true">
+        <div class="ambient-grid"></div>
+        <div class="ambient-blob sm blue animate-blob"></div>
+        <div class="ambient-blob md ice animate-blob animation-delay-2000"></div>
+        <div class="ambient-blob lg purple animate-blob animation-delay-4000"></div>
+    </div>
+
+    <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-[0.2em] text-ice-600">Admin</p>
+                <h1 class="text-3xl font-display font-bold text-slate-900">Gestion des crédits</h1>
+                <p class="text-slate-500">Valider ou annuler des crédits, même après acceptation.</p>
+            </div>
+            <a href="{% url 'admin_dashboard' %}"
+                class="px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-sm hover:-translate-y-0.5 transition shadow-lg">Retour
+                admin</a>
+        </div>
+
+        <div class="glass-panel p-6 rounded-[1.5rem] overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="text-xs font-bold uppercase text-slate-500 bg-slate-50 border-b border-slate-100">
+                            <th class="px-4 py-3">Client</th>
+                            <th class="px-4 py-3">Produit</th>
+                            <th class="px-4 py-3">Montant</th>
+                            <th class="px-4 py-3">Mensualité</th>
+                            <th class="px-4 py-3">Durée</th>
+                            <th class="px-4 py-3">Statut</th>
+                            <th class="px-4 py-3 text-right border-l border-slate-200">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for d in demandes %}
+                        <tr class="hover:bg-white/70 transition">
+                            <td class="px-4 py-3">
+                                <div class="font-bold text-slate-900">{{ d.user.username }}</div>
+                                <div class="text-xs text-slate-500">{{ d.date_demande|date:"d M Y" }}</div>
+                            </td>
+                            <td class="px-4 py-3 text-slate-700">{% if d.produit %}{{ d.produit.nom }}{% else %}Crédit{% endif %}</td>
+                            <td class="px-4 py-3 font-mono font-bold text-slate-900">{{ d.montant_souhaite }} €</td>
+                            <td class="px-4 py-3 text-slate-700">{{ d.mensualite_calculee|default:"-" }} €</td>
+                            <td class="px-4 py-3 text-slate-700">{{ d.duree_souhaitee_annees }} ans</td>
+                            <td class="px-4 py-3">
+                                {% if d.statut == 'ACCEPTEE' %}
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-green-600 border border-green-100">Acceptée</span>
+                                {% elif d.statut == 'REFUSEE' %}
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-100">Refusée</span>
+                                {% else %}
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600 border border-blue-100">En
+                                    attente</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-right space-x-2 border-l border-slate-200">
+                                {% if d.statut == 'ACCEPTEE' %}
+                                <a href="{% url 'admin_edit_credit' d.id %}"
+                                    class="px-3 py-2 inline-flex items-center justify-center rounded-lg bg-amber-50 text-amber-700 text-xs font-bold border border-amber-100 hover:bg-amber-100">
+                                    Modifier
+                                </a>
+                                <form method="post" action="{% url 'admin_manage_credits' %}" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="demande_id" value="{{ d.id }}">
+                                    <input type="hidden" name="action" value="REFUSEE">
+                                    <button type="submit"
+                                        class="px-3 py-2 rounded-lg bg-red-50 text-red-700 text-xs font-bold border border-red-100 hover:bg-red-100">Annuler</button>
+                                </form>
+                                {% else %}
+                                <form method="post" action="{% url 'admin_manage_credits' %}" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="demande_id" value="{{ d.id }}">
+                                    <input type="hidden" name="action" value="ACCEPTEE">
+                                    <button type="submit"
+                                        class="px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-100 hover:bg-emerald-100">Valider</button>
+                                </form>
+                                <form method="post" action="{% url 'admin_manage_credits' %}" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="demande_id" value="{{ d.id }}">
+                                    <input type="hidden" name="action" value="REFUSEE">
+                                    <button type="submit"
+                                        class="px-3 py-2 rounded-lg bg-red-50 text-red-700 text-xs font-bold border border-red-100 hover:bg-red-100">Refuser</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not demandes %}
+                        <tr>
+                            <td colspan="7" class="px-4 py-10 text-center text-slate-500">Aucune demande.</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

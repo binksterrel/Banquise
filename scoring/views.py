@@ -611,10 +611,6 @@ def dashboard(request):
     labels_6, values_6 = build_spending(6)
     labels_12, values_12 = build_spending(12)
 
-    # Echéancier crédits (24 mois max)
-    def months_diff(d1, d2):
-        return (d1.year - d2.year) * 12 + (d1.month - d2.month)
-
     credit_labels = []
     credit_datasets = []
     if credits_actifs.exists():
@@ -1467,6 +1463,8 @@ def api_update_resultat(request, demande_id):
     demande = get_object_or_404(DemandeCredit, id=demande_id)
     if demande.user != request.user and not request.user.is_staff:
         return JsonResponse({'error': 'forbidden'}, status=403)
+    if demande.statut == 'ACCEPTEE':
+        return JsonResponse({'error': 'locked'}, status=403)
     if request.method != 'POST':
         return JsonResponse({'error': 'method_not_allowed'}, status=405)
     try:
@@ -1519,7 +1517,7 @@ def valider_demande_credit(request, demande_id):
     demande.save(update_fields=['soumise', 'statut'])
     notifier(request.user, "Demande de crédit envoyée", f"Avis automatique : {demande.ia_decision or 'En attente'}. Un conseiller va répondre.", "CREDIT", url=reverse('historique'))
     for admin in User.objects.filter(is_staff=True):
-        notifier(admin, "Nouvelle demande de crédit", f"{request.user.username} a validé sa simulation ({demande.montant_souhaite} €).", "CREDIT", url=reverse('admin_validation_credits'))
+        notifier(admin, "Nouvelle demande de crédit", f"{request.user.username} a validé sa simulation ({demande.montant_souhaite} €).", "CREDIT", url=reverse('admin_manage_credits'))
     messages.success(request, "Demande envoyée aux conseillers.")
     return redirect('resultat_simulation', demande_id=demande.id)
 
@@ -1581,7 +1579,16 @@ def admin_stats_api(request):
 
 @staff_member_required
 def admin_validation_credits(request):
-    pending = DemandeCredit.objects.filter(statut='EN_ATTENTE').order_by('-date_demande')
+    """
+    Alias de compatibilité : redirige vers la nouvelle interface de gestion des crédits.
+    """
+    return redirect('admin_manage_credits')
+
+
+@staff_member_required
+def admin_manage_credits(request):
+    demandes = DemandeCredit.objects.select_related('user', 'produit').order_by('-date_demande')
+    unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
 
     if request.method == 'POST':
         demande_id = request.POST.get('demande_id')
@@ -1589,7 +1596,6 @@ def admin_validation_credits(request):
         demande = get_object_or_404(DemandeCredit, id=demande_id)
 
         if action == 'ACCEPTEE':
-            # Crédite le compte principal si pas déjà accepté
             if demande.statut != 'ACCEPTEE':
                 compte_credit = Compte.objects.filter(user=demande.user, est_actif=True).order_by('id').first()
                 if compte_credit:
@@ -1607,16 +1613,44 @@ def admin_validation_credits(request):
                     messages.warning(request, "Aucun compte actif pour créditer le montant.")
             demande.statut = 'ACCEPTEE'
             demande.save(update_fields=['statut'])
-            notifier(demande.user, "Crédit accepté", "Votre demande de crédit a été acceptée par un administrateur.", "CREDIT", url=reverse('historique'))
+            notifier(demande.user, "Crédit accepté", "Votre demande de crédit a été acceptée par un conseillé.", "CREDIT", url=reverse('historique'))
             messages.success(request, "Demande acceptée et montant crédité.")
+
         elif action == 'REFUSEE':
             demande.statut = 'REFUSEE'
             demande.save(update_fields=['statut'])
-            notifier(demande.user, "Crédit refusé", "Votre demande de crédit a été refusée par un administrateur.", "CREDIT", url=reverse('historique'))
-            messages.info(request, "Demande refusée.")
-        return redirect('admin_validation_credits')
+            notifier(demande.user, "Crédit refusé", "Votre demande de crédit a été refusée / annulée par un conseillé.", "CREDIT", url=reverse('historique'))
+            messages.info(request, "Demande refusée / annulée.")
 
-    return render(request, 'scoring/admin_credits.html', {'demandes': pending})
+        return redirect('admin_manage_credits')
+
+    return render(request, 'scoring/admin_credits_manage.html', {
+        'demandes': demandes,
+        'unread_notifs': unread_notifs,
+    })
+
+@staff_member_required
+def admin_edit_credit(request, demande_id):
+    demande = get_object_or_404(DemandeCredit, id=demande_id)
+    unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
+
+    if request.method == 'POST':
+        montant = request.POST.get('montant_souhaite')
+        duree = request.POST.get('duree_souhaitee_annees')
+        # mensualite non éditable ici
+
+        if montant:
+            demande.montant_souhaite = montant
+        if duree:
+            demande.duree_souhaitee_annees = duree
+        demande.save(update_fields=['montant_souhaite', 'duree_souhaitee_annees'])
+        messages.success(request, "Crédit mis à jour.")
+        return redirect('admin_manage_credits')
+
+    return render(request, 'scoring/admin_credit_edit.html', {
+        'demande': demande,
+        'unread_notifs': unread_notifs,
+    })
 
 
 @staff_member_required

@@ -68,7 +68,10 @@ urlpatterns = [
     # --- CHAT SUPPORT ---
     path('support/chat/', views.chat_support, name='chat_support'),
     path('support/admin-chat/', views.chat_support_admin, name='chat_support_admin'),
-    path('console/credits/', views.admin_validation_credits, name='admin_validation_credits'),
+    path('console/credits/', views.admin_manage_credits, name='admin_manage_credits'),
+    path('console/credits/<int:demande_id>/edit/', views.admin_edit_credit, name='admin_edit_credit'),
+    # Alias pour compatibilité avec les anciens liens/templates
+    path('console/credits/validation/', views.admin_manage_credits, name='admin_validation_credits'),
     path('console/manage/', views.admin_manage, name='admin_manage'),
     path('404/', views.preview_404, name='preview_404'),
     path('200/', views.preview_200, name='preview_200'),

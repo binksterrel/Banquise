@@ -158,6 +158,8 @@ class DemandeCredit(models.Model):
     ia_decision = models.CharField(max_length=20, choices=STATUT_CHOICES, null=True, blank=True)
     mensualite_calculee = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     soumise = models.BooleanField(default=False)
+    echeances_payees = models.IntegerField(default=0)
+    dernier_prelevement = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.produit.nom if self.produit else 'Produit inconnu'} ({self.statut})"

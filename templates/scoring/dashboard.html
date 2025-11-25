@@ -23,6 +23,7 @@
     const dataPoints12 = JSON.parse('{{ spending_values_12|escapejs }}');
     const creditLabels = JSON.parse('{{ credit_labels|escapejs }}');
     const creditDatasets = JSON.parse('{{ credit_datasets|escapejs }}');
+    const subtitle = document.getElementById('spendingSubtitle');
     const gradient = ctx.createLinearGradient(0, 0, 0, 300);
     gradient.addColorStop(0, 'rgba(14, 165, 233, 0.4)');
     gradient.addColorStop(1, 'rgba(14, 165, 233, 0.0)');
@@ -92,9 +93,11 @@
             if (val === 'year') {
                 spendChart.data.labels = labels12;
                 spendChart.data.datasets[0].data = dataPoints12;
+                if (subtitle) subtitle.textContent = "Vos sorties d'argent sur 12 mois";
             } else {
                 spendChart.data.labels = labels6;
                 spendChart.data.datasets[0].data = dataPoints6;
+                if (subtitle) subtitle.textContent = "Vos sorties d'argent sur 6 mois";
             }
             spendChart.update();
         });
@@ -238,7 +241,7 @@
                     <div class="flex justify-between items-center mb-6">
                         <div>
                             <h3 class="font-display font-bold text-slate-900 text-lg">Analyse des dépenses</h3>
-                            <p class="text-xs text-slate-500">Vos sorties d'argent sur 6 mois</p>
+                            <p class="text-xs text-slate-500" id="spendingSubtitle">Vos sorties d'argent sur 6 mois</p>
                         </div>
                         <select id="spendingRange" class="bg-slate-50 border-none text-sm font-bold rounded-xl px-4 py-2 text-slate-600 focus:ring-2 focus:ring-ice-200 cursor-pointer hover:bg-slate-100 transition-colors">
                             <option value="6m">6 derniers mois</option>
