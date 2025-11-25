@@ -136,6 +136,10 @@ def custom_404(request, exception):
     return render(request, 'scoring/404.html', status=404)
 
 
+def months_diff(d1, d2):
+    return (d1.year - d2.year) * 12 + (d1.month - d2.month)
+
+
 def custom_200(request):
     return render(request, 'scoring/200.html', status=200)
 
@@ -557,6 +561,31 @@ def dashboard(request):
     for c in comptes:
         c.marge_dispo = overdraft_margins.get(c.id)
 
+    # Prélèvements mensuels automatiques sur crédits acceptés
+    if credits_actifs.exists():
+        today = timezone.now().date()
+        compte_principal = comptes.order_by('id').first()
+        if compte_principal:
+            for credit in credits_actifs:
+                total_months = max(1, (credit.duree_souhaitee_annees or 1) * 12)
+                deja_payees = credit.echeances_payees or 0
+                start_date = credit.date_demande.date()
+                due_months = min(total_months, months_diff(today, start_date) + 1)
+                manquantes = max(0, due_months - deja_payees)
+                mensualite = credit.mensualite_calculee or Decimal("0")
+                for _ in range(manquantes):
+                    Transaction.objects.create(
+                        compte=compte_principal,
+                        montant=-mensualite,
+                        libelle="Mensualité crédit",
+                        type='DEBIT',
+                        categorie='CREDIT'
+                    )
+                if manquantes > 0:
+                    credit.echeances_payees = deja_payees + manquantes
+                    credit.dernier_prelevement = today
+                    credit.save(update_fields=['echeances_payees', 'dernier_prelevement'])
+
     # Analyse dépenses (débits) sur les 6 derniers mois
     def month_shift(date_obj, shift):
         year = date_obj.year + (date_obj.month - 1 + shift) // 12
@@ -565,18 +594,22 @@ def dashboard(request):
 
     today = timezone.now().date()
     start_month = today.replace(day=1)
-    labels = []
-    values = []
-    for i in range(5, -1, -1):
-        m_date = month_shift(start_month, -i)
-        total = Transaction.objects.filter(
-            compte__in=comptes,
-            type='DEBIT',
-            date_execution__year=m_date.year,
-            date_execution__month=m_date.month
-        ).aggregate(total=Sum('montant'))['total'] or 0
-        labels.append(m_date.strftime("%b %y"))
-        values.append(abs(float(total)))
+    def build_spending(n_months):
+        lbls, vals = [], []
+        for i in range(n_months - 1, -1, -1):
+            m_date = month_shift(start_month, -i)
+            total = Transaction.objects.filter(
+                compte__in=comptes,
+                type='DEBIT',
+                date_execution__year=m_date.year,
+                date_execution__month=m_date.month
+            ).aggregate(total=Sum('montant'))['total'] or 0
+            lbls.append(m_date.strftime("%b %y"))
+            vals.append(abs(float(total)))
+        return lbls, vals
+
+    labels_6, values_6 = build_spending(6)
+    labels_12, values_12 = build_spending(12)
 
     # Echéancier crédits (24 mois max)
     def months_diff(d1, d2):
@@ -617,8 +650,10 @@ def dashboard(request):
         'profil_client': profil,
         'plans': PLAN_CONFIG,
         'unread_notifs': unread_notifs,
-        'spending_labels': json.dumps(labels),
-        'spending_values': json.dumps(values),
+        'spending_labels_6': json.dumps(labels_6),
+        'spending_values_6': json.dumps(values_6),
+        'spending_labels_12': json.dumps(labels_12),
+        'spending_values_12': json.dumps(values_12),
         'credit_labels': json.dumps(credit_labels),
         'credit_datasets': json.dumps(credit_datasets),
         'overdraft_limit': overdraft_limit,
@@ -1554,10 +1589,26 @@ def admin_validation_credits(request):
         demande = get_object_or_404(DemandeCredit, id=demande_id)
 
         if action == 'ACCEPTEE':
+            # Crédite le compte principal si pas déjà accepté
+            if demande.statut != 'ACCEPTEE':
+                compte_credit = Compte.objects.filter(user=demande.user, est_actif=True).order_by('id').first()
+                if compte_credit:
+                    montant = Decimal(demande.montant_souhaite or 0)
+                    compte_credit.solde = (compte_credit.solde or 0) + montant
+                    compte_credit.save(update_fields=['solde'])
+                    Transaction.objects.create(
+                        compte=compte_credit,
+                        montant=montant,
+                        libelle="Versement crédit accepté",
+                        type='CREDIT',
+                        categorie='CREDIT'
+                    )
+                else:
+                    messages.warning(request, "Aucun compte actif pour créditer le montant.")
             demande.statut = 'ACCEPTEE'
             demande.save(update_fields=['statut'])
             notifier(demande.user, "Crédit accepté", "Votre demande de crédit a été acceptée par un administrateur.", "CREDIT", url=reverse('historique'))
-            messages.success(request, "Demande acceptée.")
+            messages.success(request, "Demande acceptée et montant crédité.")
         elif action == 'REFUSEE':
             demande.statut = 'REFUSEE'
             demande.save(update_fields=['statut'])

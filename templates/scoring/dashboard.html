@@ -17,21 +17,23 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     const ctx = document.getElementById('spendingChart').getContext('2d');
-    const labels = JSON.parse('{{ spending_labels|escapejs }}');
-    const dataPoints = JSON.parse('{{ spending_values|escapejs }}');
+    const labels6 = JSON.parse('{{ spending_labels_6|escapejs }}');
+    const dataPoints6 = JSON.parse('{{ spending_values_6|escapejs }}');
+    const labels12 = JSON.parse('{{ spending_labels_12|escapejs }}');
+    const dataPoints12 = JSON.parse('{{ spending_values_12|escapejs }}');
     const creditLabels = JSON.parse('{{ credit_labels|escapejs }}');
     const creditDatasets = JSON.parse('{{ credit_datasets|escapejs }}');
     const gradient = ctx.createLinearGradient(0, 0, 0, 300);
     gradient.addColorStop(0, 'rgba(14, 165, 233, 0.4)');
     gradient.addColorStop(1, 'rgba(14, 165, 233, 0.0)');
 
-    new Chart(ctx, {
+    const spendChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: labels,
+            labels: labels6,
             datasets: [{
                 label: 'Dépenses',
-                data: dataPoints,
+                data: dataPoints6,
                 borderColor: '#0ea5e9',
                 backgroundColor: gradient,
                 borderWidth: 3,
@@ -80,6 +82,21 @@
                 },
                 interaction: { intersect: false, mode: 'index' }
             }
+        });
+    }
+
+    const selector = document.getElementById('spendingRange');
+    if (selector) {
+        selector.addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'year') {
+                spendChart.data.labels = labels12;
+                spendChart.data.datasets[0].data = dataPoints12;
+            } else {
+                spendChart.data.labels = labels6;
+                spendChart.data.datasets[0].data = dataPoints6;
+            }
+            spendChart.update();
         });
     }
 </script>
@@ -223,9 +240,9 @@
                             <h3 class="font-display font-bold text-slate-900 text-lg">Analyse des dépenses</h3>
                             <p class="text-xs text-slate-500">Vos sorties d'argent sur 6 mois</p>
                         </div>
-                        <select class="bg-slate-50 border-none text-sm font-bold rounded-xl px-4 py-2 text-slate-600 focus:ring-2 focus:ring-ice-200 cursor-pointer hover:bg-slate-100 transition-colors">
-                            <option>6 derniers mois</option>
-                            <option>Cette année</option>
+                        <select id="spendingRange" class="bg-slate-50 border-none text-sm font-bold rounded-xl px-4 py-2 text-slate-600 focus:ring-2 focus:ring-ice-200 cursor-pointer hover:bg-slate-100 transition-colors">
+                            <option value="6m">6 derniers mois</option>
+                            <option value="year">Cette année</option>
                         </select>
                     </div>
                     <div class="h-72 w-full">
