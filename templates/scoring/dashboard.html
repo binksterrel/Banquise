@@ -19,15 +19,69 @@
     const ctx = document.getElementById('spendingChart').getContext('2d');
     const labels = JSON.parse('{{ spending_labels|escapejs }}');
     const dataPoints = JSON.parse('{{ spending_values|escapejs }}');
+    const creditLabels = JSON.parse('{{ credit_labels|escapejs }}');
+    const creditDatasets = JSON.parse('{{ credit_datasets|escapejs }}');
     const gradient = ctx.createLinearGradient(0, 0, 0, 300);
     gradient.addColorStop(0, 'rgba(14, 165, 233, 0.4)');
     gradient.addColorStop(1, 'rgba(14, 165, 233, 0.0)');
 
     new Chart(ctx, {
         type: 'line',
-        data: { labels: labels, datasets: [{ label: 'Dépenses', data: dataPoints, borderColor: '#0ea5e9', backgroundColor: gradient, borderWidth: 3, pointBackgroundColor: '#fff', pointBorderColor: '#0ea5e9', pointRadius: 4, pointHoverRadius: 6, fill: true, tension: 0.4 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false, grid: { display: false } }, x: { grid: { display: false }, ticks: { font: { family: "'Plus Jakarta Sans', sans-serif" }, color: '#94a3b8' } } }, interaction: { intersect: false, mode: 'index' } }
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Dépenses',
+                data: dataPoints,
+                borderColor: '#0ea5e9',
+                backgroundColor: gradient,
+                borderWidth: 3,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#0ea5e9',
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { display: false, grid: { display: false } },
+                x: { grid: { display: false }, ticks: { font: { family: "'Plus Jakarta Sans', sans-serif" }, color: '#94a3b8' } }
+            },
+            interaction: { intersect: false, mode: 'index' }
+        }
     });
+
+    if (creditLabels.length && document.getElementById('creditChart')) {
+        const cctx = document.getElementById('creditChart').getContext('2d');
+        const datasets = creditDatasets.map((d) => ({
+            label: d.label,
+            data: d.data,
+            borderColor: d.color,
+            backgroundColor: d.color + '22',
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: false,
+            tension: 0.25
+        }));
+        new Chart(cctx, {
+            type: 'line',
+            data: { labels: creditLabels, datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: true } },
+                scales: {
+                    y: { display: true, grid: { display: false }, title: { display: true, text: 'Mensualités (€)' } },
+                    x: { grid: { display: false }, ticks: { font: { family: "'Plus Jakarta Sans', sans-serif" }, color: '#94a3b8' } }
+                },
+                interaction: { intersect: false, mode: 'index' }
+            }
+        });
+    }
 </script>
 {{ block.super }}
 <script>
@@ -177,6 +231,17 @@
                     <div class="h-72 w-full">
                         <canvas id="spendingChart"></canvas>
                     </div>
+                    {% if credit_labels|length > 0 %}
+                    <div class="mt-8 border-t border-slate-100 pt-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-display font-bold text-slate-900 text-base">Echéancier crédits</h4>
+                            <span class="text-xs font-bold text-slate-500">Mensualités futures</span>
+                        </div>
+                        <div class="h-60 w-full">
+                            <canvas id="creditChart"></canvas>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
 
                 <div class="glass-panel rounded-3xl overflow-hidden">

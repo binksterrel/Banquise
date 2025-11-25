@@ -546,6 +546,7 @@ def dashboard(request):
     cartes = Carte.objects.filter(compte__in=comptes)
     transactions = Transaction.objects.filter(compte__in=comptes).order_by('-date_execution')[:5]
     demandes_credit = DemandeCredit.objects.filter(user=request.user).order_by('-date_demande')[:5]
+    credits_actifs = DemandeCredit.objects.filter(user=request.user, statut='ACCEPTEE').order_by('date_demande')
     profil, _ = ProfilClient.objects.get_or_create(user=request.user, defaults={
         'abonnement': 'ESSENTIEL',
         'prochaine_facturation': timezone.now().date() + timedelta(days=30)
@@ -577,6 +578,38 @@ def dashboard(request):
         labels.append(m_date.strftime("%b %y"))
         values.append(abs(float(total)))
 
+    # Echéancier crédits (24 mois max)
+    def months_diff(d1, d2):
+        return (d1.year - d2.year) * 12 + (d1.month - d2.month)
+
+    credit_labels = []
+    credit_datasets = []
+    if credits_actifs.exists():
+        today = timezone.now().date()
+        max_remaining = 0
+        credits_info = []
+        for idx, cr in enumerate(credits_actifs):
+            total_months = max(1, (cr.duree_souhaitee_annees or 1) * 12)
+            elapsed = max(0, months_diff(today, cr.date_demande.date()))
+            remaining = max(0, total_months - elapsed)
+            max_remaining = max(max_remaining, remaining)
+            mensualite = cr.mensualite_calculee or Decimal("0")
+            credits_info.append((cr, remaining, float(mensualite)))
+        horizon = int(min(24, max_remaining))
+        for i in range(horizon):
+            m_date = month_shift(start_month, i)  # réutilise start_month (courant)
+            credit_labels.append(m_date.strftime("%b %y"))
+        palette = ["#0ea5e9", "#22c55e", "#f59e0b", "#6366f1", "#ef4444", "#14b8a6"]
+        for idx, (cr, remaining, mensu) in enumerate(credits_info):
+            data = []
+            for m in range(len(credit_labels)):
+                data.append(mensu if m < remaining else 0)
+            credit_datasets.append({
+                "label": f"{cr.produit.nom if cr.produit else 'Crédit'}",
+                "data": data,
+                "color": palette[idx % len(palette)]
+            })
+
     response = render(request, 'scoring/dashboard.html', {
         'comptes': comptes,
         'cartes': cartes,
@@ -586,6 +619,8 @@ def dashboard(request):
         'unread_notifs': unread_notifs,
         'spending_labels': json.dumps(labels),
         'spending_values': json.dumps(values),
+        'credit_labels': json.dumps(credit_labels),
+        'credit_datasets': json.dumps(credit_datasets),
         'overdraft_limit': overdraft_limit,
         'overdraft_margins': overdraft_margins,
         'demandes_credit_recent': demandes_credit,
@@ -1249,8 +1284,13 @@ def supprimer_beneficiaire(request, beneficiaire_id):
 
 @login_required
 def page_simulation(request):
+    accepted_count = DemandeCredit.objects.filter(user=request.user, statut='ACCEPTEE').count()
     if request.method == 'POST':
         form = SimulationPretForm(request.POST)
+        # forcer un minimum sur "Autres crédits en cours"
+        if 'dettes_mensuelles' in form.fields:
+            form.fields['dettes_mensuelles'].min_value = accepted_count
+            form.fields['dettes_mensuelles'].widget.attrs['min'] = accepted_count
         if form.is_valid():
             demande = form.save(commit=False)
             demande.user = request.user
@@ -1364,6 +1404,11 @@ def page_simulation(request):
                     except Exception:
                         pass
         form = SimulationPretForm(initial=initial)
+        if 'dettes_mensuelles' in form.fields:
+            form.fields['dettes_mensuelles'].min_value = accepted_count
+            form.fields['dettes_mensuelles'].widget.attrs['min'] = accepted_count
+            if not request.GET.get('dettes'):
+                form.initial['dettes_mensuelles'] = accepted_count
     return render(request, 'scoring/saisie_client.html', {'form': form})
 
 @login_required
