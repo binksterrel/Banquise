@@ -51,8 +51,7 @@
     {% block extra_css %}{% endblock %}
 </head>
 
-<body
-    data-auth="{{ user.is_authenticated|yesno:'1,0' }}"
+<body data-auth="{{ user.is_authenticated|yesno:'1,0' }}"
     class="text-slate-800 antialiased flex flex-col min-h-screen overflow-x-hidden selection:bg-ice-200 selection:text-ice-900">
 
     {% block navbar %}
@@ -60,8 +59,10 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
                 <a href="{% url 'home' %}" class="flex items-center gap-3 group relative z-50">
-                    <div class="w-12 h-12 rounded-2xl overflow-hidden shadow-lg shadow-slate-500/20 group-hover:shadow-ice-500/30 group-hover:scale-105 transition-all duration-300 bg-white border border-slate-200">
-                        <img src="{% static 'docs/logobanquise.png' %}" alt="Banquise" class="w-full h-full object-contain">
+                    <div
+                        class="w-12 h-12 rounded-2xl overflow-hidden shadow-lg shadow-slate-500/20 group-hover:shadow-ice-500/30 group-hover:scale-105 transition-all duration-300 bg-white border border-slate-200">
+                        <img src="{% static 'docs/logobanquise.png' %}" alt="Banquisee"
+                            class="w-full h-full object-contain">
                     </div>
                     <span class="font-display font-bold text-2xl tracking-tight text-slate-900">BANQUISE</span>
                 </a>
@@ -97,7 +98,8 @@
                                     class="relative w-8 h-8 rounded-full bg-gradient-to-tr from-ice-400 to-blue-500 flex items-center justify-center text-white shadow-sm">
                                     <span class="text-xs font-bold">{{ user.username|slice:":2"|upper }}</span>
                                     {% if unread_notifs and unread_notifs > 0 %}
-                                    <span class="absolute -top-1.5 -right-1.5 w-3 h-3 rounded-full bg-red-500 border border-white"></span>
+                                    <span
+                                        class="absolute -top-1.5 -right-1.5 w-3 h-3 rounded-full bg-red-500 border border-white"></span>
                                     {% endif %}
                                 </div>
                                 <i
@@ -168,20 +170,21 @@
             </div>
         </div>
 
-    <div id="mobile-menu"
-        class="fixed inset-0 bg-white/95 backdrop-blur-xl z-40 flex flex-col justify-center items-center opacity-0 invisible transition-all duration-300">
-        <div class="space-y-6 text-center w-full px-8">
-            {% if user.is_authenticated %}
-            <div class="pb-6 border-b border-slate-100">
-                <div
-                    class="relative w-16 h-16 mx-auto rounded-full bg-gradient-to-tr from-ice-400 to-blue-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg mb-4">
-                    {{ user.username|slice:":2"|upper }}
-                    {% if unread_notifs and unread_notifs > 0 %}
-                    <span class="absolute -top-1.5 -right-1.5 w-3 h-3 rounded-full bg-red-500 border border-white"></span>
-                    {% endif %}
+        <div id="mobile-menu"
+            class="fixed inset-0 bg-white/95 backdrop-blur-xl z-40 flex flex-col justify-center items-center opacity-0 invisible transition-all duration-300">
+            <div class="space-y-6 text-center w-full px-8">
+                {% if user.is_authenticated %}
+                <div class="pb-6 border-b border-slate-100">
+                    <div
+                        class="relative w-16 h-16 mx-auto rounded-full bg-gradient-to-tr from-ice-400 to-blue-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg mb-4">
+                        {{ user.username|slice:":2"|upper }}
+                        {% if unread_notifs and unread_notifs > 0 %}
+                        <span
+                            class="absolute -top-1.5 -right-1.5 w-3 h-3 rounded-full bg-red-500 border border-white"></span>
+                        {% endif %}
+                    </div>
+                    <p class="text-xl font-bold text-slate-900">Bonjour, {{ user.username }}</p>
                 </div>
-                <p class="text-xl font-bold text-slate-900">Bonjour, {{ user.username }}</p>
-            </div>
                 <a href="{% url 'produits_comptes' %}"
                     class="block text-2xl font-bold text-slate-800 hover:text-ice-600">Comptes</a>
                 <a href="{% url 'tarifs' %}"
@@ -274,7 +277,8 @@
                     <a href="{% url 'home' %}" class="flex items-center gap-3 group w-fit">
                         <div
                             class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-lg group-hover:shadow-ice-500/30 transition-all duration-300 overflow-hidden">
-                            <img src="{% static 'docs/logobanquise.png' %}" alt="Banquise" class="w-full h-full object-contain">
+                            <img src="{% static 'docs/logobanquise.png' %}" alt="Banquise"
+                                class="w-full h-full object-contain">
                         </div>
                         <span class="font-display font-bold text-2xl tracking-tight text-slate-900">BANQUISE</span>
                     </a>
@@ -354,29 +358,31 @@
     {% endblock %}
 
     <!-- Dock d’actions rapides (caché sur login/register) -->
-    {% if request.resolver_match and request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'register' and request.resolver_match.url_name != 'support' %}
+    {% if request.resolver_match and request.resolver_match.url_name != 'login' and request.resolver_match.url_name !=
+    'register' and request.resolver_match.url_name != 'support' %}
     <div class="floating-dock flex">
         {% if user.is_authenticated %}
-            {% if user.is_staff %}
-            <a href="{% url 'admin_dashboard' %}" class="dock-btn primary"><i class="bi bi-badge-ad"></i> Admin</a>
-            <a href="{% url 'admin_manage_credits' %}" class="dock-btn secondary"><i class="bi bi-bank"></i> Crédit</a>
-            <a href="{% url 'notifications' %}" class="dock-btn secondary"><i class="bi bi-bell"></i>
-                {% if unread_notifs and unread_notifs > 0 %}
-                <span class="notification-dot"></span>
-                {% endif %}
-            </a>
-            {% else %}
-            <a href="{% url 'virement' %}" class="dock-btn primary"><i class="bi bi-lightning-charge-fill"></i> Virement</a>
-            <a href="{% url 'chat_support' %}" class="dock-btn secondary"><i class="bi bi-chat-dots"></i> Support</a>
-            <a href="{% url 'notifications' %}" class="dock-btn secondary"><i class="bi bi-bell"></i>
-                {% if unread_notifs and unread_notifs > 0 %}
-                <span class="notification-dot"></span>
-                {% endif %}
-            </a>
+        {% if user.is_staff %}
+        <a href="{% url 'admin_dashboard' %}" class="dock-btn primary"><i class="bi bi-badge-ad"></i> Admin</a>
+        <a href="{% url 'admin_manage_credits' %}" class="dock-btn secondary"><i class="bi bi-bank"></i> Crédit</a>
+        <a href="{% url 'notifications' %}" class="dock-btn secondary"><i class="bi bi-bell"></i>
+            {% if unread_notifs and unread_notifs > 0 %}
+            <span class="notification-dot"></span>
             {% endif %}
+        </a>
         {% else %}
-            <a href="{% url 'register' %}" class="dock-btn primary"><i class="bi bi-magic"></i> Créer un compte</a>
-            <a href="{% url 'support' %}" class="dock-btn secondary"><i class="bi bi-question-circle"></i> Nous contacter</a>
+        <a href="{% url 'virement' %}" class="dock-btn primary"><i class="bi bi-lightning-charge-fill"></i> Virement</a>
+        <a href="{% url 'chat_support' %}" class="dock-btn secondary"><i class="bi bi-chat-dots"></i> Support</a>
+        <a href="{% url 'notifications' %}" class="dock-btn secondary"><i class="bi bi-bell"></i>
+            {% if unread_notifs and unread_notifs > 0 %}
+            <span class="notification-dot"></span>
+            {% endif %}
+        </a>
+        {% endif %}
+        {% else %}
+        <a href="{% url 'register' %}" class="dock-btn primary"><i class="bi bi-magic"></i> Créer un compte</a>
+        <a href="{% url 'support' %}" class="dock-btn secondary"><i class="bi bi-question-circle"></i> Nous
+            contacter</a>
         {% endif %}
     </div>
     {% endif %}
@@ -442,7 +448,7 @@
             }
         });
         // Certains navigateurs ne déclenchent pas unload => no-op pour invalider BFCache
-        window.addEventListener('unload', () => {});
+        window.addEventListener('unload', () => { });
     </script>
     {% block extra_js %}{% endblock %}
 </body>
