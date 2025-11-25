@@ -29,25 +29,35 @@
 % Vous pouvez déposer des PNG/JPG/JPEG/PDF sans préciser l'extension
 \DeclareGraphicsExtensions{.png,.jpg,.jpeg,.pdf}
 
+% Couleurs personnalisées (charte Banquise)
+\definecolor{ice50}{HTML}{F0F9FF}
+\definecolor{ice200}{HTML}{BAE6FD}
+\definecolor{ice500}{HTML}{0EA5E9}
+\definecolor{ink}{HTML}{0F172A}
+\definecolor{slate100}{HTML}{E2E8F0}
+\definecolor{slate500}{HTML}{64748B}
+\definecolor{purple}{HTML}{6366F1}
+\definecolor{lightgray}{HTML}{F8FAFC}
+\definecolor{banquiseblue}{HTML}{0EA5E9} % compat tables/exemples
+
 % Configuration des liens hypertextes
 \hypersetup{
     colorlinks=true,
-    linkcolor=blue,
-    filecolor=magenta,      
-    urlcolor=cyan,
-    citecolor=green,
+    linkcolor={ink},
+    filecolor={ink},
+    urlcolor={ice500},
+    citecolor={ice500},
+    pdfauthor={Banquise},
+    pdftitle={Cahier des Charges - Banquise},
+    pdfsubject={Plateforme de néobanque web},
 }
 
 % En-têtes et pieds de page
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{\leftmark}
-\fancyhead[R]{Banquise}
-\fancyfoot[C]{\thepage}
-
-% Couleurs personnalisées
-\definecolor{banquiseblue}{RGB}{0,102,204}
-\definecolor{lightgray}{RGB}{245,245,245}
+\fancyhead[R]{\color{ice500}\textbf{Banquise}}
+\fancyfoot[C]{\color{slate500}\thepage}
 
 % Titre
 \title{
@@ -62,24 +72,28 @@
 
 \begin{document}
 
-% Page de garde personnalisée
+% Page de garde personnalisée (charte Banquise)
 \begin{titlepage}
 \begin{tikzpicture}[remember picture,overlay]
-    \fill[banquiseblue!5] (current page.south west) rectangle (current page.north east);
-    \fill[banquiseblue!20] ([xshift=-2cm,yshift=-2cm]current page.north east) circle (6cm);
-    \fill[banquiseblue!10] ([xshift=1cm,yshift=1cm]current page.south west) circle (5cm);
+    % Fond dégradé doux bleu / violet
+    \fill[ice50] (current page.south west) rectangle (current page.north east);
+    \path[fill=ice200] ([xshift=-1cm,yshift=-2cm]current page.north east) circle (7cm);
+    \path[fill=purple!20] ([xshift=2cm,yshift=1cm]current page.center) circle (6cm);
+    \path[fill=ice500!18] ([xshift=-3cm,yshift=1cm]current page.center) circle (5cm);
+    % Bandeau gradient
+    \path[fill=ice500!35] ([xshift=-2cm]current page.north west) rectangle ([xshift=2cm,yshift=-2cm]current page.north east);
 \end{tikzpicture}
 
 \begin{center}
-    \vspace*{2cm}
-    {\Large\textsc{Université Paris Nanterre}}\\[0.8cm]
+    \vspace*{2.5cm}
+    {\Large\textsc{Banquise}}\\[0.6cm]
     {\huge\bfseries Cahier des Charges}\\[0.4cm]
-    {\Large\bfseries Banquise — Plateforme de Néobanque Web}\\[0.6cm]
-    \rule{0.6\linewidth}{0.4pt}\\[0.6cm]
-    {\large Version du \today}\\[2.5cm]
+    {\Large\bfseries Plateforme de Néobanque Web}\\[0.8cm]
+    \rule{0.6\linewidth}{0.8pt}\\[0.6cm]
+    {\large Version du \today}\\[2.2cm]
 
-    \begin{tabular}{p{3cm}p{9cm}}
-        \textbf{Projet} : & Banquise (Django 4.2) \\
+    \begin{tabular}{p{3.5cm}p{9cm}}
+        \textbf{Produit} : & Banquise (Django 4.2) \\
         \textbf{Équipe} : & Terrel NUENTSA \\[-2pt]
                           & Romain THIERRY \\[-2pt]
                           & Daniel BADOYAN \\
@@ -87,7 +101,7 @@
     \end{tabular}
 
     \vfill
-    \textit{Un système bancaire numérique complet : comptes, cartes, virements, abonnements, crédits avec scoring IA, notifications et back-office admin.}
+    \textit{Banquise : comptes, cartes, virements, crédits avec scoring IA, notifications temps réel, support intégré et console admin.}
 \end{center}
 \end{titlepage}
 
@@ -103,7 +117,15 @@
 \chapter{Contexte général du projet}
 
 \section{Introduction}
-Ce document constitue le cahier des charges du projet Banquise, une plateforme de néobanque web développée avec Django. L'objectif est de fournir une expérience bancaire digitale claire, sécurisée et complète, permettant la gestion de comptes, cartes, virements, abonnements, crédits avec scoring automatique, notifications et support client.
+Ce document constitue le cahier des charges du projet Banquise, une plateforme de néobanque web développée avec Django 4.2. L'objectif est de fournir une expérience bancaire digitale claire, sécurisée et complète, alignée sur la charte graphique Banquise (dégradés bleu/ice, typographie épurée) et intégrant les flux suivants :
+\begin{itemize}[leftmargin=1.3cm]
+    \item Comptes et cartes (blocage, plafonds, RIB/IBAN, relevés PDF)
+    \item Virements et bénéficiaires (ajout, modification, suppression sécurisée)
+    \item Abonnements (Essentiel / Plus / Infinite) avec confirmation par mot de passe et résiliation encadrée
+    \item Crédits avec scoring IA, simulations, validations admin et versement automatique sur compte
+    \item Notifications temps réel (pastille dock) et toasts temporisés
+    \item Support (chat, FAQ, avis utilisateur) et console admin (gestion crédits, comptes, cartes)
+\end{itemize}
 
 Le projet s'inscrit dans une démarche de transformation numérique du secteur bancaire, en proposant une solution moderne, accessible et centrée sur l'utilisateur.
 
@@ -136,14 +158,23 @@ Actuellement, le secteur bancaire traditionnel présente plusieurs limitations :
 \subsection{Solution proposée}
 Banquise propose une plateforme web complète comprenant :
 \begin{itemize}[leftmargin=1.5cm]
-    \item Gestion multi-comptes (courant, épargne, professionnel)
-    \item Cartes bancaires virtuelles avec contrôle total
-    \item Système de virements instantanés
-    \item Abonnements flexibles (Essentiel, Plus, Infinite)
-    \item Simulation et demande de crédit avec scoring IA
-    \item Notifications en temps réel
-    \item Support client intégré
-    \item Back-office administrateur complet
+    \item Gestion multi-comptes (courant, épargne) et cartes virtuelles avec contrôle (blocage, plafonds)
+    \item Virements instantanés, ajout/modification/suppression de bénéficiaires avec validations
+    \item Abonnements flexibles (Essentiel, Plus, Infinite) avec confirmation par mot de passe
+    \item Simulation et demande de crédit avec scoring IA, historique et versement automatique en cas d'acceptation
+    \item Prévision des mensualités crédit dans les analyses de dépenses (courbes superposées)
+    \item Notifications en temps réel (dock et pastille) et toasts à durée limitée
+    \item Support client (chat, FAQ enrichie, avis affichés sur la page d'accueil)
+    \item Console administrateur : gestion des crédits (acceptation, annulation, modification des paramètres), comptes, cartes et bénéficiaires
+\end{itemize}
+
+\subsection{Alignement UX / UI (site actuel)}
+\begin{itemize}[leftmargin=1.5cm]
+    \item \textbf{Charte} : palette Ice / Indigo, fonds dégradés, cartes glassmorphism, pastille de notifications.
+    \item \textbf{Navigation} : dock flottant (masqué sur login/register), barre de progression de scroll, navbar sticky.
+    \item \textbf{Sécurité UX} : formulaires protégés (pas d'actions sans connexion), toasts temporisés, anti-cache sur pages protégées.
+    \item \textbf{Support} : FAQ + filtres (Opposition carte, Sécurité, Virements, Attestations, IA \& scoring) et chat support.
+    \item \textbf{Crédits} : historique verrouillé après acceptation, projections de mensualités dans les graphiques dépenses, console admin dédiée (/console/credits/).
 \end{itemize}
 
 \subsection{Choix de la méthodologie}
@@ -157,6 +188,75 @@ Le projet adopte une \textbf{méthodologie Agile} avec des itérations courtes p
 
 \section{Conclusion}
 Ce chapitre a posé les fondations du projet Banquise en présentant le contexte, la problématique et la solution proposée. Les chapitres suivants détailleront les besoins fonctionnels, l'architecture technique et les spécifications détaillées.
+
+% ============================================================================
+% CHAPITRE 2 BIS : IA ET SCORING CRÉDIT BANQUISE
+% ============================================================================
+\chapter{IA et scoring crédit Banquise}
+
+\section{Objectifs}
+L'IA Banquise vise à :
+\begin{itemize}[leftmargin=1.3cm]
+    \item Fournir une pré-décision immédiate (avis automatique) lors des simulations de crédit.
+    \item Calculer des indicateurs clés : taux d'endettement (DTI), ratio prêt/valeur (LTV), marge de sécurité.
+    \item Proposer une recommandation ajustée (durée, mensualité cible) si les seuils ne sont pas respectés.
+    \item Alimenter la console admin et les notifications pour accélérer la validation manuelle.
+\end{itemize}
+
+\section{Sources de données}
+\begin{itemize}[leftmargin=1.3cm]
+    \item Données saisies par l'utilisateur : revenus, charges, situation professionnelle, apport, durée souhaitée.
+    \item Historique client Banquise : comptes actifs, solde, transactions, crédits existants, abonnements.
+    \item Paramètres produit : taux de référence, grilles de scoring internes, bonus (ex. propriétaire).
+\end{itemize}
+
+\section{Calculs principaux}
+\begin{itemize}[leftmargin=1.3cm]
+    \item \textbf{Mensualité théorique} : formule d'annuité (taux mensuel, durée, montant).
+    \item \textbf{DTI} (Debt-to-Income) : (mensualité + charges) / revenus nets.
+    \item \textbf{LTV} (Loan-to-Value) : montant prêté / valeur du bien (ou apport total).
+    \item \textbf{Score IA} : pondération des critères (DTI, LTV, stabilité pro, bonus propriétaire, historique Banquise).
+    \item \textbf{Recommandation} : si dépassement de seuils, proposition d'une durée ajustée et d'une mensualité cible.
+\end{itemize}
+
+\section{Seuils et décisions}
+\begin{itemize}[leftmargin=1.3cm]
+    \item DTI seuil : 40\% (ajustable).
+    \item LTV seuil : 90\% (ajustable).
+    \item Score minimal : 70/100 pour une acceptation automatique.
+    \item Cas limites : si DTI légèrement au-dessus, l'IA suggère d'allonger la durée ou d'augmenter l'apport.
+\end{itemize}
+
+\section{Parcours utilisateur}
+\begin{enumerate}[leftmargin=1.3cm]
+    \item L'utilisateur remplit la simulation (montant, durée, revenus, charges, apport).
+    \item L'IA calcule DTI, LTV, mensualité, score et rend un \textit{avis automatique} (accepté / ajusté / refusé).
+    \item Si l'utilisateur valide, la demande passe en \textbf{EN\_ATTENTE} pour revue admin.
+    \item En cas d'acceptation admin, le montant est crédité sur le compte et les mensualités sont planifiées (débits mensuels).
+    \item L'historique et l'analyse des dépenses affichent la projection des mensualités jusqu'à échéance.
+\end{enumerate}
+
+\section{Intégration produit}
+\begin{itemize}[leftmargin=1.3cm]
+    \item \textbf{Dashboard} : courbe des dépenses incluant les mensualités crédit (multi-couleurs si plusieurs crédits).
+    \item \textbf{Simulation} : avis IA affiché, avec suggestion de durée/mensualité quand nécessaire.
+    \item \textbf{Historique} : statut verrouillé si crédit accepté ; modification impossible côté client.
+    \item \textbf{Console admin} : modification des paramètres du crédit (montant/durée) et annulation possible même après acceptation.
+\end{itemize}
+
+\section{Sécurité et conformité}
+\begin{itemize}[leftmargin=1.3cm]
+    \item Traçabilité des décisions IA (score, critères, horodatage) pour audit interne.
+    \item Notifications aux utilisateurs et aux admins lors des changements de statut.
+    \item Aucune donnée externe sensible transmise : calculs réalisés côté serveur.
+\end{itemize}
+
+\section{Limites et évolutions}
+\begin{itemize}[leftmargin=1.3cm]
+    \item Version actuelle : moteur heuristique + règles métiers (DTI/LTV/score pondéré).
+    \item Évolution envisagée : modèle ML supervisé avec jeu de données anonymisé, calibration des seuils, détection de risques.
+    \item Explicabilité : conserver les raisons d'un refus (DTI/LTV/score) pour transparence utilisateur.
+\end{itemize}
 
 % ============================================================================
 % CHAPITRE 2 : ANALYSE ET SPÉCIFICATION DES BESOINS

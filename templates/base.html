@@ -61,7 +61,7 @@
             <div class="flex justify-between items-center h-20">
                 <a href="{% url 'home' %}" class="flex items-center gap-3 group relative z-50">
                     <div class="w-12 h-12 rounded-2xl overflow-hidden shadow-lg shadow-slate-500/20 group-hover:shadow-ice-500/30 group-hover:scale-105 transition-all duration-300 bg-white border border-slate-200">
-                        <img src="{% static 'docs/logobanquise.png' %}" alt="Banquise" class="w-full h-full object-contain transform scale-[1.25]">
+                        <img src="{% static 'docs/logobanquise.png' %}" alt="Banquise" class="w-full h-full object-contain">
                     </div>
                     <span class="font-display font-bold text-2xl tracking-tight text-slate-900">BANQUISE</span>
                 </a>
@@ -123,7 +123,7 @@
                                     <a href="{% url 'admin_manage' %}"
                                         class="block px-4 py-2 text-sm text-slate-600 hover:bg-ice-50 rounded-xl transition-colors"><i
                                             class="bi bi-tools mr-2"></i> Gestion</a>
-                                    <a href="{% url 'admin_validation_credits' %}"
+                                    <a href="{% url 'admin_manage_credits' %}"
                                         class="block px-4 py-2 text-sm text-slate-600 hover:bg-ice-50 rounded-xl transition-colors"><i
                                             class="bi bi-bank mr-2"></i> Validation crédits</a>
                                     {% endif %}
@@ -208,7 +208,7 @@
                     class="block text-2xl font-bold text-slate-800 hover:text-ice-600">Admin Dashboard</a>
                 <a href="{% url 'admin_manage' %}"
                     class="block text-2xl font-bold text-slate-800 hover:text-ice-600">Gestion</a>
-                <a href="{% url 'admin_validation_credits' %}"
+                <a href="{% url 'admin_manage_credits' %}"
                     class="block text-2xl font-bold text-slate-800 hover:text-ice-600">Validation crédits</a>
                 {% endif %}
 
@@ -359,7 +359,7 @@
         {% if user.is_authenticated %}
             {% if user.is_staff %}
             <a href="{% url 'admin_dashboard' %}" class="dock-btn primary"><i class="bi bi-badge-ad"></i> Admin</a>
-            <a href="{% url 'admin_validation_credits' %}" class="dock-btn secondary"><i class="bi bi-bank"></i> Crédit</a>
+            <a href="{% url 'admin_manage_credits' %}" class="dock-btn secondary"><i class="bi bi-bank"></i> Crédit</a>
             <a href="{% url 'notifications' %}" class="dock-btn secondary"><i class="bi bi-bell"></i>
                 {% if unread_notifs and unread_notifs > 0 %}
                 <span class="notification-dot"></span>
