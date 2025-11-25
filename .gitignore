@@ -1,0 +1,19 @@
+# Environnements virtuels
+venv/
+.venv/
+
+# Artefacts système / éditeur
+.DS_Store
+**/.DS_Store
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Bases locales / fichiers temporaires
+*.sqlite3
+db.sqlite3
+
