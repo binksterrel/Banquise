@@ -527,8 +527,9 @@ def login_view(request):
 
 def logout_view(request):
     logout(request)
+    request.session.flush()
     messages.info(request, "Vous êtes déconnecté.")
-    resp = redirect('login')
+    resp = redirect('home')
     resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     resp.headers["Pragma"] = "no-cache"
     resp.headers["Expires"] = "0"

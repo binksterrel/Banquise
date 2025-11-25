@@ -24,12 +24,11 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
 
 class NoCacheForAuthMiddleware(MiddlewareMixin):
     """
-    Ajoute des en-têtes no-cache aux réponses servies à des utilisateurs authentifiés.
-    Empêche l'affichage d'une page protégée via le bouton Retour après déconnexion.
+    Ajoute des en-têtes no-cache à toutes les réponses pour éviter de revoir
+    des pages protégées via le bouton Retour après déconnexion.
     """
     def process_response(self, request, response):
-        if request.user.is_authenticated:
-            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-            response.headers["Pragma"] = "no-cache"
-            response.headers["Expires"] = "0"
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
         return response
