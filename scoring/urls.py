@@ -5,11 +5,13 @@ urlpatterns = [
     # --- AUTHENTIFICATION ---
     path('', views.home, name='home'),
     path('register/', views.register, name='register'),
+    path('register/confirm/', views.confirm_email, name='confirm_email'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
 
     # --- GESTION COMPTES ---
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('mes-comptes/', views.gerer_comptes, name='gerer_comptes'),
     path('statistiques/', views.statistiques, name='statistiques'), # Nouvelle route
     path('ouvrir-compte/', views.ouvrir_compte, name='ouvrir_compte'),
     path('fermer-compte/<int:compte_id>/', views.fermer_compte, name='fermer_compte'),
@@ -25,11 +27,14 @@ urlpatterns = [
     path('virement/', views.virement, name='virement'),
     path('beneficiaires/', views.gestion_beneficiaires, name='beneficiaires'), # Nouvelle route
     path('beneficiaires/nouveau/', views.ajouter_beneficiaire, name='ajouter_beneficiaire'), # Nouvelle route
+    path('beneficiaires/modifier/<int:beneficiaire_id>/', views.modifier_beneficiaire, name='modifier_beneficiaire'),
     path('beneficiaires/supprimer/<int:beneficiaire_id>/', views.supprimer_beneficiaire, name='supprimer_beneficiaire'), # Nouvelle route
 
     # --- CREDIT & SIMULATION ---
     path('simulation/', views.page_simulation, name='simulation'),
     path('resultat/<int:demande_id>/', views.page_resultat, name='resultat_simulation'),
+    path('resultat/<int:demande_id>/valider/', views.valider_demande_credit, name='valider_demande_credit'),
+    path('demande/<int:demande_id>/supprimer/', views.supprimer_demande_credit, name='supprimer_demande_credit'),
     path('historique/', views.page_historique, name='historique'),
     path('api/calcul-pret/', views.api_calcul_pret_dynamique, name='api_calcul_pret'),
     path('changer-abonnement/', views.changer_abonnement, name='changer_abonnement'),
@@ -52,6 +57,7 @@ urlpatterns = [
     path('carrieres/', views.page_carrieres, name='carrieres'),
     path('presse/', views.page_presse, name='presse'),
     path('partenaires/', views.page_partenaires, name='partenaires'),
+    path('apis/', views.page_apis, name='apis'),
     path('mentions-legales/', views.page_mentions_legales, name='mentions_legales'),
     path('confidentialite/', views.page_confidentialite, name='confidentialite'),
     path('cookies/', views.page_cookies, name='cookies'),

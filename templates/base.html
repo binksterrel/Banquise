@@ -14,6 +14,11 @@
         rel="stylesheet">
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'docs/logobanquise.png' %}">
+    <link rel="icon" type="image/png" sizes="64x64" href="{% static 'docs/logobanquise.png' %}">
+    <link rel="icon" type="image/png" sizes="96x96" href="{% static 'docs/logobanquise.png' %}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{% static 'docs/logobanquise.png' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'docs/logobanquise.png' %}">
 
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -41,36 +46,7 @@
         }
     </script>
 
-    <style>
-        body {
-            background-color: #f8fafc;
-        }
-
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-
-        @keyframes slideDown {
-            from {
-                transform: translateY(-20px);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .animate-slide-down {
-            animation: slideDown 0.4s ease-out forwards;
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/banquise.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
 
@@ -82,9 +58,8 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
                 <a href="{% url 'home' %}" class="flex items-center gap-3 group relative z-50">
-                    <div
-                        class="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center text-white shadow-lg shadow-slate-500/20 group-hover:shadow-ice-500/30 group-hover:scale-105 transition-all duration-300">
-                        <i class="bi bi-snow2 text-xl group-hover:animate-pulse"></i>
+                    <div class="w-12 h-12 rounded-2xl overflow-hidden shadow-lg shadow-slate-500/20 group-hover:shadow-ice-500/30 group-hover:scale-105 transition-all duration-300 bg-white border border-slate-200">
+                        <img src="{% static 'docs/logobanquise.png' %}" alt="Banquise" class="w-full h-full object-contain transform scale-[1.25]">
                     </div>
                     <span class="font-display font-bold text-2xl tracking-tight text-slate-900">BANQUISE</span>
                 </a>
@@ -265,13 +240,17 @@
     </nav>
     {% endblock %}
 
+    <div id="scroll-progress" class="scroll-progress" aria-hidden="true">
+        <div id="scroll-progress-bar"></div>
+    </div>
+
     <main class="flex-grow w-full relative z-10 {% block main_padding %}pt-20{% endblock %}">
         {% if messages %}
         <div class="absolute top-24 left-0 right-0 z-40 px-4 pointer-events-none">
             <div class="max-w-xl mx-auto space-y-2 pointer-events-auto">
                 {% for message in messages %}
                 <div
-                    class="p-4 rounded-xl flex items-center gap-3 shadow-lg border animate-slide-down {% if message.tags == 'success' %}bg-green-50/95 border-green-200 text-green-800{% elif message.tags == 'error' %}bg-red-50/95 border-red-200 text-red-800{% else %}bg-blue-50/95 border-blue-200 text-blue-800{% endif %} backdrop-blur-md">
+                    class="toast p-4 rounded-xl flex items-center gap-3 shadow-lg border animate-slide-down {% if message.tags == 'success' %}bg-green-50/95 border-green-200 text-green-800{% elif message.tags == 'error' %}bg-red-50/95 border-red-200 text-red-800{% else %}bg-blue-50/95 border-blue-200 text-blue-800{% endif %} backdrop-blur-md">
                     <i
                         class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% elif message.tags == 'error' %}bi-exclamation-circle-fill{% else %}bi-info-circle-fill{% endif %}"></i>
                     <span class="font-medium text-sm">{{ message }}</span>
@@ -292,8 +271,8 @@
                 <div class="md:col-span-4 space-y-6">
                     <a href="{% url 'home' %}" class="flex items-center gap-3 group w-fit">
                         <div
-                            class="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center text-white shadow-lg group-hover:shadow-ice-500/30 transition-all duration-300">
-                            <i class="bi bi-snow2 text-xl"></i>
+                            class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-lg group-hover:shadow-ice-500/30 transition-all duration-300 overflow-hidden">
+                            <img src="{% static 'docs/logobanquise.png' %}" alt="Banquise" class="w-full h-full object-contain">
                         </div>
                         <span class="font-display font-bold text-2xl tracking-tight text-slate-900">BANQUISE</span>
                     </a>
@@ -338,6 +317,7 @@
                         <li><a href="{% url 'presse' %}" class="hover:text-ice-600 transition-colors">Presse</a></li>
                         <li><a href="{% url 'partenaires' %}"
                                 class="hover:text-ice-600 transition-colors">Partenaires</a></li>
+                        <li><a href="{% url 'apis' %}" class="hover:text-ice-600 transition-colors">APIs</a></li>
                     </ul>
                 </div>
 
@@ -371,7 +351,36 @@
     </footer>
     {% endblock %}
 
+    <!-- Dock d’actions rapides (caché sur login/register) -->
+    {% if request.resolver_match and request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'register' and request.resolver_match.url_name != 'support' %}
+    <div class="floating-dock flex">
+        {% if user.is_authenticated %}
+            {% if user.is_staff %}
+            <a href="{% url 'admin_dashboard' %}" class="dock-btn primary"><i class="bi bi-badge-ad"></i> Admin</a>
+            <a href="{% url 'admin_validation_credits' %}" class="dock-btn secondary"><i class="bi bi-bank"></i> Crédit</a>
+            <a href="{% url 'notifications' %}" class="dock-btn secondary"><i class="bi bi-bell"></i>
+                {% if unread_notifs and unread_notifs > 0 %}
+                <span class="notification-dot"></span>
+                {% endif %}
+            </a>
+            {% else %}
+            <a href="{% url 'virement' %}" class="dock-btn primary"><i class="bi bi-lightning-charge-fill"></i> Virement</a>
+            <a href="{% url 'chat_support' %}" class="dock-btn secondary"><i class="bi bi-chat-dots"></i> Support</a>
+            <a href="{% url 'notifications' %}" class="dock-btn secondary"><i class="bi bi-bell"></i>
+                {% if unread_notifs and unread_notifs > 0 %}
+                <span class="notification-dot"></span>
+                {% endif %}
+            </a>
+            {% endif %}
+        {% else %}
+            <a href="{% url 'register' %}" class="dock-btn primary"><i class="bi bi-magic"></i> Créer un compte</a>
+            <a href="{% url 'support' %}" class="dock-btn secondary"><i class="bi bi-question-circle"></i> Nous contacter</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <script>
+        // Effet sticky + burger mobile
         const nav = document.getElementById('main-nav');
         if (nav) {
             window.addEventListener('scroll', () => {
@@ -388,6 +397,38 @@
                 else { mobileMenu.classList.add('opacity-0', 'invisible'); mobileIcon.classList.replace('bi-x-lg', 'bi-list'); document.body.style.overflow = ''; }
             });
         }
+
+        // Barre de progression de scroll
+        const progressBar = document.getElementById('scroll-progress-bar');
+        const updateProgress = () => {
+            if (!progressBar) return;
+            const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+            const ratio = scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0;
+            progressBar.style.width = `${ratio}%`;
+        };
+        updateProgress();
+        window.addEventListener('scroll', updateProgress);
+        window.addEventListener('resize', updateProgress);
+
+        // Hide dock near bottom
+        const dock = document.querySelector('.floating-dock');
+        const toggleDock = () => {
+            if (!dock) return;
+            const remaining = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
+            dock.classList.toggle('is-hidden', remaining < 120);
+        };
+        toggleDock();
+        window.addEventListener('scroll', toggleDock, { passive: true });
+        window.addEventListener('resize', toggleDock, { passive: true });
+
+        // Auto-hide toasts
+        document.querySelectorAll('.toast').forEach((toast, idx) => {
+            const delay = 4000 + idx * 200;
+            setTimeout(() => {
+                toast.classList.add('hide');
+                setTimeout(() => toast.remove(), 500);
+            }, delay);
+        });
     </script>
     {% block extra_js %}{% endblock %}
 </body>

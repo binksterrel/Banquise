@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Mes Cartes - Banquise{% endblock %}
 
@@ -64,7 +65,7 @@
                     {% endwith %}
                 </div>
 
-                <div class="relative h-64 w-full rounded-3xl p-8 shadow-2xl border border-white/10 group transform hover:scale-[1.02] transition-all duration-500 overflow-hidden cursor-pointer
+                <div class="relative h-64 w-full rounded-3xl p-8 shadow-2xl border border-white/10 group transform hover:scale-[1.02] transition-all duration-500 overflow-hidden cursor-pointer shine
                     {% if carte.compte.type_compte == 'EPARGNE' %}
                         bg-gradient-to-br from-ice-500 via-blue-500 to-blue-700
                     {% elif carte.compte.type_compte == 'PRO' %}

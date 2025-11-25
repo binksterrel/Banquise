@@ -281,8 +281,9 @@
                                     <i class="bi bi-currency-euro text-ice-600"></i> Montant
                                 </label>
                                 <div class="relative">
-                                    <input type="number" step="0.01" name="montant" placeholder="0.00" required
-                                        class="form-control pl-4 pr-16 text-2xl font-bold text-slate-900 placeholder:text-slate-300">
+                                    <input type="number" step="0.01" min="0.01" name="montant" placeholder="0.00" required
+                                        class="form-control pl-4 pr-16 text-2xl font-bold text-slate-900 placeholder:text-slate-300"
+                                        oninput="if (this.value < 0) this.value = ''; this.value = this.value.replace(/[^0-9.,-]/g, '').replace(',', '.');">
                                     <span
                                         class="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 font-bold">EUR</span>
                                 </div>

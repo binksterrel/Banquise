@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Mes comptes - Banquise{% endblock %}
+
+{% block content %}
+<div class="relative min-h-screen bg-slate-50/50 overflow-hidden">
+    <div class="absolute inset-0 ambient-surface" aria-hidden="true">
+        <div class="ambient-grid"></div>
+        <div class="ambient-blob sm blue animate-blob"></div>
+        <div class="ambient-blob md ice animate-blob animation-delay-2000"></div>
+        <div class="ambient-blob lg purple animate-blob animation-delay-4000"></div>
+    </div>
+
+    <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
+        <div class="flex items-center justify-between gap-4">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-[0.3em] text-ice-600">Gestion</p>
+                <h1 class="text-4xl font-display font-bold text-slate-900 mt-2">Mes comptes</h1>
+                <p class="text-slate-500 mt-2">Ouvrir, fermer ou consulter vos comptes et cartes associées.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="{% url 'ouvrir_compte' %}"
+                    class="px-5 py-3 rounded-xl bg-slate-900 text-white font-bold text-sm shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2">
+                    <i class="bi bi-plus-lg"></i> Ouvrir un compte
+                </a>
+                <a href="{% url 'dashboard' %}"
+                    class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50 transition-colors">
+                    Retour dashboard
+                </a>
+            </div>
+        </div>
+
+        {% if not comptes %}
+        <div class="p-10 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-white/70 backdrop-blur">
+            <div class="w-14 h-14 rounded-2xl bg-ice-50 text-ice-500 flex items-center justify-center mx-auto mb-4 text-2xl">
+                <i class="bi bi-bank2"></i>
+            </div>
+            <p class="text-slate-500 font-medium">Vous n'avez pas encore de compte actif.</p>
+            <a href="{% url 'ouvrir_compte' %}" class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-sm">
+                <i class="bi bi-plus-lg"></i> Ouvrir un compte
+            </a>
+        </div>
+        {% else %}
+        <div class="space-y-6">
+            {% for compte in comptes %}
+            <div class="glass-panel p-6 rounded-3xl shadow-sm">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2">
+                            <span class="pill pill-ice">{{ compte.get_type_compte_display }}</span>
+                            <span class="pill bg-white border border-slate-200 text-slate-600">IBAN {{ compte.numero_compte }}</span>
+                        </div>
+                        <h3 class="text-2xl font-display font-bold text-slate-900">{{ compte.solde }} €</h3>
+                        <p class="text-sm text-slate-500">Marge avant blocage : {{ compte.marge_dispo|default:"-" }} € (limite {{ overdraft_limit }} €)</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <a href="{% url 'releve_compte' compte.id %}"
+                            class="px-3 py-2 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-700 hover:border-ice-200 hover:text-ice-700 transition-colors flex items-center gap-2">
+                            <i class="bi bi-file-earmark-text"></i> Relevé
+                        </a>
+                        <a href="{% url 'telecharger_rib_pdf' compte.id %}"
+                            class="px-3 py-2 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-700 hover:border-ice-200 hover:text-ice-700 transition-colors flex items-center gap-2">
+                            <i class="bi bi-download"></i> RIB
+                        </a>
+                        <a href="{% url 'fermer_compte' compte.id %}"
+                            class="px-3 py-2 rounded-xl bg-red-50 border border-red-100 text-sm font-bold text-red-600 hover:bg-red-100 transition-colors flex items-center gap-2">
+                            <i class="bi bi-x-circle"></i> Clôturer
+                        </a>
+                    </div>
+                </div>
+
+                {% if compte.cartes.all %}
+                <div class="mt-4 border-t border-slate-100 pt-4">
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mb-3">Cartes liées</p>
+                    <div class="grid sm:grid-cols-2 gap-3">
+                        {% for carte in compte.cartes.all %}
+                        <div class="p-4 rounded-2xl bg-white/80 border border-slate-100 flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-bold text-slate-800">**** {{ carte.numero_visible }}</p>
+                                <p class="text-xs text-slate-500">Expire {{ carte.date_expiration|date:"m/y" }}</p>
+                            </div>
+                            <span class="text-xs font-bold px-3 py-1 rounded-full {% if carte.est_bloquee %}bg-red-50 text-red-600 border border-red-100{% else %}bg-emerald-50 text-emerald-700 border border-emerald-100{% endif %}">
+                                {% if carte.est_bloquee %}Bloquée{% else %}Active{% endif %}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

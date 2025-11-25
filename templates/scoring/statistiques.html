@@ -1,59 +1,140 @@
-{% extends 'base.html' %}
-{% block title %}Mon Budget{% endblock %}
+{% extends "base.html" %}
+{% block title %}Statistiques - Banquise{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const donutCtx = document.getElementById('catChart').getContext('2d');
+        const trendCtx = document.getElementById('trendChart').getContext('2d');
+
+        const catLabels = JSON.parse('{{ labels_json|escapejs }}');
+        const catData = JSON.parse('{{ data_json|escapejs }}');
+        const catColors = ['#0ea5e9','#6366f1','#22c55e','#f97316','#e11d48','#facc15','#14b8a6','#a855f7'];
+
+        new Chart(donutCtx, {
+            type: 'doughnut',
+            data: {
+                labels: catLabels,
+                datasets: [{
+                    data: catData,
+                    backgroundColor: catColors,
+                    borderWidth: 1,
+                }]
+            },
+            options: {
+                plugins: { legend: { position: 'bottom' } },
+                cutout: '60%'
+            }
+        });
+
+        const trendLabels = JSON.parse('{{ monthly_labels_json|escapejs }}');
+        const trendData = JSON.parse('{{ monthly_data_json|escapejs }}');
+        const grad = trendCtx.createLinearGradient(0, 0, 0, 260);
+        grad.addColorStop(0, 'rgba(14, 165, 233, 0.35)');
+        grad.addColorStop(1, 'rgba(14, 165, 233, 0)');
+
+        new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: trendLabels,
+                datasets: [{
+                    data: trendData,
+                    label: 'Dépenses',
+                    borderColor: '#0ea5e9',
+                    backgroundColor: grad,
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#0ea5e9'
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,0.2)' } },
+                    x: { grid: { display: false }, ticks: { color: '#475569' } }
+                },
+                interaction: { intersect: false, mode: 'index' },
+                responsive: true,
+                maintainAspectRatio: false,
+            }
+        });
+    });
+</script>
+{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <h2 class="mb-4">Analyse de vos dépenses (Mois en cours)</h2>
+<div class="relative min-h-screen bg-slate-50/70 overflow-hidden">
+    <div class="absolute inset-0 ambient-surface" aria-hidden="true">
+        <div class="ambient-grid"></div>
+        <div class="ambient-blob sm ice animate-blob"></div>
+        <div class="ambient-blob md purple animate-blob animation-delay-2000"></div>
+    </div>
 
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card shadow">
-                <div class="card-body">
-                    <canvas id="budgetChart"></canvas>
+    <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div class="space-y-2">
+                <p class="text-xs font-bold uppercase text-ice-600 tracking-[0.2em]">Statistiques</p>
+                <h1 class="text-4xl font-display font-bold text-slate-900">Vue d'ensemble de vos dépenses</h1>
+                <p class="text-slate-600">Répartition par catégorie et évolution sur 6 mois.</p>
+            </div>
+            <a href="{% url 'dashboard' %}" class="px-5 py-3 rounded-xl bg-slate-900 text-white font-bold shadow-lg hover:-translate-y-0.5 transition">
+                Retour dashboard
+            </a>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-6">
+            <div class="glass-panel lg:col-span-2 p-6 rounded-3xl">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <p class="text-xs font-bold uppercase text-slate-500 tracking-[0.2em]">Répartition</p>
+                        <h3 class="text-xl font-display font-bold text-slate-900">Dépenses {{ month_name }}</h3>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-slate-500">Total dépensé</p>
+                        <p class="text-2xl font-display font-bold text-ice-700">{{ total_depenses }} €</p>
+                    </div>
+                </div>
+                <div class="h-80">
+                    <canvas id="catChart"></canvas>
+                </div>
+            </div>
+
+            <div class="glass-panel p-6 rounded-3xl space-y-4">
+                <p class="text-xs font-bold uppercase text-slate-500 tracking-[0.2em]">Synthèse</p>
+                <div class="p-4 rounded-2xl bg-ice-50 border border-ice-100">
+                    <p class="text-sm text-ice-700 font-bold">Dépenses moy. / mois</p>
+                    <p class="text-2xl font-display font-bold text-slate-900">{{ total_depenses }} €</p>
+                </div>
+                <div class="space-y-2 text-sm text-slate-600">
+                    <p>Top catégories (mois en cours) :</p>
+                    <ul class="space-y-1 text-xs">
+                        {% if cat_labels %}
+                            {% for label in cat_labels|slice:":3" %}
+                            <li class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-ice-400"></span> {{ label }}</li>
+                            {% endfor %}
+                        {% else %}
+                            <li class="text-slate-400">Pas de données ce mois.</li>
+                        {% endif %}
+                    </ul>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card shadow p-4">
-                <h4 class="text-primary">{{ month_name }}</h4>
-                <hr>
-                <h3>Total Dépensé : <strong>{{ total_depenses }} €</strong></h3>
-                <p class="text-muted mt-3">
-                    Ce graphique représente la répartition de vos débits par catégorie pour le mois actuel.
-                </p>
-                <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary mt-3">Retour au tableau de bord</a>
+
+        <div class="glass-panel p-6 rounded-3xl">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <p class="text-xs font-bold uppercase text-slate-500 tracking-[0.2em]">Évolution</p>
+                    <h3 class="text-xl font-display font-bold text-slate-900">Dépenses sur 6 mois</h3>
+                </div>
+            </div>
+            <div class="h-80">
+                <canvas id="trendChart"></canvas>
             </div>
         </div>
     </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    const ctx = document.getElementById('budgetChart').getContext('2d');
-    const labels = JSON.parse('{{ labels_json|escapejs }}');
-    const data = JSON.parse('{{ data_json|escapejs }}');
-
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Dépenses en €',
-                data: data,
-                backgroundColor: [
-                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'
-                ],
-                hoverOffset: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                }
-            }
-        }
-    });
-</script>
 {% endblock %}

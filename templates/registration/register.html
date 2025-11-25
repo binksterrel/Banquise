@@ -177,17 +177,18 @@
             <div class="mb-10">
                 <div class="flex justify-between text-sm font-bold text-slate-500 mb-2">
                     <span id="step-label" class="text-slate-900">Identité</span>
-                    <span id="step-count" class="text-ice-600">Étape 1/3</span>
+                    <span id="step-count" class="text-ice-600">Étape 1/4</span>
                 </div>
                 <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div id="progress-bar"
-                        class="h-full bg-gradient-to-r from-ice-400 to-blue-600 w-1/3 transition-all duration-500 ease-out">
+                        class="h-full bg-gradient-to-r from-ice-400 to-blue-600 w-1/4 transition-all duration-500 ease-out">
                     </div>
                 </div>
             </div>
 
             <form method="POST" id="registerForm" class="relative" onsubmit="handleSubmit(event)">
                 {% csrf_token %}
+                <input type="hidden" name="stage" id="form-stage" value="{% if awaiting_code %}confirm_code{% else %}register{% endif %}">
 
                 {% if form.errors %}
                 <div class="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl animate-fade-in-up">
@@ -240,6 +241,15 @@
                             <input type="email" name="email" class="form-control-ice"
                                 placeholder="jean.dupont@exemple.com" required
                                 value="{{ form.email.value|default:'' }}">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="label-ice">Confirmez l'email</label>
+                        <div class="input-group-ice">
+                            <div class="input-icon"><i class="bi bi-envelope-check"></i></div>
+                            <input type="email" name="confirm_email" class="form-control-ice"
+                                placeholder="jean.dupont@exemple.com" required
+                                value="{{ form.confirm_email.value|default:'' }}">
                         </div>
                     </div>
                     <div>
@@ -334,7 +344,34 @@
                             class="w-1/3 py-4 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors">Retour</button>
                         <button type="submit" id="finalSubmitBtn"
                             class="w-2/3 py-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white font-bold rounded-xl hover:from-ice-600 hover:to-ice-700 hover:shadow-lg hover:shadow-ice-500/25 transition-all duration-300 flex items-center justify-center gap-2 transform hover:-translate-y-0.5">
-                            Ouvrir mon compte
+                            Recevoir mon code
+                        </button>
+                    </div>
+                </div>
+
+                <div id="step-4" class="step-content space-y-5">
+                    <div class="text-center mb-6">
+                        <h2 class="text-3xl font-display font-bold text-slate-900">Confirmez votre email</h2>
+                        <p class="text-slate-500 mt-2">Un code à 6 chiffres a été envoyé à <span class="font-semibold text-slate-800">{{ pending_email|default:"votre adresse email" }}</span>.</p>
+                    </div>
+                    <div>
+                        <label class="label-ice">Code reçu par email</label>
+                        <div class="input-group-ice">
+                            <div class="input-icon"><i class="bi bi-shield-lock"></i></div>
+                            <input type="text" name="code" id="email_code" class="form-control-ice" placeholder="123456"
+                                pattern="[0-9]{6}" inputmode="numeric" maxlength="6" autocomplete="one-time-code"
+                                {% if awaiting_code %}required{% endif %}>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-2">Valide 10 minutes. Vérifiez vos spams si besoin.</p>
+                    </div>
+                    <div class="flex gap-3 pt-4">
+                        <button type="submit" onclick="setStage('confirm_code')"
+                            class="w-2/3 py-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white font-bold rounded-xl hover:from-ice-600 hover:to-ice-700 hover:shadow-lg hover:shadow-ice-500/25 transition-all duration-300 flex items-center justify-center gap-2 transform hover:-translate-y-0.5">
+                            Valider le code
+                        </button>
+                        <button type="submit" name="resend" value="1" formnovalidate onclick="setStage('resend')"
+                            class="w-1/3 py-4 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-colors">
+                            Renvoyer
                         </button>
                     </div>
                 </div>
@@ -376,6 +413,8 @@
 
 <script>
     let currentStep = 1;
+    const stageInput = document.getElementById('form-stage');
+    const awaitingCode = {{ awaiting_code|yesno:"true,false" }};
 
     // Validation de l'étape courante
     function validateStep(step) {
@@ -395,10 +434,30 @@
             }
         });
 
+        // Validation spécifique email (étape 1)
+        if (step === 1) {
+            const email1 = document.querySelector('input[name="email"]').value.trim();
+            const email2 = document.querySelector('input[name="confirm_email"]').value.trim();
+            const emailPattern = /^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$/;
+            if (!emailPattern.test(email1)) {
+                isValid = false;
+                alert("Merci de saisir un email valide (exemple : nom@domaine.fr).");
+            }
+            if (email1 !== email2) {
+                isValid = false;
+                alert("Les emails ne correspondent pas.");
+            }
+        }
+
         // Validation spécifique mots de passe
         if (step === 2) {
             const p1 = document.getElementById('pwd1').value;
             const p2 = document.getElementById('pwd2').value;
+            const strong = /^(?=.*\d)(?=.*[^A-Za-z0-9])(.{8,})$/;
+            if (!strong.test(p1)) {
+                isValid = false;
+                alert("Le mot de passe doit contenir au moins 8 caractères, 1 chiffre et 1 caractère spécial.");
+            }
             if (p1 && p2 && p1 !== p2) {
                 isValid = false;
                 alert("Les mots de passe ne correspondent pas.");
@@ -425,11 +484,13 @@
         const stepLabel = document.getElementById('step-label');
         const stepCount = document.getElementById('step-count');
 
-        if (step === 1) { progressBar.style.width = '33%'; stepLabel.textContent = "Identité"; }
-        else if (step === 2) { progressBar.style.width = '66%'; stepLabel.textContent = "Sécurité"; }
-        else if (step === 3) { progressBar.style.width = '100%'; stepLabel.textContent = "Validation"; }
+        if (step === 1) { progressBar.style.width = '25%'; stepLabel.textContent = "Identité"; }
+        else if (step === 2) { progressBar.style.width = '50%'; stepLabel.textContent = "Sécurité"; }
+        else if (step === 3) { progressBar.style.width = '75%'; stepLabel.textContent = "Validation"; }
+        else if (step === 4) { progressBar.style.width = '100%'; stepLabel.textContent = "Confirmation email"; }
 
-        stepCount.textContent = `Étape ${step}/3`;
+        stepCount.textContent = `Étape ${step}/4`;
+        if (stageInput) { stageInput.value = step === 4 ? 'confirm_code' : 'register'; }
     }
 
     function checkAge() {
@@ -458,6 +519,11 @@
     }
 
     function handleSubmit(event) {
+        const stage = stageInput ? stageInput.value : 'register';
+        if (stage !== 'confirm_code') {
+            return; // pas de loading pour les étapes d'inscription / renvoi code
+        }
+
         event.preventDefault();
 
         const btn = document.getElementById('finalSubmitBtn');
@@ -495,5 +561,20 @@
             form.submit();
         }, 4500);
     }
+
+    function setStage(stage) {
+        if (stageInput) { stageInput.value = stage; }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (awaitingCode) {
+            currentStep = 1; // reset pour updateUI
+            updateUI(4);
+            document.querySelectorAll('#step-1 input, #step-2 input, #step-3 input').forEach(inp => {
+                inp.disabled = true;
+                inp.removeAttribute('required');
+            });
+        }
+    });
 </script>
 {% endblock %}

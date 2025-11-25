@@ -4,7 +4,7 @@ from django.contrib.auth.admin import UserAdmin
 from .models import (
     ProfilClient, Compte, Carte, Transaction, 
     DemandeCredit, ProduitPret, TypeEmploi, TypeLogement,
-    Beneficiaire
+    Beneficiaire, DemandeDecouvert
 )
 
 # ===============================================
@@ -98,3 +98,11 @@ class DemandeCreditAdmin(admin.ModelAdmin):
 admin.site.register(ProduitPret)
 admin.site.register(TypeEmploi)
 admin.site.register(TypeLogement)
+
+
+@admin.register(DemandeDecouvert)
+class DemandeDecouvertAdmin(admin.ModelAdmin):
+    list_display = ('user', 'montant_souhaite', 'statut', 'expire_le', 'cree_le')
+    list_filter = ('statut',)
+    search_fields = ('user__username',)
+    raw_id_fields = ('user',)

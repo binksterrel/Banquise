@@ -71,11 +71,13 @@ class Carte(models.Model):
 class Beneficiaire(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='beneficiaires')
     nom = models.CharField(max_length=100)
+    surnom = models.CharField(max_length=100, blank=True)
     iban = models.CharField(max_length=34)
     date_ajout = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.nom} - {self.iban}"
+        label = self.surnom or self.nom
+        return f"{label} - {self.iban}"
 
 # --- TRANSACTIONS ---
 class Transaction(models.Model):
@@ -155,6 +157,7 @@ class DemandeCredit(models.Model):
     date_demande = models.DateTimeField(auto_now_add=True)
     ia_decision = models.CharField(max_length=20, choices=STATUT_CHOICES, null=True, blank=True)
     mensualite_calculee = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    soumise = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.user.username} - {self.produit.nom if self.produit else 'Produit inconnu'} ({self.statut})"
@@ -175,11 +178,11 @@ class DemandeDecouvert(models.Model):
     cree_le = models.DateTimeField(auto_now_add=True)
     mis_a_jour_le = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return f"Découvert {self.user.username} - {self.statut} ({self.montant_souhaite} €)"
-
     class Meta:
         ordering = ['-cree_le']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.montant_souhaite}€ ({self.get_statut_display()})"
 
 
 class Notification(models.Model):

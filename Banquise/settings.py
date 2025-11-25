@@ -40,6 +40,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'scoring.middleware.SecurityHeadersMiddleware',
+    'scoring.middleware.NoCacheForAuthMiddleware',
 ]
 
 ROOT_URLCONF = 'Banquise.urls'
@@ -55,6 +56,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'scoring.context_processors.unread_notifications',
             ],
         },
     },
@@ -90,7 +92,7 @@ TIME_ZONE = 'Europe/Paris'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Sécurité basique (adaptable pour la production)
@@ -111,3 +113,12 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 LOGIN_REDIRECT_URL = "/dashboard/" 
 LOGOUT_REDIRECT_URL = "/"
+LOGIN_URL = "/login/"
+# Email / Mailtrap (sandbox)
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "sandbox.smtp.mailtrap.io"
+EMAIL_PORT = 2525
+EMAIL_HOST_USER = "fdb7e18c4c2243"
+EMAIL_HOST_PASSWORD = "2e49fe13365aac"
+EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = "no-reply@banquise.demo"

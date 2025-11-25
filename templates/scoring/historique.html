@@ -112,10 +112,18 @@
                                         class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Acceptée</span>
                                 {% endif %}
                             </td>
-                            <td class="px-8 py-5 text-right">
+                            <td class="px-8 py-5 text-right space-x-2">
                                 <a href="{% url 'resultat_simulation' d.id %}"
-                                    class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-400 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-sm"><i
-                                        class="bi bi-arrow-right"></i></a>
+                                    class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-400 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-sm" title="Modifier / voir"><i
+                                        class="bi bi-pencil"></i></a>
+                                <form method="post" action="{% url 'supprimer_demande_credit' d.id %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                        class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all shadow-sm"
+                                        title="Supprimer" onclick="return confirm('Supprimer cette demande ?');">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                         {% empty %}

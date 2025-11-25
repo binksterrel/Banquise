@@ -1,6 +1,8 @@
 from django import forms
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.utils import timezone
+import re
 from .models import DemandeCredit, TypeEmploi, TypeLogement, ProduitPret, Compte, Transaction, Beneficiaire
 
 # --- UTILITAIRE DE VALIDATION IBAN (Version Souple pour Simulation) ---
@@ -35,6 +37,8 @@ def valider_format_iban(iban_value):
 class InscriptionForm(forms.ModelForm):
     birth_date = forms.DateField(label="Date de naissance", widget=forms.DateInput(attrs={'type': 'date'}))
     birth_city = forms.CharField(label="Ville de naissance", max_length=100)
+    email = forms.EmailField(label="Email")
+    confirm_email = forms.EmailField(label="Confirmer l'email")
     password = forms.CharField(widget=forms.PasswordInput, label="Mot de passe")
     confirm_password = forms.CharField(widget=forms.PasswordInput, label="Confirmer mot de passe")
 
@@ -42,10 +46,41 @@ class InscriptionForm(forms.ModelForm):
         model = User
         fields = ['username', 'first_name', 'last_name', 'email']
 
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip().lower()
+        pattern = r"^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$"
+        if not re.match(pattern, email):
+            raise ValidationError("Adresse email invalide (exemple : nom@domaine.fr).")
+        if User.objects.filter(email__iexact=email).exists():
+            raise ValidationError("Un compte existe déjà avec cet email.")
+        return email
+
+    def clean_password(self):
+        pwd = self.cleaned_data.get("password") or ""
+        if len(pwd) < 8:
+            raise ValidationError("Le mot de passe doit contenir au moins 8 caractères.")
+        if not re.search(r"\d", pwd):
+            raise ValidationError("Le mot de passe doit contenir au moins un chiffre.")
+        if not re.search(r"[^\w\s]", pwd):
+            raise ValidationError("Le mot de passe doit contenir au moins un caractère spécial.")
+        return pwd
+
+    def clean_birth_date(self):
+        birth = self.cleaned_data.get("birth_date")
+        if not birth:
+            return birth
+        today = timezone.now().date()
+        age = (today - birth).days // 365
+        if age > 70:
+            raise ValidationError("L'inscription est réservée aux moins de 70 ans.")
+        return birth
+
     def clean(self):
         cleaned_data = super().clean()
         if cleaned_data.get("password") != cleaned_data.get("confirm_password"):
             self.add_error('confirm_password', "Les mots de passe ne correspondent pas.")
+        if cleaned_data.get("email") != cleaned_data.get("confirm_email"):
+            self.add_error('confirm_email', "Les emails ne correspondent pas.")
         return cleaned_data
 
     def save(self, commit=True):
@@ -53,6 +88,7 @@ class InscriptionForm(forms.ModelForm):
         user.set_password(self.cleaned_data['password'])
         user.last_name = user.last_name.upper()
         user.first_name = user.first_name.title()
+        user.email = self.cleaned_data['email'].lower()
         if commit:
             user.save()
         return user
@@ -62,9 +98,10 @@ class InscriptionForm(forms.ModelForm):
 class BeneficiaireForm(forms.ModelForm):
     class Meta:
         model = Beneficiaire
-        fields = ['nom', 'iban']
+        fields = ['nom', 'surnom', 'iban']
         labels = {
-            'nom': 'Nom du bénéficiaire',
+            'nom': 'Nom exact (comme sur la carte)',
+            'surnom': 'Surnom (optionnel)',
             'iban': 'IBAN'
         }
     
@@ -148,9 +185,9 @@ class TransactionFilterForm(forms.Form):
 # --- CRÉDIT & SIMULATION ---
 
 class SimulationPretForm(forms.ModelForm):
-    revenus_mensuels = forms.IntegerField(label="Vos revenus mensuels nets (€)")
-    loyer_actuel = forms.IntegerField(label="Loyer actuel / Charges (€)", required=False)
-    dettes_mensuelles = forms.IntegerField(label="Autres crédits en cours (€)", required=False)
+    revenus_mensuels = forms.IntegerField(label="Vos revenus mensuels nets (€)", min_value=0)
+    loyer_actuel = forms.IntegerField(label="Loyer actuel / Charges (€)", required=False, min_value=0)
+    dettes_mensuelles = forms.IntegerField(label="Autres crédits en cours (€)", required=False, min_value=0)
     
     class Meta:
         model = DemandeCredit
@@ -159,3 +196,46 @@ class SimulationPretForm(forms.ModelForm):
             'score_calcule', 'taux_calcule', 'recommendation',
             'sante_snapshot', 'ia_decision', 'mensualite_calculee'
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        numeric_fields = [
+            ('montant_souhaite', 1, 1),
+            ('duree_souhaitee_annees', 1, 1),
+            ('apport_personnel', 0, 1),
+            ('revenus_mensuels', 0, 1),
+            ('loyer_actuel', 0, 1),
+            ('dettes_mensuelles', 0, 1),
+            ('enfants_a_charge', 0, 1),
+        ]
+        for field_name, min_val, step in numeric_fields:
+            if field_name in self.fields:
+                field = self.fields[field_name]
+                field.widget.attrs.update({
+                    'min': min_val,
+                    'step': step,
+                    'type': 'number',
+                    'inputmode': 'decimal',
+                    'pattern': '[0-9]*',
+                    'oninput': 'this.value=this.value.replace(/[^0-9]/g,"")',
+                })
+                # Assure la validation côté serveur
+                if hasattr(field, 'min_value') and field.min_value is None:
+                    field.min_value = min_val
+
+    def clean(self):
+        cleaned = super().clean()
+        checks = [
+            ('montant_souhaite', 1, "Le montant souhaité doit être positif."),
+            ('duree_souhaitee_annees', 1, "La durée doit être au moins de 1 an."),
+            ('apport_personnel', 0, "L'apport ne peut pas être négatif."),
+            ('revenus_mensuels', 0, "Les revenus doivent être positifs."),
+            ('loyer_actuel', 0, "Le loyer/charges ne peut pas être négatif."),
+            ('dettes_mensuelles', 0, "Les dettes mensuelles ne peuvent pas être négatives."),
+            ('enfants_a_charge', 0, "Le nombre d'enfants doit être positif."),
+        ]
+        for field, min_val, msg in checks:
+            val = cleaned.get(field)
+            if val is not None and val < min_val:
+                self.add_error(field, msg)
+        return cleaned

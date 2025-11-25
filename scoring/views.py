@@ -15,6 +15,11 @@ from django.utils import timezone
 from django.urls import reverse
 from datetime import timedelta, datetime
 from decimal import Decimal
+from math import exp
+try:
+    import numpy as np
+except ImportError:
+    np = None
 import random
 import io
 import json
@@ -52,6 +57,58 @@ PLAN_CONFIG = {
     'PLUS': {'prix': Decimal("9.90"), 'label': 'Plus'},
     'INFINITE': {'prix': Decimal("19.90"), 'label': 'Infinite'},
 }
+
+# Petit modèle ML entraîné sur un dataset synthétique (logistic regression)
+_ML_WEIGHTS = None
+
+
+def _train_credit_model():
+    """Entraîne rapidement un modèle logistique sur un dataset synthétique pour approximer le risque."""
+    global _ML_WEIGHTS
+    if _ML_WEIGHTS is not None or np is None:
+        return
+    rng = np.random.default_rng(42)
+    n = 600
+    revenus = rng.uniform(1, 12, size=n)      # k€
+    dti = rng.uniform(10, 70, size=n)         # %
+    ltv = rng.uniform(50, 110, size=n)        # %
+    apport = rng.uniform(0, 0.6, size=n)      # ratio
+
+    # Règle synthétique pour générer un label
+    score = (revenus > 4).astype(int) + (dti < 40).astype(int) + (ltv < 90).astype(int) + (apport > 0.2).astype(int)
+    y = (score >= 3).astype(float)  # 1 si profil jugé "bon" par la règle, sinon 0
+
+    X = np.column_stack([revenus, dti, ltv, apport])
+    X = (X - X.mean(axis=0)) / (X.std(axis=0) + 1e-6)  # normalisation simple
+    X = np.concatenate([np.ones((n, 1)), X], axis=1)   # biais
+    w = np.zeros(X.shape[1])
+    lr = 0.05
+    for _ in range(300):  # descente de gradient rapide
+        z = X @ w
+        pred = 1 / (1 + np.exp(-z))
+        grad = X.T @ (pred - y) / n
+        w -= lr * grad
+    _ML_WEIGHTS = w
+
+
+def _ml_score(revenus, dti, ltv, apport_ratio):
+    """Retourne un score 0-100 issu du modèle logistique synthétique."""
+    if np is None:
+        return None
+    if _ML_WEIGHTS is None:
+        _train_credit_model()
+    if _ML_WEIGHTS is None:
+        return None
+    x = np.array([
+        1.0,
+        (revenus - 6) / 3,          # centrage approximatif
+        (dti - 40) / 15,
+        (ltv - 90) / 15,
+        (apport_ratio - 0.2) / 0.15
+    ])
+    z = float(np.dot(_ML_WEIGHTS, x))
+    prob = 1 / (1 + exp(-z))
+    return int(max(0, min(100, prob * 100)))
 
 def notifier(user, titre, contenu, type_evt='INFO', url=''):
     Notification.objects.create(
@@ -137,45 +194,325 @@ def home(request):
     return render(request, 'scoring/home.html', {'unread_notifs': unread_notifs})
 
 def register(request):
+    pending_user_id = request.session.get('pending_user_id')
+    pending_code = request.session.get('pending_email_code')
+    pending_email = request.session.get('pending_email')
+    pending_birth_date = request.session.get('pending_birth_date')
+    pending_birth_city = request.session.get('pending_birth_city')
+    awaiting_code = bool(pending_user_id and pending_code)
+    if awaiting_code and not pending_email:
+        try:
+            pending_email = User.objects.get(id=pending_user_id).email
+        except User.DoesNotExist:
+            awaiting_code = False
+
+    def _send_confirmation_code(user):
+        code = f"{random.randint(100000, 999999)}"
+        request.session['pending_user_id'] = user.id
+        request.session['pending_email_code'] = code
+        request.session['pending_code_sent_at'] = timezone.now().isoformat()
+        request.session['pending_email'] = user.email
+        try:
+            # Email HTML stylisé
+            subject = "Banquise - Code de confirmation"
+            message_text = f"Votre code de vérification est : {code}"
+            html_message = f"""
+            <div style="background:#f8fafc;padding:32px;font-family:'Plus Jakarta Sans',Arial,sans-serif;color:#0f172a;">
+              <div style="max-width:560px;margin:auto;border:1px solid #e2e8f0;border-radius:24px;overflow:hidden;background:white;box-shadow:0 18px 45px rgba(8,47,73,0.15);">
+                <div style="padding:22px 24px;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:white;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                  <div style="display:flex;align-items:center;gap:12px;font-weight:800;font-size:19px;letter-spacing:0.6px;">
+                    <span style="display:inline-flex;width:42px;height:42px;border-radius:14px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);align-items:center;justify-content:center;font-size:20px;color:white;">❄️</span>
+                    <span style="text-transform:uppercase;color:white;">BANQUISE</span>
+                  </div>
+                  <span style="padding:8px 12px;border-radius:999px;border:1px solid rgba(255,255,255,0.4);font-weight:700;font-size:12px;letter-spacing:0.1em;">Sécurité</span>
+                </div>
+                <div style="padding:28px;">
+                  <p style="font-size:14px;font-weight:700;color:#0ea5e9;margin:0 0 6px;letter-spacing:0.08em;text-transform:uppercase;">Code de confirmation</p>
+                  <h2 style="margin:0 0 12px;font-size:24px;font-weight:800;color:#0f172a;line-height:1.3;">Activez votre compte Banquise</h2>
+                  <p style="font-size:15px;line-height:1.6;margin:0 0 16px;">Bonjour {user.first_name or user.username}, voici votre code de vérification pour sécuriser votre inscription.</p>
+                  <div style="text-align:center;margin:26px 0;">
+                    <span style="display:inline-block;font-size:30px;font-weight:800;letter-spacing:10px;padding:18px 26px;border-radius:18px;background:#e0f2fe;color:#0ea5e9;border:1px solid #bae6fd;box-shadow:0 12px 25px rgba(14,165,233,0.18);">{code}</span>
+                  </div>
+                  <p style="font-size:13px;line-height:1.6;margin:0 0 14px;color:#475569;text-align:center;">Valide pendant 10 minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
+                  <div style="margin-top:22px;padding:16px 18px;border-radius:14px;background:#f8fafc;border:1px solid #e2e8f0;display:flex;gap:12px;align-items:flex-start;">
+                    <span style="width:34px;height:34px;border-radius:10px;background:#e0f2fe;color:#0ea5e9;display:inline-flex;align-items:center;justify-content:center;font-weight:800;">i</span>
+                    <div>
+                      <p style="margin:0;font-size:12px;font-weight:800;color:#0ea5e9;letter-spacing:0.08em;text-transform:uppercase;">Support Banquise</p>
+                      <p style="margin:4px 0 0;font-size:13px;color:#475569;">Besoin d'aide ? Répondez à cet email ou ouvrez le chat support depuis l'app.</p>
+                    </div>
+                  </div>
+                </div>
+                <div style="background:#0f172a;color:white;padding:14px 24px;font-size:12px;text-align:center;letter-spacing:0.04em;">
+                  Banquise • Banque nouvelle génération • www.banquise.com
+                </div>
+              </div>
+            </div>
+            """
+            send_mail(
+                subject,
+                message_text,
+                "no-reply@banquise.demo",
+                [user.email],
+                fail_silently=True,
+                html_message=html_message
+            )
+        except Exception:
+            pass
+
     if request.method == 'POST':
+        stage = request.POST.get('stage', 'register')
+        # Étape 2 : saisie du code
+        if stage == 'confirm_code':
+            if not awaiting_code:
+                messages.error(request, "Aucune inscription en attente. Merci de recommencer.")
+                return redirect('register')
+            code_saisi = request.POST.get('code', '').strip()
+            if code_saisi and code_saisi == pending_code:
+                user = User.objects.get(id=pending_user_id)
+                user.is_active = True
+                user.save(update_fields=['is_active'])
+
+                try:
+                    birth_date = timezone.datetime.fromisoformat(pending_birth_date).date() if pending_birth_date else None
+                except Exception:
+                    birth_date = None
+                birth_city = pending_birth_city or ""
+                ProfilClient.objects.get_or_create(
+                    user=user,
+                    defaults={
+                        'date_de_naissance': birth_date,
+                        'ville_naissance': birth_city,
+                        'abonnement': 'ESSENTIEL',
+                        'prochaine_facturation': timezone.now().date() + timedelta(days=30)
+                    }
+                )
+                if not Compte.objects.filter(user=user).exists():
+                    compte = Compte.objects.create(
+                        user=user,
+                        type_compte='COURANT',
+                        solde=100.00,
+                        numero_compte=f"FR76{random.randint(1000,9999)}{random.randint(1000,9999)}{random.randint(1000,9999)}",
+                        est_actif=True
+                    )
+                    Carte.objects.create(
+                        compte=compte,
+                        numero_visible=str(random.randint(1000,9999)),
+                        date_expiration=timezone.now()+timedelta(days=365*4),
+                        est_bloquee=False,
+                        sans_contact_actif=True,
+                        paiement_etranger_actif=False
+                    )
+                    Transaction.objects.create(
+                        compte=compte,
+                        montant=100.00,
+                        libelle="Cadeau de bienvenue Banquise",
+                        type='CREDIT',
+                        categorie='SALAIRE'
+                    )
+
+                # Nettoyage session
+                request.session.pop('pending_user_id', None)
+                request.session.pop('pending_email_code', None)
+                request.session.pop('pending_birth_date', None)
+                request.session.pop('pending_birth_city', None)
+                request.session.pop('pending_email', None)
+                request.session.pop('pending_code_sent_at', None)
+
+                login(request, user)
+                messages.success(request, "Email confirmé, compte activé. 100€ offerts.")
+                return redirect('dashboard')
+            else:
+                messages.error(request, "Code invalide. Veuillez réessayer.")
+                return render(request, 'registration/register.html', {
+                    'form': InscriptionForm(),
+                    'awaiting_code': True,
+                    'pending_email': pending_email
+                })
+
+        # Renvoyer un code sans rejouer l'inscription
+        if stage == 'resend' and awaiting_code:
+            try:
+                user = User.objects.get(id=pending_user_id)
+                _send_confirmation_code(user)
+                messages.info(request, "Un nouveau code a été envoyé.")
+            except Exception:
+                messages.error(request, "Impossible d'envoyer un nouveau code pour le moment.")
+            return render(request, 'registration/register.html', {
+                'form': InscriptionForm(),
+                'awaiting_code': True,
+                'pending_email': pending_email or (user.email if 'user' in locals() else None)
+            })
+
+        # Bloquer une nouvelle inscription tant qu'un code est en attente
+        if awaiting_code:
+            messages.info(request, "Un code a déjà été envoyé. Saisissez-le ci-dessous pour activer votre compte.")
+            return render(request, 'registration/register.html', {
+                'form': InscriptionForm(),
+                'awaiting_code': True,
+                'pending_email': pending_email
+            })
+
+        # Étape 1 : création du compte + envoi code
         form = InscriptionForm(request.POST)
         if form.is_valid():
             user = form.save()
-            ProfilClient.objects.create(
-                user=user,
-                date_de_naissance=form.cleaned_data['birth_date'],
-                ville_naissance=form.cleaned_data['birth_city'],
-                abonnement='ESSENTIEL',
-                prochaine_facturation=timezone.now().date() + timedelta(days=30)
-            )
-            compte = Compte.objects.create(
-                user=user, 
-                type_compte='COURANT', 
-                solde=100.00, 
-                numero_compte=f"FR76{random.randint(1000,9999)}{random.randint(1000,9999)}{random.randint(1000,9999)}",
-                est_actif=True
-            )
-            Carte.objects.create(
-                compte=compte, 
-                numero_visible=str(random.randint(1000,9999)), 
-                date_expiration=timezone.now()+timedelta(days=365*4),
-                est_bloquee=False,
-                sans_contact_actif=True,
-                paiement_etranger_actif=False
-            )
-            Transaction.objects.create(
-                compte=compte,
-                montant=100.00,
-                libelle="Cadeau de bienvenue Banquise",
-                type='CREDIT',
-                categorie='SALAIRE'
-            )
-            login(request, user)
-            messages.success(request, "Compte créé avec succès ! 100€ offerts.")
-            return redirect('dashboard')
+            user.is_active = False
+            user.save(update_fields=["is_active"])
+
+            request.session['pending_birth_date'] = str(form.cleaned_data.get('birth_date'))
+            request.session['pending_birth_city'] = form.cleaned_data.get('birth_city')
+            _send_confirmation_code(user)
+
+            messages.info(request, "Nous avons envoyé un code à 6 chiffres sur votre email. Saisissez-le pour activer votre compte.")
+            return render(request, 'registration/register.html', {
+                'form': form,
+                'awaiting_code': True,
+                'pending_email': user.email
+            })
     else:
         form = InscriptionForm()
-    return render(request, 'registration/register.html', {'form': form})
+    return render(request, 'registration/register.html', {
+        'form': form,
+        'awaiting_code': awaiting_code,
+        'pending_email': pending_email
+    })
+
+
+def _create_default_accounts(user, form):
+    profil, _ = ProfilClient.objects.get_or_create(
+        user=user,
+        defaults={
+            'date_de_naissance': form.cleaned_data.get('birth_date'),
+            'ville_naissance': form.cleaned_data.get('birth_city'),
+            'abonnement': 'ESSENTIEL',
+            'prochaine_facturation': timezone.now().date() + timedelta(days=30)
+        }
+    )
+    compte = Compte.objects.create(
+        user=user,
+        type_compte='COURANT',
+        solde=100.00,
+        numero_compte=f"FR76{random.randint(1000,9999)}{random.randint(1000,9999)}{random.randint(1000,9999)}",
+        est_actif=True
+    )
+    Carte.objects.create(
+        compte=compte,
+        numero_visible=str(random.randint(1000,9999)),
+        date_expiration=timezone.now()+timedelta(days=365*4),
+        est_bloquee=False,
+        sans_contact_actif=True,
+        paiement_etranger_actif=False
+    )
+    Transaction.objects.create(
+        compte=compte,
+        montant=100.00,
+        libelle="Cadeau de bienvenue Banquise",
+        type='CREDIT',
+        categorie='SALAIRE'
+    )
+    return profil
+
+
+def confirm_email(request):
+    user_id = request.session.get('pending_user_id')
+    code_session = request.session.get('pending_email_code')
+    code_sent_at_raw = request.session.get('pending_code_sent_at')
+    try:
+        code_sent_at = timezone.datetime.fromisoformat(code_sent_at_raw) if code_sent_at_raw else None
+    except Exception:
+        code_sent_at = None
+    if not user_id or not code_session:
+        messages.error(request, "Aucune inscription en attente. Merci de recommencer.")
+        return redirect('register')
+
+    def resend_code():
+        code_new = f"{random.randint(100000, 999999)}"
+        request.session['pending_email_code'] = code_new
+        request.session['pending_code_sent_at'] = timezone.now().isoformat()
+        user = User.objects.get(id=user_id)
+        try:
+            send_mail(
+                "Banquise - Nouveau code de confirmation",
+                f"Votre nouveau code de vérification est : {code_new}",
+                "no-reply@banquise.demo",
+                [user.email],
+                fail_silently=True
+            )
+        except Exception:
+            pass
+        messages.info(request, "Un nouveau code a été envoyé.")
+
+    if request.method == 'POST':
+        code_saisi = request.POST.get('code', '').strip()
+        if 'resend' in request.POST:
+            resend_code()
+            return redirect('confirm_email')
+
+        if code_saisi and code_saisi == code_session:
+            user = User.objects.get(id=user_id)
+            user.is_active = True
+            user.save(update_fields=['is_active'])
+
+            birth_date_raw = request.session.get('pending_birth_date') or None
+            try:
+                birth_date = timezone.datetime.fromisoformat(birth_date_raw).date() if birth_date_raw else None
+            except Exception:
+                birth_date = None
+            birth_city = request.session.get('pending_birth_city') or ""
+            # Créer profil + compte si pas déjà fait
+            ProfilClient.objects.get_or_create(
+                user=user,
+                defaults={
+                    'date_de_naissance': birth_date,
+                    'ville_naissance': birth_city,
+                    'abonnement': 'ESSENTIEL',
+                    'prochaine_facturation': timezone.now().date() + timedelta(days=30)
+                }
+            )
+            if not Compte.objects.filter(user=user).exists():
+                compte = Compte.objects.create(
+                    user=user,
+                    type_compte='COURANT',
+                    solde=100.00,
+                    numero_compte=f"FR76{random.randint(1000,9999)}{random.randint(1000,9999)}{random.randint(1000,9999)}",
+                    est_actif=True
+                )
+                Carte.objects.create(
+                    compte=compte,
+                    numero_visible=str(random.randint(1000,9999)),
+                    date_expiration=timezone.now()+timedelta(days=365*4),
+                    est_bloquee=False,
+                    sans_contact_actif=True,
+                    paiement_etranger_actif=False
+                )
+                Transaction.objects.create(
+                    compte=compte,
+                    montant=100.00,
+                    libelle="Cadeau de bienvenue Banquise",
+                    type='CREDIT',
+                    categorie='SALAIRE'
+                )
+
+            # Nettoyage session
+            request.session.pop('pending_user_id', None)
+            request.session.pop('pending_email_code', None)
+            request.session.pop('pending_birth_date', None)
+            request.session.pop('pending_birth_city', None)
+            request.session.pop('pending_email', None)
+            request.session.pop('pending_code_sent_at', None)
+
+            login(request, user)
+            messages.success(request, "Email confirmé, compte activé. 100€ offerts.")
+            return redirect('dashboard')
+        else:
+            messages.error(request, "Code invalide. Veuillez réessayer.")
+
+    # Si le code est trop vieux (>10 minutes), proposer l'envoi
+    expired = False
+    if code_sent_at and timezone.now() - code_sent_at > timedelta(minutes=10):
+        expired = True
+
+    return render(request, 'registration/confirm_email.html', {'expired': expired})
 
 def login_view(request):
     if request.method == 'POST':
@@ -190,7 +527,12 @@ def login_view(request):
 
 def logout_view(request):
     logout(request)
-    return redirect('home')
+    messages.info(request, "Vous êtes déconnecté.")
+    resp = redirect('login')
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 
 # ==============================================================================
@@ -202,6 +544,7 @@ def dashboard(request):
     comptes = Compte.objects.filter(user=request.user, est_actif=True)
     cartes = Carte.objects.filter(compte__in=comptes)
     transactions = Transaction.objects.filter(compte__in=comptes).order_by('-date_execution')[:5]
+    demandes_credit = DemandeCredit.objects.filter(user=request.user).order_by('-date_demande')[:5]
     profil, _ = ProfilClient.objects.get_or_create(user=request.user, defaults={
         'abonnement': 'ESSENTIEL',
         'prochaine_facturation': timezone.now().date() + timedelta(days=30)
@@ -233,7 +576,7 @@ def dashboard(request):
         labels.append(m_date.strftime("%b %y"))
         values.append(abs(float(total)))
 
-    return render(request, 'scoring/dashboard.html', {
+    response = render(request, 'scoring/dashboard.html', {
         'comptes': comptes,
         'cartes': cartes,
         'transactions_recentes': transactions,
@@ -244,6 +587,22 @@ def dashboard(request):
         'spending_values': json.dumps(values),
         'overdraft_limit': overdraft_limit,
         'overdraft_margins': overdraft_margins,
+        'demandes_credit_recent': demandes_credit,
+    })
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
+@login_required
+def gerer_comptes(request):
+    comptes = Compte.objects.filter(user=request.user).prefetch_related('cartes')
+    unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
+    return render(request, 'scoring/gerer_comptes.html', {
+        'comptes': comptes,
+        'unread_notifs': unread_notifs,
+        'overdraft_limit': overdraft_limit_for_user(request.user),
     })
 
 @login_required
@@ -454,11 +813,35 @@ def statistiques(request):
         labels.append(cat_dict.get(cat_code, cat_code))
         data.append(montant_abs)
 
+    # Évolution sur 6 mois (débits)
+    def month_shift(date_obj, shift):
+        year = date_obj.year + (date_obj.month - 1 + shift) // 12
+        month = (date_obj.month - 1 + shift) % 12 + 1
+        return date_obj.replace(year=year, month=month, day=1)
+
+    start_month = today.date().replace(day=1)
+    monthly_labels = []
+    monthly_values = []
+    for i in range(5, -1, -1):
+        m_date = month_shift(start_month, -i)
+        total = Transaction.objects.filter(
+            compte__in=comptes,
+            type='DEBIT',
+            date_execution__year=m_date.year,
+            date_execution__month=m_date.month
+        ).aggregate(total=Sum('montant'))['total'] or 0
+        monthly_labels.append(m_date.strftime("%b %y"))
+        monthly_values.append(abs(float(total)))
+
     context = {
         'labels_json': json.dumps(labels),
         'data_json': json.dumps(data),
+        'cat_labels': labels,
+        'cat_values': data,
         'total_depenses': sum(data),
-        'month_name': today.strftime('%B %Y')
+        'month_name': today.strftime('%B %Y'),
+        'monthly_labels_json': json.dumps(monthly_labels),
+        'monthly_data_json': json.dumps(monthly_values),
     }
     return render(request, 'scoring/statistiques.html', context)
 
@@ -837,6 +1220,19 @@ def ajouter_beneficiaire(request):
     return render(request, 'scoring/ajouter_beneficiaire.html', {'form': form})
 
 @login_required
+def modifier_beneficiaire(request, beneficiaire_id):
+    bene = get_object_or_404(Beneficiaire, id=beneficiaire_id, user=request.user)
+    if request.method == 'POST':
+        form = BeneficiaireForm(request.POST, instance=bene)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Bénéficiaire '{bene.nom}' mis à jour.")
+            return redirect('beneficiaires')
+    else:
+        form = BeneficiaireForm(instance=bene)
+    return render(request, 'scoring/ajouter_beneficiaire.html', {'form': form, 'edit_mode': True, 'beneficiaire': bene})
+
+@login_required
 def supprimer_beneficiaire(request, beneficiaire_id):
     bene = get_object_or_404(Beneficiaire, id=beneficiaire_id, user=request.user)
     if request.method == 'POST':
@@ -881,48 +1277,92 @@ def page_simulation(request):
             ltv = Decimal("100") * (Decimal("1") - (Decimal(demande.apport_personnel or 0) / Decimal(max(1, demande.montant_souhaite or 1))))
 
             score = Decimal("100")
+            # Heuristique plus souple
             if dti > Decimal("30"):
-                score -= (dti - Decimal("30")) * Decimal("1.5")
-            if ltv > Decimal("80"):
-                score -= (ltv - Decimal("80")) * Decimal("0.5")
+                score -= (dti - Decimal("30")) * Decimal("1.0")
+            if ltv > Decimal("85"):
+                score -= (ltv - Decimal("85")) * Decimal("0.25")
             if revenus < Decimal("2000"):
-                score -= Decimal("10")
+                score -= Decimal("8")
             if Decimal(demande.apport_personnel or 0) >= Decimal(demande.montant_souhaite or 0) * Decimal("0.2"):
-                score += Decimal("8")
+                score += Decimal("10")
             if demande.sante_snapshot == 'BON':
                 score += Decimal("2")
             if demande.emploi_snapshot and demande.emploi_snapshot.nom.lower().startswith('cdi'):
-                score += Decimal("5")
+                score += Decimal("10")
+            if demande.logement_snapshot and 'propri' in demande.logement_snapshot.nom.lower():
+                score += Decimal("10")
 
             score = int(max(0, min(100, score)))
 
+            # ---- Score ML entraîné sur dataset synthétique (logistic regression) ----
+            ml_score = _ml_score(
+                revenus=float(revenus) / 1000.0,
+                dti=float(dti),
+                ltv=float(ltv),
+                apport_ratio=float(demande.apport_personnel or 0) / float(max(1, demande.montant_souhaite or 1))
+            )
+            final_score = int((score + (ml_score if ml_score is not None else score)) / 2)
+
             # Seuils dynamiques
-            dti_limit = 40 if demande.revenus_mensuels < 6000 else 45
-            ltv_limit = 90
-            if demande.montant_souhaite and demande.montant_souhaite >= Decimal("100000") and demande.apport_personnel >= demande.montant_souhaite * Decimal("0.10"):
-                ltv_limit = 95
-            if demande.montant_souhaite and demande.montant_souhaite >= Decimal("250000") and demande.apport_personnel >= demande.montant_souhaite * Decimal("0.15"):
+            dti_limit = 42 if demande.revenus_mensuels < 6000 else 47
+            ltv_limit = 95
+            if demande.montant_souhaite and demande.montant_souhaite >= Decimal("250000") and demande.apport_personnel >= demande.montant_souhaite * Decimal("0.10"):
                 ltv_limit = 97
 
-            ia_decision = 'ACCEPTEE' if ( score >= 60) else 'REFUSEE'
-            recommendation = f"Avis automatique {ia_decision.lower()} (score {score}, dti {dti:.1f}% / seuil {dti_limit}%, ltv {ltv:.1f}% / seuil {ltv_limit}%)"
+            ia_decision = 'ACCEPTEE' if ( final_score >= 55) else 'REFUSEE'
+            recommendation = (
+                f"Avis automatique {ia_decision.lower()} "
+                f"(score final {final_score}, dti {dti:.1f}% / seuil {dti_limit}%, ltv {ltv:.1f}% / seuil {ltv_limit}%)"
+            )
 
             surcharge_risque = Decimal(max(0, (70 - score)) * 0.02).quantize(Decimal("0.01"))
             taux_final = Decimal(base_rate) + surcharge_risque
 
-            demande.score_calcule = score
+            demande.score_calcule = final_score
             demande.taux_calcule = taux_final
             demande.mensualite_calculee = Decimal(str(mensualite)).quantize(Decimal("0.01"))
             demande.ia_decision = ia_decision
             demande.recommendation = recommendation
             # Toujours validation admin finale
             demande.statut = 'EN_ATTENTE'
+            demande.soumise = False
             
             demande.save()
-            notifier(request.user, "Demande de crédit reçue", f"Avis automatique : {ia_decision}. En attente d'un conseiller.", "CREDIT", url=reverse('historique'))
             return redirect('resultat_simulation', demande_id=demande.id)
     else:
-        form = SimulationPretForm()
+        initial = {}
+        # Pré-remplissage depuis la simulation précédente
+        mappings = {
+            'montant': 'montant_souhaite',
+            'duree': 'duree_souhaitee_annees',
+            'apport': 'apport_personnel',
+            'revenus': 'revenus_mensuels',
+            'loyer': 'loyer_actuel',
+            'dettes': 'dettes_mensuelles',
+            'enfants': 'enfants_a_charge',
+            'produit': 'produit',
+            'emploi': 'emploi_snapshot',
+            'logement': 'logement_snapshot',
+            'sante': 'sante_snapshot',
+        }
+        for param, field in mappings.items():
+            val = request.GET.get(param)
+            if val:
+                # Cast numeric ids and int fields
+                if field in ['produit', 'emploi_snapshot', 'logement_snapshot']:
+                    try:
+                        initial[field] = int(val)
+                    except Exception:
+                        pass
+                elif field == 'sante_snapshot':
+                    initial[field] = val
+                else:
+                    try:
+                        initial[field] = int(float(val))
+                    except Exception:
+                        pass
+        form = SimulationPretForm(initial=initial)
     return render(request, 'scoring/saisie_client.html', {'form': form})
 
 @login_required
@@ -984,6 +1424,25 @@ def api_update_resultat(request, demande_id):
     })
 
 
+@login_required
+def valider_demande_credit(request, demande_id):
+    demande = get_object_or_404(DemandeCredit, id=demande_id, user=request.user)
+    if request.method != 'POST':
+        return redirect('resultat_simulation', demande_id=demande.id)
+    if demande.soumise:
+        messages.info(request, "Cette demande a déjà été envoyée.")
+        return redirect('resultat_simulation', demande_id=demande.id)
+
+    demande.soumise = True
+    demande.statut = 'EN_ATTENTE'
+    demande.save(update_fields=['soumise', 'statut'])
+    notifier(request.user, "Demande de crédit envoyée", f"Avis automatique : {demande.ia_decision or 'En attente'}. Un conseiller va répondre.", "CREDIT", url=reverse('historique'))
+    for admin in User.objects.filter(is_staff=True):
+        notifier(admin, "Nouvelle demande de crédit", f"{request.user.username} a validé sa simulation ({demande.montant_souhaite} €).", "CREDIT", url=reverse('admin_validation_credits'))
+    messages.success(request, "Demande envoyée aux conseillers.")
+    return redirect('resultat_simulation', demande_id=demande.id)
+
+
 @staff_member_required
 def demande_credit_detail(request, demande_id):
     demande = get_object_or_404(DemandeCredit, id=demande_id)
@@ -1011,6 +1470,19 @@ def page_historique(request):
 @login_required
 def api_calcul_pret_dynamique(request): 
     return JsonResponse({'total_projet_formate': "---"})
+
+@login_required
+def supprimer_demande_credit(request, demande_id):
+    demande = get_object_or_404(DemandeCredit, id=demande_id, user=request.user)
+    if request.method == 'POST':
+        username = request.user.username
+        demande.delete()
+        # Nettoyage des notifications liées au crédit
+        Notification.objects.filter(user=request.user, type='CREDIT').delete()
+        Notification.objects.filter(type='CREDIT', user__is_staff=True, contenu__icontains=username).delete()
+        messages.success(request, "Demande supprimée.")
+        return redirect('historique')
+    return redirect('historique')
 
 @staff_member_required
 def admin_stats_api(request): 
@@ -1231,6 +1703,26 @@ def support(request):
         messages_support = MessageSupport.objects.filter(user=request.user)
 
     if request.method == 'POST' and request.user.is_authenticated:
+        # Avis (témoignage)
+        if 'avis' in request.POST:
+            contenu = request.POST.get('avis', '').strip()
+            note = request.POST.get('note') or '5'
+            if contenu:
+                MessageSupport.objects.create(
+                    user=request.user,
+                    contenu=f"[AVIS][{note}/5] {contenu}",
+                    est_admin=False
+                )
+                messages.success(request, "Merci pour votre avis ! Il sera affiché après validation.")
+            else:
+                messages.error(request, "L'avis ne peut pas être vide.")
+            return redirect('support')
+
+    if request.method == 'POST' and not request.user.is_authenticated:
+        messages.error(request, "Connectez-vous pour envoyer un message au support.")
+        return redirect('support')
+
+    if request.method == 'POST' and request.user.is_authenticated:
         contenu = request.POST.get('message', '').strip()
         sujet = request.POST.get('sujet', 'Support')
         if contenu:
@@ -1253,7 +1745,10 @@ def page_a_propos(request):
     return render(request, 'scoring/a_propos.html')
 
 def page_tarifs(request):
-    return render(request, 'scoring/tarifs.html')
+    profil_client = None
+    if request.user.is_authenticated:
+        profil_client = ProfilClient.objects.filter(user=request.user).first()
+    return render(request, 'scoring/tarifs.html', {'profil_client': profil_client})
 
 def page_faq(request):
     return render(request, 'scoring/faq.html')
@@ -1266,6 +1761,9 @@ def page_presse(request):
 
 def page_partenaires(request):
     return render(request, 'scoring/partenaires.html')
+
+def page_apis(request):
+    return render(request, 'scoring/apis.html')
 
 def page_mentions_legales(request):
     return render(request, 'scoring/mentions_legales.html')

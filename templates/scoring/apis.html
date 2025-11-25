@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}APIs & Intégrations - Banquise{% endblock %}
+
+{% block content %}
+<div class="relative min-h-screen bg-slate-50/50 overflow-hidden">
+    <div class="absolute inset-0 ambient-surface" aria-hidden="true">
+        <div class="ambient-grid"></div>
+        <div class="ambient-blob sm blue animate-blob"></div>
+        <div class="ambient-blob md ice animate-blob animation-delay-2000"></div>
+        <div class="ambient-blob lg purple animate-blob animation-delay-4000"></div>
+    </div>
+
+    <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div class="space-y-3 max-w-3xl">
+                <p class="text-xs font-bold uppercase tracking-[0.25em] text-ice-600">APIs & Intégrations</p>
+                <h1 class="text-4xl font-display font-bold text-slate-900 leading-tight">Les APIs qui font tourner Banquise.</h1>
+                <p class="text-slate-600 text-lg">Vue d'ensemble des endpoints et services utilisés : paiement, cartes, notifications, scoring crédit, et outils tiers (email, analytics).</p>
+                <div class="flex gap-3">
+                    <a href="mailto:partenaires@banquise.com" class="px-5 py-3 rounded-xl bg-slate-900 text-white font-bold hover:-translate-y-0.5 transition-all duration-300 shadow-lg">Parler aux équipes</a>
+                    <a href="{% static 'docs/banquise_apis.pdf' %}" class="px-5 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold hover:border-ice-200 hover:text-ice-700 transition-colors" download>
+                        Télécharger la doc PDF
+                    </a>
+                </div>
+            </div>
+            <div class="glass-panel p-6 rounded-3xl shadow-glass w-full md:w-96">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mb-2">Stack technique</p>
+                <ul class="space-y-2 text-sm text-slate-600">
+                    <li class="flex items-center gap-2"><i class="bi bi-check-circle text-ice-500"></i> Django + DRF</li>
+                    <li class="flex items-center gap-2"><i class="bi bi-check-circle text-ice-500"></i> PostgreSQL / SQLite</li>
+                    <li class="flex items-center gap-2"><i class="bi bi-check-circle text-ice-500"></i> Mailtrap (SMTP)</li>
+                    <li class="flex items-center gap-2"><i class="bi bi-check-circle text-ice-500"></i> Chart.js (front)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-6">
+            <div class="glass-panel p-6 rounded-2xl space-y-3">
+                <div class="flex items-center gap-2">
+                    <span class="pill pill-ice">Comptes & Paiements</span>
+                </div>
+                <ul class="space-y-2 text-sm text-slate-600">
+                    <li><span class="font-bold text-slate-800">POST</span> /virement/ — exécution d'un virement interne</li>
+                    <li><span class="font-bold text-slate-800">POST</span> /beneficiaires/ — ajouter un bénéficiaire</li>
+                    <li><span class="font-bold text-slate-800">GET</span> /releve-compte/&lt;id&gt;/ — export relevé</li>
+                    <li><span class="font-bold text-slate-800">GET</span> /rib-compte/&lt;id&gt;/pdf/ — génération RIB</li>
+                </ul>
+            </div>
+
+            <div class="glass-panel p-6 rounded-2xl space-y-3">
+                <div class="flex items-center gap-2">
+                    <span class="pill pill-ice">Cartes & Sécurité</span>
+                </div>
+                <ul class="space-y-2 text-sm text-slate-600">
+                    <li><span class="font-bold text-slate-800">GET</span> /cartes/ — liste des cartes liées</li>
+                    <li><span class="font-bold text-slate-800">POST</span> /gestion-plafonds/&lt;id&gt;/ — mise à jour plafonds</li>
+                    <li><span class="font-bold text-slate-800">POST</span> /console/manage/ (admin) — blocage/déblocage carte</li>
+                </ul>
+            </div>
+
+            <div class="glass-panel p-6 rounded-2xl space-y-3">
+                <div class="flex items-center gap-2">
+                    <span class="pill pill-ice">Crédit & Découvert</span>
+                </div>
+                <ul class="space-y-2 text-sm text-slate-600">
+                    <li><span class="font-bold text-slate-800">POST</span> /simulation/ + /api/calcul-pret/ — scoring crédit</li>
+                    <li><span class="font-bold text-slate-800">GET</span> /historique/ — historique des demandes</li>
+                    <li><span class="font-bold text-slate-800">POST</span> /demande-decouvert/ — relèvement temporaire</li>
+                    <li><span class="font-bold text-slate-800">POST</span> /console/credits/ (admin) — validation crédits</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="glass-panel p-6 rounded-3xl space-y-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-ice-50 text-ice-600 flex items-center justify-center text-lg">
+                    <i class="bi bi-megaphone-fill"></i>
+                </div>
+                <div>
+                    <h3 class="font-display font-bold text-slate-900 text-lg">Notifications & Emails</h3>
+                    <p class="text-sm text-slate-500">Gestion interne + SMTP Mailtrap</p>
+                </div>
+            </div>
+            <ul class="grid md:grid-cols-2 gap-2 text-sm text-slate-600">
+                <li><span class="font-bold text-slate-800">send_mail</span> — envoi des codes et alertes (Mailtrap sandbox)</li>
+                <li><span class="font-bold text-slate-800">Notifications internes</span> — Virement, Crédit, Découvert, Info</li>
+                <li><span class="font-bold text-slate-800">Templates</span> — emails d'inscription, confirmation, alertes</li>
+                <li><span class="font-bold text-slate-800">Admin</span> — centre de notifications dans /admin-dashboard/</li>
+            </ul>
+        </div>
+
+        <div class="glass-panel p-6 rounded-3xl space-y-3">
+            <h3 class="font-display font-bold text-slate-900 text-xl">Accès Admin & Observabilité</h3>
+            <ul class="space-y-2 text-sm text-slate-600">
+                <li><span class="font-bold text-slate-800">/admin-dashboard/</span> — stats globales, graphiques</li>
+                <li><span class="font-bold text-slate-800">/console/credits/</span> — revue/validation des crédits</li>
+                <li><span class="font-bold text-slate-800">/console/manage/</span> — gestion comptes/cartes/bénéficiaires</li>
+                <li><span class="font-bold text-slate-800">/admin/</span> — back-office Django</li>
+            </ul>
+        </div>
+
+        <div class="glass-panel p-6 rounded-3xl space-y-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-ice-50 text-ice-600 flex items-center justify-center text-lg">
+                    <i class="bi bi-cpu-fill"></i>
+                </div>
+                <div>
+                    <h3 class="font-display font-bold text-slate-900 text-xl">Documentation IA (Scoring Crédit)</h3>
+                    <p class="text-sm text-slate-500">Logique d'entraînement et d'inférence côté serveur.</p>
+                </div>
+            </div>
+            <div class="space-y-2 text-sm text-slate-700">
+                <p><strong>En résumé</strong> : on combine des règles métier simples et un petit modèle de machine learning pour estimer le risque.</p>
+                <p><strong>Ce que l’IA regarde</strong> : revenus nets, DTI (dettes/revenus), LTV (apport vs montant du prêt), apport personnel, statut d’emploi (bonus CDI), statut logement (bonus propriétaire), et état de santé (BON/MOYEN/FAIBLE).</p>
+                <p><strong>Comment le modèle est entraîné</strong> : mini régression logistique sur un <em>dataset synthétique</em> (600 profils générés aléatoirement). On normalise les données et on entraîne par descente de gradient (300 itérations). Le modèle vit en mémoire (_ML_WEIGHTS).</p>
+                <p><strong>Comment on calcule le score</strong> : 1) score heuristique (règles métier) 0–100 ; 2) score ML (probabilité * 100) ; 3) score final = moyenne des deux. Un score ≥ 55 donne un avis “acceptée”.</p>
+                <p><strong>Quand ça notifie ?</strong> Jamais pendant la simulation. Les conseillers sont notifiés uniquement si tu cliques sur “Valider et envoyer” depuis la page de résultat.</p>
+                <p><strong>Endpoints clés</strong> :
+                    <br>- <code>/simulation/</code> : calcule le score et enregistre le brouillon
+                    <br>- <code>/resultat/&lt;id&gt;/</code> : affiche/ajuste la simulation
+                    <br>- <code>/resultat/&lt;id&gt;/valider/</code> : envoie la demande aux conseillers
+                    <br>- <code>/api/resultat/&lt;id&gt;/update/</code> : ajuste durée/mensualité
+                </p>
+                <p><strong>Exemple simple</strong> : revenus 4 500 €/mois, dettes+charges 900 €, apport 15 000 € sur un prêt de 150 000 € (LTV ~90 %), CDI, propriétaire. Le DTI ~20 %, LTV 90 % ; le score heuristique est bon et le score ML aussi, le score final dépasse le seuil → avis automatique “acceptée”.</p>
+                <p><strong>Limites</strong> : données synthétiques uniquement (pas de données réelles), pas de persistance modèle, pas de monitoring. Pour la production, il faudrait un modèle entraîné sur des données réelles, avec consentement et supervision.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

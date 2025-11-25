@@ -43,21 +43,38 @@
         <a href="mailto:talent@banquise.com" class="text-sm font-bold text-ice-700 hover:text-ice-900">Spontanée <i class="bi bi-arrow-up-right"></i></a>
     </div>
     <div class="space-y-4">
-        {% for role in [
-            ("Senior Backend Engineer", "CDI - Paris ou Remote EU", "Django, API PSD2, résilience, monitoring temps réel."),
-            ("Product Designer", "CDI - Paris", "Design system, micro-interactions, accessibilité WCAG 2.1."),
-            ("Data Analyst Finance", "CDI - Remote EU", "Reporting réglementaire, modèles de risque, Looker/DBT."),
-            ("Compliance Officer", "CDI - Paris", "KYC/KYB, LCB-FT, audits ACPR, procédures internes.")
-        ] %}
         <div class="p-5 rounded-2xl bg-white border border-slate-100 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <p class="font-display font-bold text-lg text-slate-900">{{ role.0 }}</p>
-                <p class="text-sm text-slate-500">{{ role.1 }}</p>
-                <p class="text-sm text-slate-500 mt-1">{{ role.2 }}</p>
+                <p class="font-display font-bold text-lg text-slate-900">Senior Backend Engineer</p>
+                <p class="text-sm text-slate-500">CDI - Paris ou Remote EU</p>
+                <p class="text-sm text-slate-500 mt-1">Django, API PSD2, résilience, monitoring temps réel.</p>
             </div>
-            <a href="mailto:talent@banquise.com?subject={{ role.0|urlencode }}" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-bold hover:-translate-y-0.5 transition-all duration-200 shadow-lg hover:shadow-slate-900/30">Postuler</a>
+            <a href="mailto:talent@banquise.com?subject=Senior%20Backend%20Engineer" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-bold hover:-translate-y-0.5 transition-all duration-200 shadow-lg hover:shadow-slate-900/30">Postuler</a>
         </div>
-        {% endfor %}
+        <div class="p-5 rounded-2xl bg-white border border-slate-100 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <p class="font-display font-bold text-lg text-slate-900">Product Designer</p>
+                <p class="text-sm text-slate-500">CDI - Paris</p>
+                <p class="text-sm text-slate-500 mt-1">Design system, micro-interactions, accessibilité WCAG 2.1.</p>
+            </div>
+            <a href="mailto:talent@banquise.com?subject=Product%20Designer" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-bold hover:-translate-y-0.5 transition-all duration-200 shadow-lg hover:shadow-slate-900/30">Postuler</a>
+        </div>
+        <div class="p-5 rounded-2xl bg-white border border-slate-100 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <p class="font-display font-bold text-lg text-slate-900">Data Analyst Finance</p>
+                <p class="text-sm text-slate-500">CDI - Remote EU</p>
+                <p class="text-sm text-slate-500 mt-1">Reporting réglementaire, modèles de risque, Looker/DBT.</p>
+            </div>
+            <a href="mailto:talent@banquise.com?subject=Data%20Analyst%20Finance" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-bold hover:-translate-y-0.5 transition-all duration-200 shadow-lg hover:shadow-slate-900/30">Postuler</a>
+        </div>
+        <div class="p-5 rounded-2xl bg-white border border-slate-100 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <p class="font-display font-bold text-lg text-slate-900">Compliance Officer</p>
+                <p class="text-sm text-slate-500">CDI - Paris</p>
+                <p class="text-sm text-slate-500 mt-1">KYC/KYB, LCB-FT, audits ACPR, procédures internes.</p>
+            </div>
+            <a href="mailto:talent@banquise.com?subject=Compliance%20Officer" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-bold hover:-translate-y-0.5 transition-all duration-200 shadow-lg hover:shadow-slate-900/30">Postuler</a>
+        </div>
     </div>
 </section>
 {% endblock %}

@@ -2,18 +2,46 @@
 {% block title %}Supprimer Bénéficiaire{% endblock %}
 
 {% block content %}
-<div class="container mt-5" style="max-width: 500px;">
-    <div class="card border-danger shadow">
-        <div class="card-header bg-danger text-white">
-            Confirmation
-        </div>
-        <div class="card-body">
-            <p>Voulez-vous vraiment supprimer le bénéficiaire <strong>{{ beneficiaire.nom }}</strong> ?</p>
-            <form method="post">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-danger">Oui, supprimer</button>
-                <a href="{% url 'beneficiaires' %}" class="btn btn-secondary">Annuler</a>
-            </form>
+<div class="relative min-h-screen overflow-hidden flex items-center justify-center py-12">
+    <div class="absolute inset-0 pointer-events-none">
+        <div class="absolute top-10 left-10 w-64 h-64 bg-red-200/40 blur-3xl rounded-full"></div>
+        <div class="absolute bottom-10 right-10 w-72 h-72 bg-amber-100/50 blur-3xl rounded-full"></div>
+    </div>
+
+    <div class="relative z-10 w-full max-w-xl px-4">
+        <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
+            <div class="px-6 py-4 bg-gradient-to-r from-red-500 to-amber-400 text-white">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center">
+                        <i class="bi bi-exclamation-triangle-fill text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-[0.2em]">Confirmation</p>
+                        <h1 class="text-xl font-display font-bold">Supprimer ce bénéficiaire ?</h1>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 space-y-4">
+                <p class="text-slate-700 text-sm leading-relaxed">
+                    Cette action est <strong>définitive</strong>. Vous devrez ressaisir ses informations pour l’ajouter de nouveau.
+                </p>
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <p class="text-xs font-bold uppercase text-slate-500 tracking-[0.15em] mb-1">Bénéficiaire</p>
+                    <p class="font-bold text-slate-900">{{ beneficiaire.surnom|default:beneficiaire.nom }}</p>
+                    <p class="text-sm text-slate-500">Nom officiel : {{ beneficiaire.nom }}</p>
+                </div>
+
+                <form method="post" class="pt-2 flex flex-col sm:flex-row gap-3">
+                    {% csrf_token %}
+                    <button type="submit" class="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors">
+                        Oui, supprimer
+                    </button>
+                    <a href="{% url 'beneficiaires' %}" class="flex-1 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition-colors text-center">
+                        Annuler
+                    </a>
+                </form>
+            </div>
         </div>
     </div>
 </div>

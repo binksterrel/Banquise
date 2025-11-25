@@ -85,9 +85,11 @@
                 </div>
                 <div class="relative">
                     <i class="bi bi-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-xl"></i>
-                    <input type="text" placeholder="Rechercher une réponse (ex: virement, carte...)"
+                    <input id="support-search" type="search"
+                        placeholder="Rechercher une réponse (ex: virement, carte...)" aria-label="Rechercher dans l'aide"
                         class="w-full py-4 pl-14 pr-6 rounded-2xl border border-white/50 bg-white/80 backdrop-blur-xl shadow-xl text-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-ice-400 focus:outline-none transition-all">
                 </div>
+                <p id="support-search-result" class="text-sm text-slate-500 mt-3 hidden"></p>
             </div>
             {% if user.is_authenticated %}
             <div class="mt-6 flex justify-center">
@@ -99,34 +101,41 @@
             {% endif %}
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-20">
-            <a href="#"
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-20">
+            <a href="#faq-cartes" data-open-target="faq-cartes" data-support-item data-label="Opposition Carte Carte bloquer perte vol"
                 class="group p-6 rounded-[2rem] bg-white/60 border border-white/50 backdrop-blur-md shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center gap-3">
                 <div
                     class="w-14 h-14 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
                     <i class="bi bi-credit-card-2-front-fill"></i></div>
                 <span class="font-bold text-slate-700">Opposition Carte</span>
             </a>
-            <a href="#"
+            <a href="#faq-securite" data-open-target="faq-securite" data-support-item data-label="Sécurité Accès connexion MFA"
                 class="group p-6 rounded-[2rem] bg-white/60 border border-white/50 backdrop-blur-md shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center gap-3">
                 <div
                     class="w-14 h-14 rounded-2xl bg-ice-50 text-ice-500 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
                     <i class="bi bi-shield-lock-fill"></i></div>
                 <span class="font-bold text-slate-700">Sécurité & Accès</span>
             </a>
-            <a href="#"
+            <a href="#faq-virement" data-open-target="faq-virement" data-support-item data-label="Virement transfert argent délai instantané"
                 class="group p-6 rounded-[2rem] bg-white/60 border border-white/50 backdrop-blur-md shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center gap-3">
                 <div
                     class="w-14 h-14 rounded-2xl bg-purple-50 text-purple-500 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
                     <i class="bi bi-arrow-left-right"></i></div>
                 <span class="font-bold text-slate-700">Problème Virement</span>
             </a>
-            <a href="#"
+            <a href="#faq-attestations" data-open-target="faq-attestations" data-support-item data-label="Attestation relevé document"
                 class="group p-6 rounded-[2rem] bg-white/60 border border-white/50 backdrop-blur-md shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center gap-3">
                 <div
                     class="w-14 h-14 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
                     <i class="bi bi-file-earmark-text-fill"></i></div>
                 <span class="font-bold text-slate-700">Attestations</span>
+            </a>
+            <a href="#faq-ia" data-open-target="faq-ia" data-support-item data-label="IA scoring crédit simulation modèle ml"
+                class="group p-6 rounded-[2rem] bg-white/60 border border-white/50 backdrop-blur-md shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center gap-3">
+                <div
+                    class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                    <i class="bi bi-cpu-fill"></i></div>
+                <span class="font-bold text-slate-700">IA & Scoring</span>
             </a>
         </div>
 
@@ -134,8 +143,8 @@
 
             <div class="lg:col-span-2">
                 <h2 class="text-3xl font-display font-bold text-slate-900 mb-8">Questions Fréquentes</h2>
-                <div class="space-y-4">
-                    <details class="group glass-premium rounded-2xl overflow-hidden cursor-pointer">
+                <div id="faq-list" class="space-y-4">
+                    <details id="faq-plafonds" data-support-item data-label="augmenter plafonds carte paiement retrait" class="group glass-premium rounded-2xl overflow-hidden cursor-pointer">
                         <summary
                             class="p-6 flex justify-between items-center font-bold text-slate-800 text-lg hover:bg-white/50 transition-colors">
                             Comment augmenter mes plafonds ?
@@ -150,7 +159,33 @@
                         </div>
                     </details>
 
-                    <details class="group glass-premium rounded-2xl overflow-hidden cursor-pointer">
+                    <details id="faq-cartes" data-support-item data-label="opposition carte perte vol blocage" class="group glass-premium rounded-2xl overflow-hidden cursor-pointer">
+                        <summary
+                            class="p-6 flex justify-between items-center font-bold text-slate-800 text-lg hover:bg-white/50 transition-colors">
+                            Faire opposition à ma carte
+                            <span
+                                class="w-8 h-8 rounded-full bg-ice-100 text-ice-600 flex items-center justify-center transition-transform group-open:rotate-180"><i
+                                    class="bi bi-chevron-down"></i></span>
+                        </summary>
+                        <div class="px-6 pb-6 text-slate-500 leading-relaxed">
+                            En cas de perte/vol, allez dans <strong>Tableau de bord &gt; Cartes</strong>, sélectionnez la carte puis cliquez sur <strong>Bloquer / Opposition</strong>. L’opposition est immédiate et irréversible. Vous pouvez aussi appeler le <strong>01 23 45 67 89</strong> 24/7 pour assistance.
+                        </div>
+                    </details>
+
+                    <details id="faq-securite" data-support-item data-label="sécurité accès connexion double authentification MFA" class="group glass-premium rounded-2xl overflow-hidden cursor-pointer">
+                        <summary
+                            class="p-6 flex justify-between items-center font-bold text-slate-800 text-lg hover:bg-white/50 transition-colors">
+                            Sécuriser mes accès
+                            <span
+                                class="w-8 h-8 rounded-full bg-ice-100 text-ice-600 flex items-center justify-center transition-transform group-open:rotate-180"><i
+                                    class="bi bi-chevron-down"></i></span>
+                        </summary>
+                        <div class="px-6 pb-6 text-slate-500 leading-relaxed">
+                            Activez la <strong>double authentification</strong> dans Profil &gt; Sécurité. Pour tout accès suspect, changez immédiatement votre mot de passe et déconnectez toutes les sessions actives depuis votre profil. Contactez le support en cas de doute.
+                        </div>
+                    </details>
+
+                    <details id="faq-virement" data-support-item data-label="combien temps virement sepa instantané délai" class="group glass-premium rounded-2xl overflow-hidden cursor-pointer">
                         <summary
                             class="p-6 flex justify-between items-center font-bold text-slate-800 text-lg hover:bg-white/50 transition-colors">
                             Combien de temps prend un virement ?
@@ -165,7 +200,7 @@
                         </div>
                     </details>
 
-                    <details class="group glass-premium rounded-2xl overflow-hidden cursor-pointer">
+                    <details id="faq-prelevement" data-support-item data-label="contester prélèvement litige remboursement" class="group glass-premium rounded-2xl overflow-hidden cursor-pointer">
                         <summary
                             class="p-6 flex justify-between items-center font-bold text-slate-800 text-lg hover:bg-white/50 transition-colors">
                             Comment contester un prélèvement ?
@@ -179,7 +214,7 @@
                         </div>
                     </details>
 
-                    <details class="group glass-premium rounded-2xl overflow-hidden cursor-pointer">
+                    <details id="faq-code" data-support-item data-label="code secret carte oublier code pin" class="group glass-premium rounded-2xl overflow-hidden cursor-pointer">
                         <summary
                             class="p-6 flex justify-between items-center font-bold text-slate-800 text-lg hover:bg-white/50 transition-colors">
                             J'ai oublié mon code secret
@@ -191,6 +226,45 @@
                             Pour des raisons de sécurité, nous ne pouvons pas vous l'envoyer. Cependant, vous pouvez le
                             visualiser temporairement dans l'application mobile ou sur le site via la section
                             <strong>"Mes Cartes" > "Voir le code"</strong> après authentification biométrique.
+                        </div>
+                    </details>
+
+                    <details id="faq-ia" data-support-item data-label="IA scoring crédit ML" class="group glass-premium rounded-2xl overflow-hidden cursor-pointer">
+                        <summary
+                            class="p-6 flex justify-between items-center font-bold text-slate-800 text-lg hover:bg-white/50 transition-colors">
+                            Comment fonctionne l'IA de scoring ?
+                            <span
+                                class="w-8 h-8 rounded-full bg-ice-100 text-ice-600 flex items-center justify-center transition-transform group-open:rotate-180"><i
+                                    class="bi bi-chevron-down"></i></span>
+                        </summary>
+                        <div class="px-6 pb-6 text-slate-500 leading-relaxed">
+                            On mélange des règles métier (revenus, DTI, LTV, apport, emploi, logement) et un petit modèle de machine learning (régression logistique) entraîné sur des données <em>synthétiques</em>. Le score final (0-100) est la moyenne des deux : ≥ 55 = avis “acceptée”. Exemple simple : 4 500 € de revenus, 900 € de charges, apport 15 000 € pour 150 000 € → DTI ~20%, LTV 90% → avis généralement favorable. Aucune notification n’est envoyée tant que tu ne cliques pas sur “Valider et envoyer”.
+                        </div>
+                    </details>
+
+                    <details id="faq-ia-privacy" data-support-item data-label="IA données personnelles privacy" class="group glass-premium rounded-2xl overflow-hidden cursor-pointer">
+                        <summary
+                            class="p-6 flex justify-between items-center font-bold text-slate-800 text-lg hover:bg-white/50 transition-colors">
+                            Mes données sont-elles utilisées pour entraîner l'IA ?
+                            <span
+                                class="w-8 h-8 rounded-full bg-ice-100 text-ice-600 flex items-center justify-center transition-transform group-open:rotate-180"><i
+                                    class="bi bi-chevron-down"></i></span>
+                        </summary>
+                        <div class="px-6 pb-6 text-slate-500 leading-relaxed">
+                            Non. Le modèle actuel est entraîné sur des données synthétiques et n’utilise pas tes données réelles. En production, un modèle sur données réelles nécessiterait ton consentement explicite et un stockage conforme (sécurité, anonymisation, droit d’accès/suppression).
+                        </div>
+                    </details>
+
+                    <details id="faq-attestations" data-support-item data-label="attestation relevé document justificatif" class="group glass-premium rounded-2xl overflow-hidden cursor-pointer">
+                        <summary
+                            class="p-6 flex justify-between items-center font-bold text-slate-800 text-lg hover:bg-white/50 transition-colors">
+                            Obtenir une attestation ou un relevé
+                            <span
+                                class="w-8 h-8 rounded-full bg-ice-100 text-ice-600 flex items-center justify-center transition-transform group-open:rotate-180"><i
+                                    class="bi bi-chevron-down"></i></span>
+                        </summary>
+                        <div class="px-6 pb-6 text-slate-500 leading-relaxed">
+                            Rendez-vous dans <strong>Documents</strong> depuis le tableau de bord pour télécharger vos relevés mensuels et attestations (domiciliation, solde, IBAN). Besoin d’un format spécifique ? Contactez le support en précisant la période et le document souhaité.
                         </div>
                     </details>
                 </div>
@@ -207,6 +281,11 @@
                         <div class="mb-8">
                             <h3 class="font-display font-bold text-slate-900 text-2xl">Contactez-nous</h3>
                             <p class="text-slate-500 text-sm mt-1">Une réponse vous sera apportée sous 24h.</p>
+                            {% if not user.is_authenticated %}
+                            <div class="mt-3 p-3 rounded-xl bg-ice-50 border border-ice-100 text-ice-700 text-sm font-medium">
+                                Connectez-vous pour écrire au support.
+                            </div>
+                            {% endif %}
                         </div>
 
                         <form action="{% url 'support' %}" method="POST" class="space-y-5">
@@ -222,7 +301,8 @@
                                         <i class="bi bi-tag-fill"></i>
                                     </div>
                                     <select name="sujet"
-                                        class="w-full pl-12 pr-4 py-3.5 rounded-xl input-glass text-slate-700 font-medium appearance-none cursor-pointer">
+                                        class="w-full pl-12 pr-4 py-3.5 rounded-xl input-glass text-slate-700 font-medium appearance-none cursor-pointer"
+                                        {% if not user.is_authenticated %}disabled{% endif %}>
                                         <option value="Question générale">Question générale</option>
                                         <option value="Problème technique">Problème technique</option>
                                         <option value="Réclamation">Réclamation</option>
@@ -246,12 +326,13 @@
                                     </div>
                                     <textarea rows="5" name="message"
                                         class="w-full pl-12 pr-4 py-3.5 rounded-xl input-glass text-slate-700 font-medium resize-none placeholder:text-slate-400"
-                                        placeholder="Bonjour, je vous contacte car..."></textarea>
+                                        placeholder="Bonjour, je vous contacte car..." {% if not user.is_authenticated %}disabled{% endif %}></textarea>
                                 </div>
                             </div>
 
                             <button
-                                class="w-full py-4 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 text-white font-bold shadow-lg hover:shadow-ice-500/25 hover:from-ice-600 hover:to-ice-700 transition-all transform hover:-translate-y-0.5 flex justify-center items-center gap-3 group mt-2">
+                                class="w-full py-4 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 text-white font-bold shadow-lg hover:shadow-ice-500/25 hover:from-ice-600 hover:to-ice-700 transition-all transform hover:-translate-y-0.5 flex justify-center items-center gap-3 group mt-2 {% if not user.is_authenticated %}opacity-50 cursor-not-allowed{% endif %}"
+                                {% if not user.is_authenticated %}disabled{% endif %}>
                                 <span>Envoyer le message</span>
                                 <i class="bi bi-send-fill group-hover:translate-x-1 transition-transform"></i>
                             </button>
@@ -292,4 +373,51 @@
 
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function () {
+        const input = document.getElementById('support-search');
+        const result = document.getElementById('support-search-result');
+        const items = document.querySelectorAll('[data-support-item]');
+        const quickLinks = document.querySelectorAll('[data-open-target]');
+        if (!input || !items.length) return;
+
+        const normalize = (str) => (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+        const filterSupport = (query) => {
+            const q = normalize(query);
+            let visible = 0;
+            items.forEach(el => {
+                const label = normalize(el.dataset.label || el.textContent);
+                const match = !q || label.includes(q);
+                el.classList.toggle('hidden', !match);
+                if (match) visible++;
+            });
+            if (result) {
+                if (!q) { result.classList.add('hidden'); result.textContent = ''; }
+                else {
+                    result.classList.remove('hidden');
+                    result.textContent = visible ? `${visible} résultat(s) trouvés` : 'Aucun résultat';
+                }
+            }
+        };
+
+        input.addEventListener('input', (e) => filterSupport(e.target.value));
+
+        quickLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                const targetId = link.dataset.openTarget;
+                const target = targetId ? document.getElementById(targetId) : null;
+                if (!target) return;
+                e.preventDefault();
+                target.open = true;
+                const y = target.getBoundingClientRect().top + window.scrollY;
+                const offset = window.innerHeight / 2 - target.clientHeight / 2;
+                window.scrollTo({ top: y - offset, behavior: 'smooth' });
+            });
+        });
+    })();
+</script>
 {% endblock %}

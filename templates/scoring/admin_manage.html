@@ -143,7 +143,7 @@
                 {% for b in beneficiaires|slice:":20" %}
                 <div class="p-3 rounded-2xl border border-slate-100 bg-white/70 flex items-center justify-between">
                     <div>
-                        <p class="font-bold text-slate-900">{{ b.nom }}</p>
+                        <p class="font-bold text-slate-900">{{ b.surnom|default:b.nom }}</p>
                         <p class="text-xs text-slate-500">{{ b.iban }} · Client {{ b.user.username }}</p>
                     </div>
                     <div class="flex items-center gap-2">

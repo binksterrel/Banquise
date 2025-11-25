@@ -64,6 +64,51 @@
     .animation-delay-2000 {
         animation-delay: 2s;
     }
+
+    /* Mini navigation flottante */
+    .profile-mini-nav {
+        position: fixed;
+        right: 1rem;
+        top: 50%;
+        transform: translate(120%, -50%);
+        opacity: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        z-index: 40;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+
+    .profile-mini-nav.visible {
+        transform: translate(0, -50%);
+        opacity: 1;
+    }
+
+    .profile-mini-nav a {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #0f172a;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .profile-mini-nav a:hover {
+        transform: translateX(-4px);
+        background: linear-gradient(120deg, #e0f2fe, #fff);
+        box-shadow: 0 12px 32px rgba(14, 165, 233, 0.25);
+    }
+
+    @media (max-width: 1024px) {
+        .profile-mini-nav {
+            display: none;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -142,6 +187,10 @@
                         <a href="#bank-info"
                             class="flex items-center gap-3 px-4 py-3 rounded-xl bg-ice-50 text-ice-700 font-bold transition-colors">
                             <i class="bi bi-bank2"></i> Banque & RIB
+                        </a>
+                        <a href="#subscription"
+                            class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors font-medium">
+                            <i class="bi bi-stars"></i> Mon abonnement
                         </a>
                         <a href="#infos"
                             class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors font-medium">
@@ -252,6 +301,52 @@
                             <p class="text-slate-500">Aucun compte actif trouvé.</p>
                         </div>
                         {% endfor %}
+                    </div>
+                </div>
+
+                <div id="subscription" class="glass-panel p-8 md:p-10 rounded-[2rem] space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-[0.2em] text-ice-600">Mon abonnement</p>
+                            <h3 class="text-2xl font-display font-bold text-slate-900 mt-1">{{ profil.get_abonnement_display }}</h3>
+                            <p class="text-sm text-slate-500">Prochaine facturation : {{ profil.prochaine_facturation|date:"d M Y" }}</p>
+                        </div>
+                        <a href="{% url 'abonnements' %}" class="text-sm font-bold text-ice-700 hover:text-ice-900 underline underline-offset-4">Voir les plans</a>
+                    </div>
+
+                    <div class="bg-white/70 border border-slate-100 rounded-2xl p-6 space-y-3">
+                        <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Avantages inclus</p>
+                        <ul class="space-y-2 text-slate-700 text-sm">
+                            {% if profil.abonnement == 'ESSENTIEL' %}
+                            <li class="flex items-start gap-2"><i class="bi bi-check-circle text-ice-500 mt-0.5"></i> Compte courant gratuit et notifications en temps réel.</li>
+                            <li class="flex items-start gap-2"><i class="bi bi-check-circle text-ice-500 mt-0.5"></i> Virements et prélèvements SEPA standards.</li>
+                            <li class="flex items-start gap-2"><i class="bi bi-check-circle text-ice-500 mt-0.5"></i> Support standard par messagerie.</li>
+                            {% elif profil.abonnement == 'PLUS' %}
+                            <li class="flex items-start gap-2"><i class="bi bi-check-circle text-ice-500 mt-0.5"></i> Tout Essentiel + carte premium virtuelle & physique.</li>
+                            <li class="flex items-start gap-2"><i class="bi bi-check-circle text-ice-500 mt-0.5"></i> Découvert majoré et virements express.</li>
+                            <li class="flex items-start gap-2"><i class="bi bi-check-circle text-ice-500 mt-0.5"></i> Support prioritaire et assurances achats/voyage.</li>
+                            {% else %}
+                            <li class="flex items-start gap-2"><i class="bi bi-check-circle text-ice-500 mt-0.5"></i> Tout Plus + cartes metal et plafonds optimisés.</li>
+                            <li class="flex items-start gap-2"><i class="bi bi-check-circle text-ice-500 mt-0.5"></i> Conciergerie 24/7 et assurances premium.</li>
+                            <li class="flex items-start gap-2"><i class="bi bi-check-circle text-ice-500 mt-0.5"></i> Priorité support + gestionnaire dédié.</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+
+                    <div class="flex flex-wrap gap-3">
+                        <form method="post" action="{% url 'changer_abonnement' %}" class="subscription-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="plan" value="RESILIER">
+                            <input type="hidden" name="password" value="">
+                            <button type="submit"
+                                class="px-5 py-3 rounded-xl border border-red-200 text-red-600 font-bold text-sm hover:bg-red-50 transition">
+                                Résilier mon abonnement
+                            </button>
+                        </form>
+                        <a href="{% url 'abonnements' %}"
+                            class="px-5 py-3 rounded-xl bg-ice-600 text-white font-bold text-sm hover:bg-ice-700 transition">
+                            Changer de formule
+                        </a>
                     </div>
                 </div>
 
@@ -420,6 +515,15 @@
     </div>
 </div>
 
+<!-- Mini navigation flottante affichée après scroll -->
+<div id="profileMiniNav" class="profile-mini-nav" aria-label="Navigation profil">
+    <a href="#bank-info" title="Banque & RIB"><i class="bi bi-bank2"></i></a>
+    <a href="#subscription" title="Mon abonnement"><i class="bi bi-stars"></i></a>
+    <a href="#infos" title="Informations"><i class="bi bi-person-vcard"></i></a>
+    <a href="#security" title="Sécurité"><i class="bi bi-shield-lock"></i></a>
+    <a href="#danger" title="Zone danger"><i class="bi bi-exclamation-triangle"></i></a>
+</div>
+
 <script>
     function copyToClipboard(elementId) {
         const copyText = document.getElementById(elementId).innerText;
@@ -427,5 +531,89 @@
             alert("IBAN copié dans le presse-papier !");
         });
     }
+
+    // Scroll centré sur les sections du profil
+    document.querySelectorAll('a[href^="#"]').forEach(link => {
+        link.addEventListener('click', (e) => {
+            const targetId = link.getAttribute('href').substring(1);
+            const target = document.getElementById(targetId);
+            if (!target) return;
+            e.preventDefault();
+            const y = target.getBoundingClientRect().top + window.scrollY;
+            const offset = window.innerHeight / 2 - target.offsetHeight / 2;
+            window.scrollTo({ top: y - offset, behavior: 'smooth' });
+        });
+    });
+
+    // Affichage mini nav après scroll
+    const miniNav = document.getElementById('profileMiniNav');
+    if (miniNav) {
+        const toggleMiniNav = () => {
+            if (window.scrollY > 240) miniNav.classList.add('visible');
+            else miniNav.classList.remove('visible');
+        };
+        toggleMiniNav();
+        window.addEventListener('scroll', toggleMiniNav, { passive: true });
+    }
 </script>
 {% endblock %}
+<script>
+    // Modal mot de passe réutilisé (si non présent depuis le dashboard)
+    (function () {
+        if (document.getElementById('subPwdModal')) return;
+        const modal = document.createElement('div');
+        modal.id = 'subPwdModal';
+        modal.className = 'fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm';
+        modal.innerHTML = `
+          <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-md p-6 relative">
+            <button type="button" id="closeSubModal" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600"><i class="bi bi-x-lg"></i></button>
+            <h3 class="text-xl font-display font-bold text-slate-900 mb-1">Confirmer le changement</h3>
+            <p class="text-sm text-slate-500 mb-4">Saisis ton mot de passe pour valider l'action d'abonnement.</p>
+            <div class="space-y-2">
+              <label class="text-xs font-bold text-slate-500 uppercase tracking-[0.15em]">Mot de passe</label>
+              <input type="password" id="subPwdInput" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-ice-200 focus:border-ice-400 outline-none" placeholder="••••••••">
+            </div>
+            <div class="mt-6 flex gap-3 justify-end">
+              <button type="button" id="cancelSubModal" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50">Annuler</button>
+              <button type="button" id="confirmSubModal" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800">Confirmer</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+
+        let pendingForm = null;
+        const openModal = (form) => {
+          pendingForm = form;
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          const input = document.getElementById('subPwdInput');
+          input.value = '';
+          input.focus();
+        };
+        const closeModal = () => {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+          pendingForm = null;
+        };
+        modal.querySelector('#closeSubModal').onclick = closeModal;
+        modal.querySelector('#cancelSubModal').onclick = closeModal;
+        modal.querySelector('#confirmSubModal').onclick = () => {
+          if (!pendingForm) return;
+          const pwd = document.getElementById('subPwdInput').value.trim();
+          if (!pwd) return;
+          const pwdInput = pendingForm.querySelector('input[name="password"]');
+          if (pwdInput) pwdInput.value = pwd;
+          pendingForm.submit();
+          closeModal();
+        };
+
+        document.querySelectorAll('.subscription-form button[type="submit"]').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const form = btn.closest('form');
+            if (!form) return;
+            openModal(form);
+          });
+        });
+    })();
+</script>

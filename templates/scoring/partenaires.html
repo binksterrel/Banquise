@@ -12,21 +12,26 @@
                 <p class="text-slate-600 text-lg">Banquise ouvre ses API et son savoir-faire paiement/crédit à des fintechs, marques et distributeurs pour bâtir des parcours simples et sécurisés.</p>
                 <div class="flex gap-3">
                     <a href="mailto:partenaires@banquise.com" class="px-5 py-3 rounded-xl bg-slate-900 text-white font-bold hover:-translate-y-0.5 transition-all duration-300 shadow-lg">Parler avec l'équipe</a>
-                    <a href="#" class="px-5 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold hover:border-ice-200 hover:text-ice-700 transition-colors">Découvrir les APIs</a>
+                    <a href="{% url 'apis' %}" class="px-5 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold hover:border-ice-200 hover:text-ice-700 transition-colors">Découvrir les APIs</a>
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-4 w-full lg:w-1/3">
-                {% for item in [
-                    ("Onboarding KYC/KYB", "SDKs + scoring instantané"),
-                    ("Comptes & Paiements", "IBAN FR, cartes co-brandées"),
-                    ("Crédit responsable", "Prêts et scores transparents"),
-                    ("Support partagé", "Back-office et conformité")
-                ] %}
                 <div class="p-4 rounded-2xl bg-white shadow-glass border border-slate-100">
-                    <p class="font-bold text-slate-900 text-sm">{{ item.0 }}</p>
-                    <p class="text-slate-500 text-xs mt-1">{{ item.1 }}</p>
+                    <p class="font-bold text-slate-900 text-sm">Onboarding KYC/KYB</p>
+                    <p class="text-slate-500 text-xs mt-1">SDKs + scoring instantané</p>
                 </div>
-                {% endfor %}
+                <div class="p-4 rounded-2xl bg-white shadow-glass border border-slate-100">
+                    <p class="font-bold text-slate-900 text-sm">Comptes &amp; Paiements</p>
+                    <p class="text-slate-500 text-xs mt-1">IBAN FR, cartes co-brandées</p>
+                </div>
+                <div class="p-4 rounded-2xl bg-white shadow-glass border border-slate-100">
+                    <p class="font-bold text-slate-900 text-sm">Crédit responsable</p>
+                    <p class="text-slate-500 text-xs mt-1">Prêts et scores transparents</p>
+                </div>
+                <div class="p-4 rounded-2xl bg-white shadow-glass border border-slate-100">
+                    <p class="font-bold text-slate-900 text-sm">Support partagé</p>
+                    <p class="text-slate-500 text-xs mt-1">Back-office et conformité</p>
+                </div>
             </div>
         </div>
     </div>
