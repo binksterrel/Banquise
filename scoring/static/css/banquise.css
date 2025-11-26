@@ -315,6 +315,7 @@ label {
   position: fixed;
   bottom: 1.5rem;
   right: 1.25rem;
+  left: auto;
   display: inline-flex;
   gap: 0.5rem;
   background: rgba(255, 255, 255, 0.9);
@@ -363,6 +364,10 @@ label {
   box-shadow: 0 12px 30px rgba(14, 165, 233, 0.2);
 }
 
+.dock-label {
+  white-space: nowrap;
+}
+
 .notification-dot {
   width: 8px;
   height: 8px;
@@ -397,8 +402,26 @@ label {
   .floating-dock {
     right: 0.75rem;
     left: 0.75rem;
-    justify-content: center;
-    padding-inline: 0.75rem;
-    border-radius: 18px;
+    bottom: 1rem;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    padding: 0.5rem 0.65rem;
+    border-radius: 16px;
+    gap: 0.35rem;
   }
+
+  .dock-btn {
+    flex: 1 1 calc(33% - 0.35rem);
+    justify-content: center;
+    min-width: 0;
+    padding: 0.55rem 0.6rem;
+    border-radius: 14px;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    text-align: center;
+    flex-direction: column;
+  }
+
+  .dock-btn i { font-size: 1.1rem; }
+  .dock-label { white-space: normal; line-height: 1.1; }
 }

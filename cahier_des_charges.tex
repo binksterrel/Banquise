@@ -468,7 +468,6 @@ Le système Banquise implique trois acteurs principaux :
 \hline
 \textbf{Scalabilité} & 
 \begin{itemize}[leftmargin=0.5cm]
-    \item Base PostgreSQL en production
     \item Stockage statique dédié (CDN)
     \item Files d'attente pour notifications
     \item Architecture horizontalement scalable
@@ -649,7 +648,7 @@ Le système Banquise implique trois acteurs principaux :
 \section{Architecture cible}
 \begin{itemize}[leftmargin=1.5cm]
     \item \textbf{Backend} : Django 4.2, Python 3.9+
-    \item \textbf{Base de données} : SQLite en développement, PostgreSQL recommandé en production
+    \item \textbf{Base de données} : SQLite (développement et déploiement actuel)
     \item \textbf{Front} : Templates Django + Tailwind CDN + Bootstrap Icons
     \item \textbf{Notifications} : modèle interne (table Notification), extensible vers e-mail/SMS
     \item \textbf{Stockage statique} : collectstatic vers un bucket/CDN en production
@@ -686,7 +685,7 @@ Le système Banquise implique trois acteurs principaux :
     \item \textbf{MVP} : Auth, comptes, virements, cartes (blocage manuel), notifications de base
     \item \textbf{V1} : Abonnements, scoring crédit IA, validation admin, support chat
     \item \textbf{V2} : Découvert dynamique, rapports admin (heatmap, comptes à risque), tâches planifiées
-    \item \textbf{V3} : Déploiement cloud (PostgreSQL, stockage statique), durcissement sécurité (2FA, HSTS)
+    \item \textbf{V3} : Déploiement cloud (stockage statique), durcissement sécurité (2FA, HSTS)
 \end{itemize}
 
 \section{Livrables}
@@ -876,7 +875,7 @@ Ce chapitre présente l'architecture logique et physique du système, ainsi que 
     \node [block, right of=nginx, node distance=4.5cm] (django) {Django + Gunicorn};
     
     % Base de données
-    \node [block, below of=django, node distance=2.5cm] (postgres) {PostgreSQL};
+    \node [block, below of=django, node distance=2.5cm] (db) {Base de données};
     
     % Stockage
     \node [block, above of=django, node distance=2.5cm] (storage) {Stockage};
@@ -885,7 +884,7 @@ Ce chapitre présente l'architecture logique et physique du système, ainsi que 
     \path [line] (browser) -- node[above, font=\scriptsize] {HTTPS} (nginx);
     \path [line] (mobile) -- (nginx);
     \path [line] (nginx) -- node[above, font=\scriptsize] {WSGI} (django);
-    \path [line] (django) -- node[right, font=\scriptsize] {SQL} (postgres);
+    \path [line] (django) -- node[right, font=\scriptsize] {SQL} (db);
     \path [line] (django) -- (storage);
 \end{tikzpicture}
 \caption{Architecture client-serveur}
@@ -912,7 +911,7 @@ Ce chapitre présente l'architecture logique et physique du système, ainsi que 
     % Base de données
     \node[draw, rectangle, minimum width=3.5cm, minimum height=2.5cm] (db) at (5,-3.5) {};
     \node at (5,-2.4) {\textbf{Base de données}};
-    \node[draw, rectangle, fill=blue!20, font=\scriptsize] at (5,-3.2) {PostgreSQL};
+    \node[draw, rectangle, fill=blue!20, font=\scriptsize] at (5,-3.2) {SQL};
     \node[draw, rectangle, fill=blue!20, font=\scriptsize] at (5,-3.9) {Redis};
     
     % Stockage
@@ -1644,9 +1643,7 @@ Chart.js & 4.x & Graphiques et statistiques \\
 \rowcolor{banquiseblue!30}
 \textbf{Technologie} & \textbf{Version} & \textbf{Utilisation} \\
 \hline
-SQLite & 3.x & Base de données de développement \\
-\hline
-PostgreSQL & 13+ & Base de données de production (recommandé) \\
+SQLite & 3.x & Base de données utilisée (développement et déploiement actuel) \\
 \hline
 \end{tabular}
 \caption{Technologies Base de données}
@@ -1743,7 +1740,7 @@ Serveur Web & Nginx avec SSL/TLS (Let's Encrypt) \\
 \hline
 Serveur Application & Gunicorn avec 4-8 workers \\
 \hline
-Base de données & PostgreSQL 13+ avec connexions poolées \\
+Base de données & SQLite (hébergement actuel) \\
 \hline
 Cache & Redis pour sessions et cache \\
 \hline
@@ -1965,7 +1962,6 @@ L'architecture modulaire et la méthodologie agile adoptées permettront d'inté
     \item RGPD - Règlement Général sur la Protection des Données
     \item OWASP Top 10 - Risques de sécurité web
     \item PSD2 - Payment Services Directive 2
-    \item PostgreSQL Documentation - \url{https://www.postgresql.org/docs/}
     \item Gunicorn Documentation - \url{https://docs.gunicorn.org/}
 \end{enumerate}
 

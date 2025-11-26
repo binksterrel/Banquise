@@ -361,26 +361,25 @@
     <div class="floating-dock flex">
         {% if user.is_authenticated %}
         {% if user.is_staff %}
-        <a href="{% url 'admin_dashboard' %}" class="dock-btn primary"><i class="bi bi-badge-ad"></i> Admin</a>
-        <a href="{% url 'admin_manage_credits' %}" class="dock-btn secondary"><i class="bi bi-bank"></i> Crédit</a>
-        <a href="{% url 'notifications' %}" class="dock-btn secondary"><i class="bi bi-bell"></i>
+        <a href="{% url 'admin_dashboard' %}" class="dock-btn primary"><i class="bi bi-badge-ad"></i><span class="dock-label">Admin</span></a>
+        <a href="{% url 'admin_manage_credits' %}" class="dock-btn secondary"><i class="bi bi-bank"></i><span class="dock-label">Crédit</span></a>
+        <a href="{% url 'notifications' %}" class="dock-btn secondary"><i class="bi bi-bell"></i><span class="dock-label">Notifs</span>
             {% if unread_notifs and unread_notifs > 0 %}
             <span class="notification-dot"></span>
             {% endif %}
         </a>
         {% else %}
-        <a href="{% url 'virement' %}" class="dock-btn primary"><i class="bi bi-lightning-charge-fill"></i> Virement</a>
-        <a href="{% url 'chat_support' %}" class="dock-btn secondary"><i class="bi bi-chat-dots"></i> Support</a>
-        <a href="{% url 'notifications' %}" class="dock-btn secondary"><i class="bi bi-bell"></i>
+        <a href="{% url 'virement' %}" class="dock-btn primary"><i class="bi bi-lightning-charge-fill"></i><span class="dock-label">Virement</span></a>
+        <a href="{% url 'chat_support' %}" class="dock-btn secondary"><i class="bi bi-chat-dots"></i><span class="dock-label">Support</span></a>
+        <a href="{% url 'notifications' %}" class="dock-btn secondary"><i class="bi bi-bell"></i><span class="dock-label">Notifs</span>
             {% if unread_notifs and unread_notifs > 0 %}
             <span class="notification-dot"></span>
             {% endif %}
         </a>
         {% endif %}
         {% else %}
-        <a href="{% url 'register' %}" class="dock-btn primary"><i class="bi bi-magic"></i> Créer un compte</a>
-        <a href="{% url 'support' %}" class="dock-btn secondary"><i class="bi bi-question-circle"></i> Nous
-            contacter</a>
+        <a href="{% url 'register' %}" class="dock-btn primary"><i class="bi bi-magic"></i><span class="dock-label">Créer un compte</span></a>
+        <a href="{% url 'support' %}" class="dock-btn secondary"><i class="bi bi-question-circle"></i><span class="dock-label">Nous contacter</span></a>
         {% endif %}
     </div>
     {% endif %}
