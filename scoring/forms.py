@@ -194,7 +194,8 @@ class SimulationPretForm(forms.ModelForm):
         exclude = [
             'user', 'statut', 'date_demande',
             'score_calcule', 'taux_calcule', 'recommendation',
-            'sante_snapshot', 'ia_decision', 'mensualite_calculee'
+            'sante_snapshot', 'ia_decision', 'mensualite_calculee',
+            'echeances_payees', 'dernier_prelevement'
         ]
 
     def __init__(self, *args, **kwargs):
@@ -222,6 +223,12 @@ class SimulationPretForm(forms.ModelForm):
                 # Assure la validation côté serveur
                 if hasattr(field, 'min_value') and field.min_value is None:
                     field.min_value = min_val
+        if 'soumise' in self.fields:
+            self.fields['soumise'].label = "Soumettre la simulation"
+            self.fields['soumise'].help_text = "Si vous cochez cette case, la simulation sera transmise à un conseiller."
+            self.fields['soumise'].widget.attrs.update({
+                'class': 'toggle-input sr-only'
+            })
 
     def clean(self):
         cleaned = super().clean()

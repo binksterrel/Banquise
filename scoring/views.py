@@ -1323,6 +1323,7 @@ def page_simulation(request):
             form.fields['dettes_mensuelles'].min_value = accepted_count
             form.fields['dettes_mensuelles'].widget.attrs['min'] = accepted_count
         if form.is_valid():
+            soumettre = bool(form.cleaned_data.get('soumise'))
             demande = form.save(commit=False)
             demande.user = request.user
             # Valeurs par défaut pour éviter les None / chaînes vides
@@ -1398,9 +1399,14 @@ def page_simulation(request):
             demande.recommendation = recommendation
             # Toujours validation admin finale
             demande.statut = 'EN_ATTENTE'
-            demande.soumise = False
+            demande.soumise = soumettre
             
             demande.save()
+            if soumettre:
+                messages.success(request, "Simulation envoyée aux conseillers.")
+                notifier(request.user, "Demande de crédit envoyée", f"Avis automatique : {demande.ia_decision or 'En attente'}. Un conseiller va répondre.", "CREDIT", url=reverse('historique'))
+                for admin in User.objects.filter(is_staff=True):
+                    notifier(admin, "Nouvelle demande de crédit", f"{request.user.username} a validé sa simulation ({demande.montant_souhaite} €).", "CREDIT", url=reverse('admin_manage_credits'))
             return redirect('resultat_simulation', demande_id=demande.id)
     else:
         initial = {}
