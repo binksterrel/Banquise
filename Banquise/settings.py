@@ -14,7 +14,12 @@ SECRET_KEY = os.environ.get(
 DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 
 allowed = os.environ.get("DJANGO_ALLOWED_HOSTS", "")
-ALLOWED_HOSTS = [h.strip() for h in allowed.split(",") if h.strip()] if allowed else []
+ALLOWED_HOSTS = [h.strip() for h in allowed.split(",") if h.strip()] if allowed else [
+    "localhost",
+    "127.0.0.1",
+    "banquise.onrender.com",
+    ".onrender.com",
+]
 
 # Application definition
 
