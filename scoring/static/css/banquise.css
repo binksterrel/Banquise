@@ -406,7 +406,7 @@ label {
     justify-content: space-between;
     flex-wrap: wrap;
     padding: 0.5rem 0.65rem;
-    border-radius: 16px;
+    border-radius: 999px;
     gap: 0.35rem;
   }
 
@@ -415,7 +415,7 @@ label {
     justify-content: center;
     min-width: 0;
     padding: 0.55rem 0.6rem;
-    border-radius: 14px;
+    border-radius: 999px;
     gap: 0.35rem;
     font-size: 0.8rem;
     text-align: center;
