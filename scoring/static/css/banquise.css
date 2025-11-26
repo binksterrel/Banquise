@@ -376,6 +376,15 @@ label {
   display: inline-flex;
 }
 
+@media (max-width: 768px) {
+  .dock-dot {
+    position: absolute;
+    top: 50%;
+    left: 75%;
+    transform: translate(-50%, -50%);
+  }
+}
+
 /* --- Scroll progress --- */
 .scroll-progress,
 #scroll-progress {
@@ -420,6 +429,7 @@ label {
     font-size: 0.8rem;
     text-align: center;
     flex-direction: column;
+    position: relative;
   }
 
   .dock-btn i { font-size: 1.1rem; }

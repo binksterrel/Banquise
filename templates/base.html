@@ -409,7 +409,7 @@
         <a href="{% url 'admin_manage_credits' %}" class="dock-btn secondary"><i class="bi bi-bank"></i><span class="dock-label">Crédit</span></a>
         <a href="{% url 'notifications' %}" class="dock-btn secondary"><i class="bi bi-bell"></i><span class="dock-label">Notifs</span>
             {% if unread_notifs and unread_notifs > 0 %}
-            <span class="notification-dot"></span>
+            <span class="notification-dot dock-dot"></span>
             {% endif %}
         </a>
         {% else %}
@@ -417,7 +417,7 @@
         <a href="{% url 'chat_support' %}" class="dock-btn secondary"><i class="bi bi-chat-dots"></i><span class="dock-label">Support</span></a>
         <a href="{% url 'notifications' %}" class="dock-btn secondary"><i class="bi bi-bell"></i><span class="dock-label">Notifs</span>
             {% if unread_notifs and unread_notifs > 0 %}
-            <span class="notification-dot"></span>
+            <span class="notification-dot dock-dot"></span>
             {% endif %}
         </a>
         {% endif %}
