@@ -5,3 +5,4 @@ crispy-bootstrap5
 django-mathfilters
 reportlab
 
+gunicorn
