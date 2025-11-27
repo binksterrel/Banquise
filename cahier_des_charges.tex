@@ -1778,6 +1778,12 @@ python manage.py runserver
 
 # Lancer avec Gunicorn (production)
 gunicorn Banquise.wsgi:application --bind 0.0.0.0:8000
+
+# Render (banquise.onrender.com)
+# Build command : pip install -r requirements.txt && python manage.py migrate && python manage.py collectstatic --noinput
+# Start command : gunicorn Banquise.wsgi:application --bind 0.0.0.0:$PORT
+# Variables : DJANGO_ALLOWED_HOSTS=banquise.onrender.com,.onrender.com ; DJANGO_DEBUG=0
+# Statiques : Whitenoise (collectstatic) ; Médias : stockage local (prévoir volume/bucket si nécessaire)
 \end{verbatim}
 
 \section{Tests}
