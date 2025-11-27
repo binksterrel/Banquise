@@ -4,50 +4,12 @@
 
 {% block extra_css %}
 <style>
-    @keyframes blob {
-        0% {
-            transform: translate(0px, 0px) scale(1);
-        }
-
-        33% {
-            transform: translate(30px, -50px) scale(1.1);
-        }
-
-        66% {
-            transform: translate(-20px, 20px) scale(0.9);
-        }
-
-        100% {
-            transform: translate(0px, 0px) scale(1);
-        }
-    }
-
-    .animate-blob {
-        animation: blob 7s infinite;
-    }
-
-    .animation-delay-2000 {
-        animation-delay: 2s;
-    }
-
-    .animation-delay-4000 {
-        animation-delay: 4s;
-    }
-
-    .glass-panel {
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.6);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-    }
-
-    .glass-card-hover:hover {
-        transform: translateY(-2px);
-        background: rgba(255, 255, 255, 0.85);
-        border-color: rgba(14, 165, 233, 0.3);
-        box-shadow: 0 10px 30px rgba(14, 165, 233, 0.1);
-    }
+    @keyframes blob { 0% { transform: translate(0px, 0px) scale(1); } 33% { transform: translate(30px, -50px) scale(1.1); } 66% { transform: translate(-20px, 20px) scale(0.9); } 100% { transform: translate(0px, 0px) scale(1); } }
+    .animate-blob { animation: blob 7s infinite; }
+    .animation-delay-2000 { animation-delay: 2s; }
+    .animation-delay-4000 { animation-delay: 4s; }
+    .glass-panel { background: rgba(255,255,255,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
+    .glass-card-hover:hover { transform: translateY(-2px); background: rgba(255,255,255,0.85); border-color: rgba(14,165,233,0.3); box-shadow: 0 10px 30px rgba(14,165,233,0.1); }
 </style>
 {% endblock %}
 
@@ -143,10 +105,10 @@
 </script>
 {{ block.super }}
 <script>
-    (function () {
-        const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm';
-        modal.innerHTML = `
+  (function () {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm';
+    modal.innerHTML = `
       <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-md p-6 relative">
         <button type="button" id="closeSubModal" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600"><i class="bi bi-x-lg"></i></button>
         <h3 class="text-xl font-display font-bold text-slate-900 mb-1">Confirmer le changement</h3>
@@ -161,59 +123,53 @@
         </div>
       </div>
     `;
-        document.body.appendChild(modal);
+    document.body.appendChild(modal);
 
-        let pendingForm = null;
-        const openModal = (form) => {
-            pendingForm = form;
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            const input = document.getElementById('subPwdInput');
-            input.value = '';
-            input.focus();
-        };
-        const closeModal = () => {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-            pendingForm = null;
-        };
+    let pendingForm = null;
+    const openModal = (form) => {
+      pendingForm = form;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      const input = document.getElementById('subPwdInput');
+      input.value = '';
+      input.focus();
+    };
+    const closeModal = () => {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      pendingForm = null;
+    };
 
-        document.getElementById('closeSubModal').onclick = closeModal;
-        document.getElementById('cancelSubModal').onclick = closeModal;
-        document.getElementById('confirmSubModal').onclick = () => {
-            if (!pendingForm) return;
-            const pwd = document.getElementById('subPwdInput').value.trim();
-            if (!pwd) return;
-            const pwdInput = pendingForm.querySelector('input[name="password"]');
-            if (pwdInput) pwdInput.value = pwd;
-            pendingForm.submit();
-            closeModal();
-        };
+    document.getElementById('closeSubModal').onclick = closeModal;
+    document.getElementById('cancelSubModal').onclick = closeModal;
+    document.getElementById('confirmSubModal').onclick = () => {
+      if (!pendingForm) return;
+      const pwd = document.getElementById('subPwdInput').value.trim();
+      if (!pwd) return;
+      const pwdInput = pendingForm.querySelector('input[name="password"]');
+      if (pwdInput) pwdInput.value = pwd;
+      pendingForm.submit();
+      closeModal();
+    };
 
-        document.querySelectorAll('.subscription-form button[type="submit"]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const form = btn.closest('form');
-                if (!form) return;
-                openModal(form);
-            });
-        });
-    })();
+    document.querySelectorAll('.subscription-form button[type="submit"]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const form = btn.closest('form');
+        if (!form) return;
+        openModal(form);
+      });
+    });
+  })();
 </script>
 {% endblock %}
 
 {% block content %}
 <div class="relative min-h-screen overflow-hidden bg-slate-50/50">
     <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-        <div
-            class="absolute top-10 left-10 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-60 animate-blob">
-        </div>
-        <div
-            class="absolute top-10 right-10 w-96 h-96 bg-ice-200 rounded-full mix-blend-multiply filter blur-3xl opacity-60 animate-blob animation-delay-2000">
-        </div>
-        <div
-            class="absolute -bottom-20 left-1/2 w-96 h-96 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-60 animate-blob animation-delay-4000">
-        </div>
+        <div class="absolute top-10 left-10 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-60 animate-blob"></div>
+        <div class="absolute top-10 right-10 w-96 h-96 bg-ice-200 rounded-full mix-blend-multiply filter blur-3xl opacity-60 animate-blob animation-delay-2000"></div>
+        <div class="absolute -bottom-20 left-1/2 w-96 h-96 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-60 animate-blob animation-delay-4000"></div>
     </div>
 
     <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -222,19 +178,16 @@
                 <p class="text-slate-500 text-sm font-medium mb-1">{% now "l d F Y" %}</p>
                 <h1 class="text-3xl md:text-4xl font-display font-bold text-slate-900">
                     Bonjour, <span class="text-transparent bg-clip-text bg-gradient-to-r from-ice-600 to-blue-600">
-                        {% if user.first_name %}{{ user.first_name|capfirst }}{% else %}{{ user.username|capfirst }}{%
-                        endif %}
+                        {% if user.first_name %}{{ user.first_name|capfirst }}{% else %}{{ user.username|capfirst }}{% endif %}
                     </span> 👋
                 </h1>
                 <div class="flex flex-wrap items-center gap-2 mt-3">
                     <span class="pill pill-ice badge-glow">Formule {{ profil_client.abonnement|title }}</span>
-                    <span class="pill bg-white border border-slate-200 text-slate-600">Découvert autorisé {{
-                        overdraft_limit }} €</span>
+                    <span class="pill bg-white border border-slate-200 text-slate-600">Découvert autorisé {{ overdraft_limit }} €</span>
                 </div>
             </div>
             <div>
-                <a href="{% url 'simulation' %}"
-                    class="group px-6 py-3 rounded-xl bg-slate-900 text-white font-bold shadow-lg hover:shadow-slate-900/30 hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2">
+                <a href="{% url 'simulation' %}" class="group px-6 py-3 rounded-xl bg-slate-900 text-white font-bold shadow-lg hover:shadow-slate-900/30 hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2">
                     <i class="bi bi-plus-lg group-hover:rotate-90 transition-transform"></i>
                     <span>Nouveau Projet</span>
                 </a>
@@ -245,35 +198,27 @@
             <div class="lg:w-2/3 space-y-8">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {% for compte in comptes %}
-                    <div
-                        class="glass-panel p-6 rounded-3xl glass-card-hover transition-all duration-300 flex flex-col justify-between h-40 relative overflow-hidden group">
-                        <div
-                            class="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-ice-100 to-transparent rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500">
-                        </div>
+                    <div class="glass-panel p-6 rounded-3xl glass-card-hover transition-all duration-300 flex flex-col justify-between h-40 relative overflow-hidden group">
+                        <div class="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-ice-100 to-transparent rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500"></div>
 
-                        <a href="{% url 'fermer_compte' compte.id %}"
-                            class="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/60 text-slate-400 hover:bg-red-100 hover:text-red-500 flex items-center justify-center transition-all z-20"
-                            title="Gérer / Clôturer ce compte">
+                        <a href="{% url 'fermer_compte' compte.id %}" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/60 text-slate-400 hover:bg-red-100 hover:text-red-500 flex items-center justify-center transition-all z-20" title="Gérer / Clôturer ce compte">
                             <i class="bi bi-gear-fill text-xs"></i>
                         </a>
 
-                        <a href="{% url 'releve_compte' compte.id %}"
-                            class="absolute bottom-3 right-3 px-3 py-1 rounded-full bg-ice-50 text-ice-600 hover:bg-ice-100 text-xs font-bold transition-colors z-20 flex items-center gap-1">
+                        <a href="{% url 'releve_compte' compte.id %}" class="absolute bottom-3 right-3 px-3 py-1 rounded-full bg-ice-50 text-ice-600 hover:bg-ice-100 text-xs font-bold transition-colors z-20 flex items-center gap-1">
                             Relevé <i class="bi bi-arrow-right"></i>
                         </a>
 
                         <div>
                             <p class="text-sm text-slate-500 font-medium">{{ compte.get_type_compte_display }}</p>
                             <h3 class="text-2xl font-display font-bold text-slate-900 mt-1">{{ compte.solde }} €</h3>
-                            <p
-                                class="text-xs mt-1 {% if compte.marge_dispo < 0 %}text-red-600{% else %}text-slate-500{% endif %}">
+                            <p class="text-xs mt-1 {% if compte.marge_dispo < 0 %}text-red-600{% else %}text-slate-500{% endif %}">
                                 Marge avant blocage : {{ compte.marge_dispo }} € (limite {{ overdraft_limit }} €)
                             </p>
                         </div>
 
                         <div class="flex justify-between items-end">
-                            <p class="text-xs text-slate-400 font-mono bg-white/50 px-2 py-1 rounded-lg">{{
-                                compte.numero_compte }}</p>
+                            <p class="text-xs text-slate-400 font-mono bg-white/50 px-2 py-1 rounded-lg">{{ compte.numero_compte }}</p>
                         </div>
                     </div>
                     {% empty %}
@@ -282,15 +227,14 @@
                     </div>
                     {% endfor %}
 
-                    {% if comptes|length < 3 %} <a href="{% url 'ouvrir_compte' %}"
-                        class="border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center text-slate-400 hover:border-ice-300 hover:text-ice-500 hover:bg-ice-50/50 transition-all duration-300 h-40 gap-2 group cursor-pointer">
-                        <div
-                            class="w-10 h-10 rounded-full bg-slate-50 group-hover:bg-ice-100 flex items-center justify-center transition-colors">
+                    {% if comptes|length < 3 %}
+                    <a href="{% url 'ouvrir_compte' %}" class="border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center text-slate-400 hover:border-ice-300 hover:text-ice-500 hover:bg-ice-50/50 transition-all duration-300 h-40 gap-2 group cursor-pointer">
+                        <div class="w-10 h-10 rounded-full bg-slate-50 group-hover:bg-ice-100 flex items-center justify-center transition-colors">
                             <i class="bi bi-plus-lg text-2xl group-hover:text-ice-600 transition-colors"></i>
                         </div>
                         <span class="font-bold text-sm">Ouvrir un compte</span>
-                        </a>
-                        {% endif %}
+                    </a>
+                    {% endif %}
                 </div>
 
                 <div class="glass-panel p-6 md:p-8 rounded-3xl">
@@ -299,8 +243,7 @@
                             <h3 class="font-display font-bold text-slate-900 text-lg">Analyse des dépenses</h3>
                             <p class="text-xs text-slate-500" id="spendingSubtitle">Vos sorties d'argent sur 6 mois</p>
                         </div>
-                        <select id="spendingRange"
-                            class="bg-slate-50 border-none text-sm font-bold rounded-xl px-4 py-2 text-slate-600 focus:ring-2 focus:ring-ice-200 cursor-pointer hover:bg-slate-100 transition-colors">
+                        <select id="spendingRange" class="bg-slate-50 border-none text-sm font-bold rounded-xl px-4 py-2 text-slate-600 focus:ring-2 focus:ring-ice-200 cursor-pointer hover:bg-slate-100 transition-colors">
                             <option value="6m">6 derniers mois</option>
                             <option value="year">Cette année</option>
                         </select>
@@ -325,9 +268,7 @@
                     <div class="p-6 md:p-8 border-b border-slate-100 flex justify-between items-center bg-white/40">
                         <h3 class="font-display font-bold text-slate-900 text-lg">Transactions Récentes</h3>
                         {% if comptes %}
-                        <a href="{% url 'releve_compte' comptes.0.id %}"
-                            class="text-ice-600 text-sm font-bold hover:text-ice-700 hover:underline decoration-2 underline-offset-4">Tout
-                            voir</a>
+                        <a href="{% url 'releve_compte' comptes.0.id %}" class="text-ice-600 text-sm font-bold hover:text-ice-700 hover:underline decoration-2 underline-offset-4">Tout voir</a>
                         {% else %}
                         <span class="text-slate-400 text-sm">Tout voir</span>
                         {% endif %}
@@ -336,26 +277,21 @@
                         {% for tx in transactions_recentes %}
                         <div class="p-5 flex items-center justify-between hover:bg-white/60 transition-colors">
                             <div class="flex items-center gap-4">
-                                <div
-                                    class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center text-xl">
-                                    {% if tx.type == 'CREDIT' %}<i class="bi bi-arrow-down-left text-green-500"></i>{%
-                                    else %}<i class="bi bi-bag text-slate-400"></i>{% endif %}
+                                <div class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center text-xl">
+                                    {% if tx.type == 'CREDIT' %}<i class="bi bi-arrow-down-left text-green-500"></i>{% else %}<i class="bi bi-bag text-slate-400"></i>{% endif %}
                                 </div>
                                 <div>
                                     <p class="font-bold text-slate-800">{{ tx.libelle }}</p>
-                                    <p class="text-xs text-slate-500 font-medium">{{ tx.date_execution|date:"d F, H:i"
-                                        }}</p>
+                                    <p class="text-xs text-slate-500 font-medium">{{ tx.date_execution|date:"d F, H:i" }}</p>
                                 </div>
                             </div>
-                            <span
-                                class="font-bold font-mono text-lg {% if tx.montant > 0 %}text-green-600{% else %}text-slate-900{% endif %}">
+                            <span class="font-bold font-mono text-lg {% if tx.montant > 0 %}text-green-600{% else %}text-slate-900{% endif %}">
                                 {% if tx.montant > 0 %}+{% endif %}{{ tx.montant }} €
                             </span>
                         </div>
                         {% empty %}
                         <div class="p-12 text-center">
-                            <div
-                                class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
+                            <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
                                 <i class="bi bi-receipt text-2xl"></i>
                             </div>
                             <p class="text-slate-500 font-medium">Aucune transaction récente.</p>
@@ -370,10 +306,8 @@
                         {% for d in demandes_credit_recent %}
                         <div class="py-3 flex items-center justify-between">
                             <div>
-                                <p class="font-bold text-slate-800 text-sm">{% if d.produit %}{{ d.produit.nom }}{% else
-                                    %}Crédit{% endif %}</p>
-                                <p class="text-xs text-slate-500">{{ d.date_demande|date:"d M Y" }} • {{
-                                    d.get_statut_display }}</p>
+                                <p class="font-bold text-slate-800 text-sm">{% if d.produit %}{{ d.produit.nom }}{% else %}Crédit{% endif %}</p>
+                                <p class="text-xs text-slate-500">{{ d.date_demande|date:"d M Y" }} • {{ d.get_statut_display }}</p>
                             </div>
                             <span class="text-sm font-mono font-bold text-slate-700">{{ d.montant_souhaite }} €</span>
                         </div>
@@ -381,8 +315,7 @@
                         <p class="text-slate-500 text-sm">Aucune demande récente.</p>
                         {% endfor %}
                     </div>
-                    <a href="{% url 'historique' %}"
-                        class="mt-3 inline-flex items-center gap-2 text-sm font-bold text-ice-700 hover:text-ice-900">
+                    <a href="{% url 'historique' %}" class="mt-3 inline-flex items-center gap-2 text-sm font-bold text-ice-700 hover:text-ice-900">
                         Voir l'historique complet <i class="bi bi-arrow-right"></i>
                     </a>
                 </div>
@@ -390,35 +323,27 @@
 
             <div class="lg:w-1/3 space-y-8">
 
-                <a href="{% url 'cartes' %}"
-                    class="block relative w-full min-h-[220px] sm:min-h-[240px] rounded-3xl p-5 sm:p-7 md:p-8 shadow-2xl border border-white/10 group transform hover:scale-[1.02] transition-all duration-500 overflow-hidden cursor-pointer shine bg-gradient-to-br from-slate-800 to-black flex flex-col justify-between">
-                    <div class="flex justify-between items-start mb-6 sm:mb-8 relative z-10">
-                        <i class="bi bi-snow2 text-white/90 text-2xl sm:text-3xl"></i>
-                        <i class="bi bi-wifi text-white/60 text-xl sm:text-2xl rotate-90"></i>
+                <a href="{% url 'cartes' %}" class="block relative h-64 w-full rounded-3xl p-8 shadow-2xl border border-white/10 group transform hover:scale-[1.02] transition-all duration-500 overflow-hidden cursor-pointer shine bg-gradient-to-br from-slate-800 to-black">
+                    <div class="flex justify-between items-start mb-10 relative z-10">
+                        <i class="bi bi-snow2 text-white/90 text-3xl"></i>
+                        <i class="bi bi-wifi text-white/60 text-2xl rotate-90"></i>
                     </div>
 
-                    <div class="space-y-4 sm:space-y-5 relative z-10">
-                        <div
-                            class="text-white/90 font-mono text-xl sm:text-[22px] tracking-[0.15em] sm:tracking-[0.16em] whitespace-nowrap">
-                            {% if cartes %}**** **** **** {{ cartes.0.numero_visible }}{% else %}**** **** **** 0000{%
-                            endif %}
+                    <div class="space-y-6 relative z-10">
+                        <div class="text-white/90 font-mono text-2xl tracking-widest">
+                            {% if cartes %}**** **** **** {{ cartes.0.numero_visible }}{% else %}**** **** **** 0000{% endif %}
                         </div>
-                        <div class="flex justify-between items-end gap-3">
+                        <div class="flex justify-between items-end">
                             <div>
-                                <div
-                                    class="text-white/60 text-[10px] font-bold uppercase tracking-wider mb-1 sm:mb-0.5">
-                                    Titulaire</div>
-                                <div
-                                    class="text-white font-bold tracking-wide uppercase text-sm sm:text-base truncate max-w-[180px] sm:max-w-[220px]">
+                                <div class="text-white/60 text-[10px] font-bold uppercase tracking-wider mb-1">Titulaire</div>
+                                <div class="text-white font-bold tracking-wide uppercase text-sm truncate">
                                     {{ user.first_name }} {{ user.last_name|upper }}
                                 </div>
-                                <div class="text-white font-bold italic tracking-wide mt-1.5 sm:mt-2">VISA</div>
+                                <div class="text-white font-bold italic tracking-wide mt-2">VISA</div>
                             </div>
                             <div class="text-right">
-                                <div
-                                    class="text-white/60 text-[10px] font-bold uppercase tracking-wider mb-1 sm:mb-0.5">
-                                    Exp.</div>
-                                <div class="text-white font-mono text-sm sm:text-base font-bold">
+                                <div class="text-white/60 text-[10px] font-bold uppercase tracking-wider mb-1">Exp.</div>
+                                <div class="text-white font-mono text-sm font-bold">
                                     {% if cartes %}{{ cartes.0.date_expiration|date:"m/y" }}{% else %}00/00{% endif %}
                                 </div>
                             </div>
@@ -426,76 +351,60 @@
                     </div>
 
                     <div
-                        class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl pointer-events-none">
-                    </div>
+                        class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl pointer-events-none"></div>
                     <div
-                        class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] mix-blend-overlay">
-                    </div>
+                        class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] mix-blend-overlay"></div>
                 </a>
 
                 <div class="glass-panel p-6 rounded-3xl space-y-4">
                     <div class="flex items-start justify-between gap-3">
                         <div>
                             <p class="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">Formule actuelle</p>
-                            <h3 class="font-display font-bold text-slate-900 text-xl">{{
-                                profil_client.get_abonnement_display }}</h3>
-                            <p class="text-sm text-slate-500">Prochaine facturation : {{
-                                profil_client.prochaine_facturation|date:"d M Y" }}</p>
-                            {% if profil_client.prochain_abonnement and profil_client.prochain_abonnement !=
-                            profil_client.abonnement %}
-                            <p class="text-xs text-slate-500 mt-1">Plan programmé : {{
-                                profil_client.get_prochain_abonnement_display }}</p>
+                            <h3 class="font-display font-bold text-slate-900 text-xl">{{ profil_client.get_abonnement_display }}</h3>
+                            <p class="text-sm text-slate-500">Prochaine facturation : {{ profil_client.prochaine_facturation|date:"d M Y" }}</p>
+                            {% if profil_client.prochain_abonnement and profil_client.prochain_abonnement != profil_client.abonnement %}
+                            <p class="text-xs text-slate-500 mt-1">Plan programmé : {{ profil_client.get_prochain_abonnement_display }}</p>
                             {% endif %}
                         </div>
-                        <a href="{% url 'abonnements' %}"
-                            class="text-xs font-bold text-ice-700 hover:text-ice-900 underline underline-offset-4">Avantages</a>
+                        <a href="{% url 'abonnements' %}" class="text-xs font-bold text-ice-700 hover:text-ice-900 underline underline-offset-4">Avantages</a>
                     </div>
                     <div class="space-y-2">
                         <div class="text-xs text-slate-500">Changer de formule (confirmation requise) :</div>
                         <div class="grid grid-cols-1 gap-2">
-                            <form method="post" action="{% url 'changer_abonnement' %}" class="subscription-form">{%
-                                csrf_token %}
+                            <form method="post" action="{% url 'changer_abonnement' %}" class="subscription-form">{% csrf_token %}
                                 <input type="hidden" name="plan" value="ESSENTIEL">
                                 <input type="hidden" name="password" value="">
-                                <button type="submit" {% if profil_client.abonnement=='ESSENTIEL' %}disabled{% endif %}
+                                <button type="submit" {% if profil_client.abonnement == 'ESSENTIEL' %}disabled{% endif %}
                                     class="w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors {% if profil_client.abonnement == 'ESSENTIEL' %}border-ice-200 bg-ice-50 text-ice-700 opacity-70 cursor-not-allowed{% else %}border-slate-200 text-slate-700 hover:border-ice-200 hover:text-ice-700{% endif %}">
-                                    <span class="font-bold text-sm">Essentiel {% if profil_client.abonnement ==
-                                        'ESSENTIEL' %}(actuel){% endif %}</span>
+                                    <span class="font-bold text-sm">Essentiel {% if profil_client.abonnement == 'ESSENTIEL' %}(actuel){% endif %}</span>
                                     <span class="text-xs text-slate-500">0 €</span>
                                 </button>
                             </form>
-                            <form method="post" action="{% url 'changer_abonnement' %}" class="subscription-form">{%
-                                csrf_token %}
+                            <form method="post" action="{% url 'changer_abonnement' %}" class="subscription-form">{% csrf_token %}
                                 <input type="hidden" name="plan" value="PLUS">
                                 <input type="hidden" name="password" value="">
-                                <button type="submit" {% if profil_client.abonnement=='PLUS' %}disabled{% endif %}
+                                <button type="submit" {% if profil_client.abonnement == 'PLUS' %}disabled{% endif %}
                                     class="w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors {% if profil_client.abonnement == 'PLUS' %}border-ice-200 bg-ice-50 text-ice-700 opacity-70 cursor-not-allowed{% else %}border-slate-200 text-slate-700 hover:border-ice-200 hover:text-ice-700{% endif %}">
-                                    <span class="font-bold text-sm">Plus {% if profil_client.abonnement == 'PLUS'
-                                        %}(actuel){% endif %}</span>
+                                    <span class="font-bold text-sm">Plus {% if profil_client.abonnement == 'PLUS' %}(actuel){% endif %}</span>
                                     <span class="text-xs text-slate-500">9,90 €</span>
                                 </button>
                             </form>
-                            <form method="post" action="{% url 'changer_abonnement' %}" class="subscription-form">{%
-                                csrf_token %}
+                            <form method="post" action="{% url 'changer_abonnement' %}" class="subscription-form">{% csrf_token %}
                                 <input type="hidden" name="plan" value="INFINITE">
                                 <input type="hidden" name="password" value="">
-                                <button type="submit" {% if profil_client.abonnement=='INFINITE' %}disabled{% endif %}
+                                <button type="submit" {% if profil_client.abonnement == 'INFINITE' %}disabled{% endif %}
                                     class="w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors {% if profil_client.abonnement == 'INFINITE' %}border-ice-200 bg-ice-50 text-ice-700 opacity-70 cursor-not-allowed{% else %}border-slate-200 text-slate-700 hover:border-ice-200 hover:text-ice-700{% endif %}">
-                                    <span class="font-bold text-sm">Infinite {% if profil_client.abonnement ==
-                                        'INFINITE' %}(actuel){% endif %}</span>
+                                    <span class="font-bold text-sm">Infinite {% if profil_client.abonnement == 'INFINITE' %}(actuel){% endif %}</span>
                                     <span class="text-xs text-slate-500">19,90 €</span>
                                 </button>
                             </form>
                         </div>
                     </div>
                     {% if profil_client.abonnement != 'ESSENTIEL' %}
-                    <form method="post" action="{% url 'changer_abonnement' %}" class="pt-2 subscription-form">{%
-                        csrf_token %}
+                    <form method="post" action="{% url 'changer_abonnement' %}" class="pt-2 subscription-form">{% csrf_token %}
                         <input type="hidden" name="plan" value="RESILIER">
                         <input type="hidden" name="password" value="">
-                        <button type="submit"
-                            class="w-full px-4 py-3 text-xs font-bold rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-left">Résilier
-                            (fin de période)</button>
+                        <button type="submit" class="w-full px-4 py-3 text-xs font-bold rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-left">Résilier (fin de période)</button>
                     </form>
                     {% endif %}
                 </div>
@@ -503,55 +412,41 @@
                 <div class="glass-panel p-6 rounded-3xl">
                     <h3 class="font-display font-bold text-slate-900 mb-6">Actions Rapides</h3>
                     <div class="grid grid-cols-2 gap-4">
-                        <a href="{% url 'virement' %}"
-                            class="p-4 rounded-2xl bg-white border border-slate-100 hover:border-ice-200 hover:shadow-lg hover:shadow-ice-500/10 transition-all duration-300 flex flex-col items-center gap-3 group">
-                            <div
-                                class="w-12 h-12 rounded-xl bg-ice-50 text-ice-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
+                        <a href="{% url 'virement' %}" class="p-4 rounded-2xl bg-white border border-slate-100 hover:border-ice-200 hover:shadow-lg hover:shadow-ice-500/10 transition-all duration-300 flex flex-col items-center gap-3 group">
+                            <div class="w-12 h-12 rounded-xl bg-ice-50 text-ice-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
                                 <i class="bi bi-send-fill"></i>
                             </div>
                             <span class="text-sm font-bold text-slate-600 group-hover:text-ice-700">Virement</span>
                         </a>
-                        <a href="{% url 'simulation' %}"
-                            class="p-4 rounded-2xl bg-white border border-slate-100 hover:border-purple-200 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300 flex flex-col items-center gap-3 group">
-                            <div
-                                class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
+                        <a href="{% url 'simulation' %}" class="p-4 rounded-2xl bg-white border border-slate-100 hover:border-purple-200 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300 flex flex-col items-center gap-3 group">
+                            <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
                                 <i class="bi bi-calculator-fill"></i>
                             </div>
                             <span class="text-sm font-bold text-slate-600 group-hover:text-purple-700">Simuler</span>
                         </a>
-                        <a href="{% url 'cartes' %}"
-                            class="p-4 rounded-2xl bg-white border border-slate-100 hover:border-orange-200 hover:shadow-lg hover:shadow-orange-500/10 transition-all duration-300 flex flex-col items-center gap-3 group">
-                            <div
-                                class="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
+                        <a href="{% url 'cartes' %}" class="p-4 rounded-2xl bg-white border border-slate-100 hover:border-orange-200 hover:shadow-lg hover:shadow-orange-500/10 transition-all duration-300 flex flex-col items-center gap-3 group">
+                            <div class="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
                                 <i class="bi bi-credit-card-2-front-fill"></i>
                             </div>
                             <span class="text-sm font-bold text-slate-600 group-hover:text-orange-700">Cartes</span>
                         </a>
-                        <a href="{% url 'support' %}"
-                            class="p-4 rounded-2xl bg-white border border-slate-100 hover:border-green-200 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300 flex flex-col items-center gap-3 group">
-                            <div
-                                class="w-12 h-12 rounded-xl bg-green-50 text-green-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
+                        <a href="{% url 'support' %}" class="p-4 rounded-2xl bg-white border border-slate-100 hover:border-green-200 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300 flex flex-col items-center gap-3 group">
+                            <div class="w-12 h-12 rounded-xl bg-green-50 text-green-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
                                 <i class="bi bi-chat-dots-fill"></i>
                             </div>
                             <span class="text-sm font-bold text-slate-600 group-hover:text-green-700">Aide</span>
                         </a>
-                        <a href="{% url 'historique' %}"
-                            class="p-4 rounded-2xl bg-white border border-slate-100 hover:border-cyan-200 hover:shadow-lg hover:shadow-cyan-500/10 transition-all duration-300 flex flex-col items-center gap-3 group">
-                            <div
-                                class="w-12 h-12 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
+                        <a href="{% url 'historique' %}" class="p-4 rounded-2xl bg-white border border-slate-100 hover:border-cyan-200 hover:shadow-lg hover:shadow-cyan-500/10 transition-all duration-300 flex flex-col items-center gap-3 group">
+                            <div class="w-12 h-12 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
                                 <i class="bi bi-journal-text"></i>
                             </div>
-                            <span class="text-sm font-bold text-slate-600 group-hover:text-cyan-700">Hist.
-                                crédits</span>
+                            <span class="text-sm font-bold text-slate-600 group-hover:text-cyan-700">Hist. crédits</span>
                         </a>
-                        <a href="{% url 'statistiques' %}"
-                            class="p-4 rounded-2xl bg-white border border-slate-100 hover:border-amber-200 hover:shadow-lg hover:shadow-amber-500/10 transition-all duration-300 flex flex-col items-center gap-3 group">
-                            <div
-                                class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
+                        <a href="{% url 'statistiques' %}" class="p-4 rounded-2xl bg-white border border-slate-100 hover:border-amber-200 hover:shadow-lg hover:shadow-amber-500/10 transition-all duration-300 flex flex-col items-center gap-3 group">
+                            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
                                 <i class="bi bi-bar-chart-line"></i>
                             </div>
-                            <span class="text-sm font-bold text-slate-600 group-hover:text-amber-700">Stats
-                                compte</span>
+                            <span class="text-sm font-bold text-slate-600 group-hover:text-amber-700">Stats compte</span>
                         </a>
                     </div>
                 </div>
@@ -568,36 +463,27 @@
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <label class="text-xs text-slate-500">Montant souhaité (€)</label>
-                                <input type="number" name="montant" min="50" step="10"
-                                    class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" required>
+                                <input type="number" name="montant" min="50" step="10" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" required>
                             </div>
                             <div>
                                 <label class="text-xs text-slate-500">Durée (jours)</label>
-                                <input type="number" name="duree_jours" min="7" step="1" value="30"
-                                    class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm">
+                                <input type="number" name="duree_jours" min="7" step="1" value="30" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm">
                             </div>
                         </div>
-                        <button type="submit"
-                            class="w-full px-4 py-3 rounded-xl bg-ice-600 text-white font-bold text-sm hover:bg-ice-700 transition">Demander</button>
+                        <button type="submit" class="w-full px-4 py-3 rounded-xl bg-ice-600 text-white font-bold text-sm hover:bg-ice-700 transition">Demander</button>
                         <p class="text-[11px] text-slate-500">Notification envoyée aux admins pour validation.</p>
                     </form>
                 </div>
 
                 <div class="relative rounded-3xl overflow-hidden bg-slate-900 p-6 text-white shadow-xl">
-                    <div
-                        class="absolute top-0 right-0 w-40 h-40 bg-ice-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3">
-                    </div>
+                    <div class="absolute top-0 right-0 w-40 h-40 bg-ice-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
                     <div class="relative z-10">
-                        <div
-                            class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mb-4 backdrop-blur-sm">
+                        <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mb-4 backdrop-blur-sm">
                             <i class="bi bi-house-heart-fill text-ice-300"></i>
                         </div>
                         <h3 class="font-display font-bold text-lg mb-2">Projet Immobilier ?</h3>
-                        <p class="text-slate-400 text-sm mb-6 leading-relaxed">Profitez de nos taux préférentiels pour
-                            les membres Banquise.</p>
-                        <a href="{% url 'projet_immobilier' %}"
-                            class="block w-full py-3 bg-white text-slate-900 font-bold text-center rounded-xl text-sm hover:bg-ice-50 transition-colors">Découvrir
-                            l'offre</a>
+                        <p class="text-slate-400 text-sm mb-6 leading-relaxed">Profitez de nos taux préférentiels pour les membres Banquise.</p>
+                        <a href="{% url 'projet_immobilier' %}" class="block w-full py-3 bg-white text-slate-900 font-bold text-center rounded-xl text-sm hover:bg-ice-50 transition-colors">Découvrir l'offre</a>
                     </div>
                 </div>
             </div>
