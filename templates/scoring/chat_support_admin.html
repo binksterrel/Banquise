@@ -3,91 +3,115 @@
 {% block title %}Support Admin - Chat{% endblock %}
 
 {% block content %}
-{% block content %}
 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <div class="glass-panel p-6 md:p-8 rounded-3xl">
         <div class="flex items-center justify-between mb-6">
             <div>
                 <p class="text-xs font-bold uppercase text-ice-600 tracking-[0.2em]">Support</p>
                 <h1 class="text-2xl font-display font-bold text-slate-900">Conversations clients</h1>
-                <p class="text-sm text-slate-500">Répondez, éditez ou supprimez vos messages. Pièces jointes acceptées.</p>
+                <p class="text-sm text-slate-500">Vue d’ensemble — clique sur une carte pour ouvrir la discussion.</p>
             </div>
         </div>
-
-        {% for convo in conversations %}
-        <div class="mb-8 border border-slate-100 rounded-2xl bg-white/90 shadow-sm" id="conv-{{ convo.user.id }}">
-            <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                <div>
-                    <p class="font-bold text-slate-900">{{ convo.user.username }} {% if convo.user.email %}<span class="text-xs text-slate-500">({{ convo.user.email }})</span>{% endif %}</p>
-                </div>
-                <a href="#conv-{{ convo.user.id }}" class="text-xs font-bold text-ice-700 hover:text-ice-900">Ouvrir</a>
-            </div>
-            <div class="p-4 space-y-3 max-h-80 overflow-y-auto">
-                {% for msg in convo.messages %}
-                <div class="max-w-xl {% if msg.est_admin %}ml-auto text-right{% endif %}">
-                    <div class="relative group inline-flex flex-col items-start px-4 py-3 rounded-2xl gap-2 {% if msg.est_admin %}bg-ice-50 text-ice-800 border border-ice-100{% else %}bg-slate-900 text-white{% endif %}">
-                        <div class="flex items-center gap-2 text-[11px] uppercase font-bold {% if msg.est_admin %}text-ice-600{% else %}text-ice-200{% endif %}">
-                            <span class="inline-flex items-center gap-1"><i class="bi {% if msg.est_admin %}bi-shield-lock{% else %}bi-person-circle{% endif %}"></i> {% if msg.est_admin %}Support{% else %}Client{% endif %}</span>
-                            <span class="text-slate-400 normal-case">{{ msg.date_envoi|date:"d M Y H:i" }}{% if msg.a_ete_modifie %} · édité{% endif %}</span>
-                        </div>
-                        {% if msg.contenu %}<p class="text-sm break-words text-left w-full">{{ msg.contenu }}</p>{% endif %}
-                        {% if msg.image %}
-                        <div class="mt-1 w-full">
-                            <img src="{{ msg.image.url }}" alt="Pièce jointe" class="w-full max-w-xs rounded-xl border border-white/40">
-                        </div>
-                        {% endif %}
-                        <div class="absolute -top-2 -right-2 hidden group-hover:flex items-center gap-2">
-                            {% if msg.est_admin %}
-                            <button type="button" class="p-1.5 rounded-full bg-white/80 text-slate-600 hover:text-ice-700 shadow-sm edit-toggle" data-target="edit-admin-{{ msg.id }}" title="Modifier">
-                                <i class="bi bi-pencil-square"></i>
-                            </button>
+        <div class="grid lg:grid-cols-[160px_1fr] gap-3">
+            <div class="w-full space-y-1 overflow-y-auto lg:max-h-[400px]">
+                {% for convo in conversations %}
+                <a href="?user={{ convo.user.id }}#conv-{{ convo.user.id }}"
+                    class="group block rounded-xl border {% if selected_convo and selected_convo.user.id == convo.user.id %}border-ice-500 bg-ice-50 shadow{% else %}border-slate-200 bg-white/80 hover:shadow-md{% endif %} p-2 transition flex flex-col gap-1">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-slate-900 leading-tight">{{ convo.user.username }}</p>
+                            {% if convo.user.email %}
+                            <p class="text-[10px] text-slate-500 truncate">{{ convo.user.email }}</p>
                             {% endif %}
-                            <form method="post" class="inline-block" enctype="multipart/form-data">{% csrf_token %}
-                                <input type="hidden" name="action" value="delete">
-                                <input type="hidden" name="message_id" value="{{ msg.id }}">
-                                <button type="submit" class="p-1.5 rounded-full bg-white/80 text-red-500 hover:text-red-600 shadow-sm" title="Supprimer">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
                         </div>
+                        {# pastille retirée #}
                     </div>
-                    {% if msg.est_admin %}
-                    <form id="edit-admin-{{ msg.id }}" class="hidden mt-2 space-y-3 border border-slate-200 rounded-2xl p-3 bg-white/60" method="post">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="edit">
-                        <input type="hidden" name="message_id" value="{{ msg.id }}">
-                        <textarea name="message" rows="2" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm">{{ msg.contenu }}</textarea>
-                        <div class="flex gap-2">
-                            <button type="submit" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold">Enregistrer</button>
-                            <button type="button" class="px-4 py-2 rounded-xl border text-xs font-bold cancel-edit" data-target="edit-admin-{{ msg.id }}">Annuler</button>
-                        </div>
-                    </form>
+                    <p class="text-xs text-slate-600 conversation-preview">{{ convo.last_message_preview|default:"Pas encore de message" }}</p>
+                    {% if convo.last_message_time %}
+                    <p class="text-[10px] text-slate-400">{{ convo.last_message_time|date:"d M Y H:i" }}</p>
                     {% endif %}
-                </div>
+                </a>
                 {% empty %}
-                <p class="text-slate-400 text-sm">Aucun message.</p>
+                <p class="text-slate-500 text-sm">Aucune conversation.</p>
                 {% endfor %}
             </div>
-            <form method="post" class="p-4 border-t border-slate-100 flex flex-col gap-3 bg-white/70" enctype="multipart/form-data">{% csrf_token %}
-                <input type="hidden" name="target_user" value="{{ convo.user.id }}">
-                <div class="flex flex-col sm:flex-row gap-3">
-                    <textarea name="message" rows="3" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-ice-200 focus:border-ice-300 text-sm" placeholder="Répondre à {{ convo.user.username }}"></textarea>
-                    <div class="flex flex-col sm:w-44 gap-2">
-                        <label class="px-4 py-3 rounded-xl border border-dashed border-slate-300 text-sm text-slate-600 cursor-pointer hover:border-ice-300 flex items-center justify-center gap-2">
-                            <i class="bi bi-paperclip"></i> Joindre
-                            <input type="file" name="image" accept="image/*" class="hidden">
-                        </label>
-                        <button type="submit" class="px-5 py-3 rounded-xl bg-slate-900 text-white font-bold text-sm hover:-translate-y-0.5 transition-all duration-200 shadow-lg flex items-center justify-center gap-2">
-                            <i class="bi bi-send-fill"></i> Envoyer
-                        </button>
+            <div class="flex-1 space-y-6 overflow-y-auto px-1">
+                {% if selected_convo %}
+                <div class="border border-slate-100 rounded-2xl bg-white/90 shadow-sm" id="conv-{{ selected_convo.user.id }}">
+                    <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                        <div>
+                            <p class="font-bold text-slate-900">{{ selected_convo.user.username }} {% if selected_convo.user.email %}<span class="text-xs text-slate-500">({{ selected_convo.user.email }})</span>{% endif %}</p>
+                        </div>
+                        <a href="#conv-{{ selected_convo.user.id }}" class="text-xs font-bold text-ice-700 hover:text-ice-900">Ouvrir</a>
                     </div>
+                    <div class="p-4 space-y-3 h-[42vh] overflow-y-auto thread-scroll" id="thread-scroll">
+                        {% for msg in selected_convo.messages %}
+                        <div class="max-w-xl {% if msg.est_admin %}ml-auto text-right{% endif %}">
+                            <div class="relative group inline-flex flex-col items-start px-4 py-3 rounded-2xl gap-2 {% if msg.est_admin %}bg-ice-50 text-ice-800 border border-ice-100{% else %}bg-slate-900 text-white{% endif %}">
+                                <div class="flex items-center gap-2 text-[11px] uppercase font-bold {% if msg.est_admin %}text-ice-600{% else %}text-ice-200{% endif %}">
+                                    <span class="inline-flex items-center gap-1"><i class="bi {% if msg.est_admin %}bi-shield-lock{% else %}bi-person-circle{% endif %}"></i> {% if msg.est_admin %}Support{% else %}{{ msg.user.get_full_name|default:msg.user.username }}{% endif %}</span>
+                                    <span class="text-slate-400 normal-case">{{ msg.date_envoi|date:"d M Y H:i" }}{% if msg.a_ete_modifie %} · édité{% endif %}</span>
+                                </div>
+                                {% if msg.contenu %}<p class="text-sm break-words text-left w-full">{{ msg.contenu }}</p>{% endif %}
+                                {% if msg.image %}
+                                <div class="mt-1 w-full">
+                                    <img src="{{ msg.image.url }}" alt="Pièce jointe" class="w-full max-w-xs rounded-xl border border-white/40">
+                                </div>
+                                {% endif %}
+                                <div class="absolute -top-2 -right-2 hidden group-hover:flex items-center gap-2">
+                                    {% if msg.est_admin %}
+                                    <button type="button" class="p-1.5 rounded-full bg-white/80 text-slate-600 hover:text-ice-700 shadow-sm edit-toggle" data-target="edit-admin-{{ msg.id }}" title="Modifier">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+                                    {% endif %}
+                                    <form method="post" class="inline-block">{% csrf_token %}
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="message_id" value="{{ msg.id }}">
+                                        <button type="submit" class="p-1.5 rounded-full bg-white/80 text-red-500 hover:text-red-600 shadow-sm" title="Supprimer">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                            {% if msg.est_admin %}
+                            <form id="edit-admin-{{ msg.id }}" class="hidden mt-2 space-y-3 border border-slate-200 rounded-2xl p-3 bg-white/60" method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="edit">
+                                <input type="hidden" name="message_id" value="{{ msg.id }}">
+                                <textarea name="message" rows="2" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm">{{ msg.contenu }}</textarea>
+                                <div class="flex gap-2">
+                                    <button type="submit" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold">Enregistrer</button>
+                                    <button type="button" class="px-4 py-2 rounded-xl border text-xs font-bold cancel-edit" data-target="edit-admin-{{ msg.id }}">Annuler</button>
+                                </div>
+                            </form>
+                            {% endif %}
+                        </div>
+                        {% empty %}
+                        <p class="text-slate-400 text-sm">Aucun message dans cette conversation.</p>
+                        {% endfor %}
+                    </div>
+                    <form method="post" class="p-4 border-t border-slate-100 flex flex-col gap-3 bg-white/70" enctype="multipart/form-data">{% csrf_token %}
+                        <input type="hidden" name="target_user" value="{{ selected_convo.user.id }}">
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <textarea name="message" rows="3" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-ice-200 focus:border-ice-300 text-sm" placeholder="Répondre à {{ selected_convo.user.username }}"></textarea>
+                            <div class="flex flex-col sm:w-44 gap-2">
+                                <label class="px-4 py-3 rounded-xl border border-dashed border-slate-300 text-sm text-slate-600 cursor-pointer hover:border-ice-300 flex items-center justify-center gap-2">
+                                    <i class="bi bi-paperclip"></i> Joindre
+                                    <input type="file" name="image" accept="image/*" class="hidden">
+                                </label>
+                                <button type="submit" class="px-5 py-3 rounded-xl bg-slate-900 text-white font-bold text-sm hover:-translate-y-0.5 transition-all duration-200 shadow-lg flex items-center justify-center gap-2">
+                                    <i class="bi bi-send-fill"></i> Envoyer
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-slate-500 flex items-center gap-2"><i class="bi bi-shield-check text-ice-500"></i> Pièces jointes autorisées. Vous pouvez éditer/supprimer vos réponses.</p>
+                    </form>
                 </div>
-                <p class="text-[11px] text-slate-500 flex items-center gap-2"><i class="bi bi-shield-check text-ice-500"></i> Pièces jointes autorisées. Vous pouvez éditer/supprimer vos réponses.</p>
-            </form>
+                {% else %}
+                <p class="text-slate-500 text-sm">Sélectionne une conversation pour voir les messages.</p>
+                {% endif %}
+            </div>
         </div>
-        {% empty %}
-        <p class="text-slate-500 text-sm">Aucune conversation.</p>
-        {% endfor %}
     </div>
 </div>
 <script>
@@ -103,5 +127,10 @@
             if (target) target.classList.add('hidden');
         });
     });
+    // Auto-scroll sur la conversation active
+    const thread = document.getElementById('thread-scroll');
+    if (thread) {
+        thread.scrollTop = thread.scrollHeight;
+    }
 </script>
 {% endblock %}

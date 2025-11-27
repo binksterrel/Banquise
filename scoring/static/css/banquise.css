@@ -377,12 +377,22 @@ label {
 }
 
 @media (max-width: 768px) {
-  .dock-dot {
-    position: absolute;
-    top: 50%;
-    left: 75%;
-    transform: translate(-50%, -50%);
-  }
+.dock-dot {
+  position: absolute;
+  top: 50%;
+  left: 75%;
+  transform: translate(-50%, -50%);
+}
+}
+
+.conversation-preview {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.1;
+  min-height: 1.1rem;
 }
 
 /* --- Scroll progress --- */

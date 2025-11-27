@@ -842,12 +842,41 @@ def chat_support_admin(request):
     base_threads = MessageSupport.objects.values('user').annotate(last=Max('date_envoi')).order_by('-last')
     conversations = []
     unread_count = Notification.objects.filter(user=request.user, est_lu=False).count()
+    selected_convo = None
     for t in base_threads:
-        if filter_user and str(t['user']) != str(filter_user):
-            continue
         user_obj = User.objects.filter(id=t['user']).first()
         msgs = MessageSupport.objects.filter(user_id=t['user']).order_by('date_envoi')
+        last_msg = msgs.last()
+        unread = msgs.filter(est_lu=False).exists()
+        unseen_last = False
         conversations.append({'user': user_obj, 'messages': msgs})
+        if last_msg:
+            conversations[-1].update({
+                'last_message_preview': (last_msg.contenu or ("Pièce jointe" if last_msg.image else "—")).strip(),
+                'last_message_time': last_msg.date_envoi,
+                'unread': unread,
+                'unseen_last': unseen_last,
+            })
+    # Marquer la conversation sélectionnée comme lue
+    if selected_convo and selected_convo.get('messages'):
+        msg_ids = [m.id for m in selected_convo['messages'] if not m.est_lu]
+        if msg_ids:
+            MessageSupport.objects.filter(id__in=msg_ids).update(est_lu=True)
+            # Met à jour les objets en mémoire et la pastille dans la liste
+            for m in selected_convo['messages']:
+                m.est_lu = True
+            for conv in conversations:
+                if conv['user'].id == selected_convo['user'].id:
+                    conv['unseen_last'] = False
+                    conv['unread'] = False
+        selected_convo['unseen_last'] = False
+    selected_user = filter_user or (conversations[0]['user'].id if conversations else None)
+    selected_convo = None
+    if selected_user:
+        for convo in conversations:
+            if str(convo['user'].id) == str(selected_user):
+                selected_convo = convo
+                break
 
     # Réponse à un utilisateur ciblé
     if request.method == 'POST':
@@ -892,7 +921,8 @@ def chat_support_admin(request):
     return render(request, 'scoring/chat_support_admin.html', {
         'conversations': conversations,
         'filter_user': filter_user,
-        'unread_notifs': unread_count
+        'unread_notifs': unread_count,
+        'selected_convo': selected_convo
     })
 
 
