@@ -4,44 +4,15 @@
 
 {% block extra_css %}
 <style>
-    @keyframes blob {
-        0% { transform: translate(0px, 0px) scale(1); }
-        33% { transform: translate(30px, -50px) scale(1.1); }
-        66% { transform: translate(-20px, 20px) scale(0.9); }
-        100% { transform: translate(0px, 0px) scale(1); }
-    }
+    @keyframes blob { 0% { transform: translate(0px, 0px) scale(1); } 33% { transform: translate(30px, -50px) scale(1.1); } 66% { transform: translate(-20px, 20px) scale(0.9); } 100% { transform: translate(0px, 0px) scale(1); } }
     .animate-blob { animation: blob 7s infinite; }
     .animation-delay-2000 { animation-delay: 2s; }
     .animation-delay-4000 { animation-delay: 4s; }
-    .glass-panel {
-        background: rgba(255,255,255,0.7);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255,255,255,0.6);
-        box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-    }
-    .glass-card-hover:hover {
-        transform: translateY(-2px);
-        background: rgba(255,255,255,0.85);
-        border-color: rgba(14,165,233,0.3);
-        box-shadow: 0 10px 30px rgba(14,165,233,0.1);
-    }
-
-    /* Perspective pour la carte 3D */
-    .perspective-1000 {
-        perspective: 1000px;
-    }
-
-    /* Animation holographique */
-    #holo-layer {
-        animation: holoMove 6s ease-in-out infinite alternate;
-    }
-    @keyframes holoMove {
-        0%   { filter: hue-rotate(0deg) brightness(1.05); }
-        100% { filter: hue-rotate(90deg) brightness(1.4); }
-    }
+    .glass-panel { background: rgba(255,255,255,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
+    .glass-card-hover:hover { transform: translateY(-2px); background: rgba(255,255,255,0.85); border-color: rgba(14,165,233,0.3); box-shadow: 0 10px 30px rgba(14,165,233,0.1); }
 </style>
 {% endblock %}
+
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -82,13 +53,7 @@
             plugins: { legend: { display: false } },
             scales: {
                 y: { display: false, grid: { display: false } },
-                x: {
-                    grid: { display: false },
-                    ticks: {
-                        font: { family: "'Plus Jakarta Sans', sans-serif" },
-                        color: '#94a3b8'
-                    }
-                }
+                x: { grid: { display: false }, ticks: { font: { family: "'Plus Jakarta Sans', sans-serif" }, color: '#94a3b8' } }
             },
             interaction: { intersect: false, mode: 'index' }
         }
@@ -114,18 +79,8 @@
                 maintainAspectRatio: false,
                 plugins: { legend: { display: true } },
                 scales: {
-                    y: {
-                        display: true,
-                        grid: { display: false },
-                        title: { display: true, text: 'Mensualités (€)' }
-                    },
-                    x: {
-                        grid: { display: false },
-                        ticks: {
-                            font: { family: "'Plus Jakarta Sans', sans-serif" },
-                            color: '#94a3b8'
-                        }
-                    }
+                    y: { display: true, grid: { display: false }, title: { display: true, text: 'Mensualités (€)' } },
+                    x: { grid: { display: false }, ticks: { font: { family: "'Plus Jakarta Sans', sans-serif" }, color: '#94a3b8' } }
                 },
                 interaction: { intersect: false, mode: 'index' }
             }
@@ -149,7 +104,10 @@
         });
     }
 </script>
+
 {{ block.super }}
+
+<!-- Modal confirmation changement abonnement -->
 <script>
   (function () {
     const modal = document.createElement('div');
@@ -208,69 +166,13 @@
     });
   })();
 </script>
-
-<!-- Effet carte 3D + gyroscope + holo -->
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-    const card = document.getElementById("card");
-    const wrapper = document.getElementById("card-wrapper");
-    const holo = document.getElementById("holo-layer");
-
-    if (!card || !wrapper || !holo) return;
-
-    let width, height, centerX, centerY;
-
-    function updateBounds() {
-        const rect = wrapper.getBoundingClientRect();
-        width = rect.width;
-        height = rect.height;
-        centerX = rect.left + width / 2;
-        centerY = rect.top + height / 2;
-    }
-
-    updateBounds();
-    window.addEventListener("resize", updateBounds);
-
-    // Souris (desktop)
-    wrapper.addEventListener("mousemove", e => {
-        const x = (e.clientX - centerX) / (width / 2);
-        const y = (e.clientY - centerY) / (height / 2);
-
-        card.style.transform = `
-            rotateY(${x * 10}deg)
-            rotateX(${-y * 10}deg)
-            scale(1.03)
-        `;
-
-        holo.style.transform = `translate(${x * -20}px, ${y * -20}px)`;
-    });
-
-    wrapper.addEventListener("mouseleave", () => {
-        card.style.transform = "rotateY(0deg) rotateX(0deg) scale(1)";
-        holo.style.transform = "translate(0,0)";
-    });
-
-    // Gyroscope (mobile)
-    if (window.DeviceOrientationEvent) {
-        window.addEventListener("deviceorientation", e => {
-            const x = (e.gamma || 0) / 45; // gauche-droite
-            const y = (e.beta || 0) / 45;  // avant-arrière
-
-            card.style.transform = `
-                rotateY(${x * 12}deg)
-                rotateX(${(y * -12)}deg)
-                scale(1.04)
-            `;
-
-            holo.style.transform = `translate(${x * -25}px, ${y * -25}px)`;
-        });
-    }
-});
-</script>
 {% endblock %}
+
 
 {% block content %}
 <div class="relative min-h-screen overflow-hidden bg-slate-50/50">
+
+    <!-- Background blobs -->
     <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
         <div class="absolute top-10 left-10 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-60 animate-blob"></div>
         <div class="absolute top-10 right-10 w-96 h-96 bg-ice-200 rounded-full mix-blend-multiply filter blur-3xl opacity-60 animate-blob animation-delay-2000"></div>
@@ -278,6 +180,8 @@ document.addEventListener("DOMContentLoaded", () => {
     </div>
 
     <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Header -->
         <div class="flex flex-col md:flex-row justify-between items-end mb-10 gap-4">
             <div>
                 <p class="text-slate-500 text-sm font-medium mb-1">{% now "l d F Y" %}</p>
@@ -291,6 +195,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <span class="pill bg-white border border-slate-200 text-slate-600">Découvert autorisé {{ overdraft_limit }} €</span>
                 </div>
             </div>
+
             <div>
                 <a href="{% url 'simulation' %}" class="group px-6 py-3 rounded-xl bg-slate-900 text-white font-bold shadow-lg hover:shadow-slate-900/30 hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2">
                     <i class="bi bi-plus-lg group-hover:rotate-90 transition-transform"></i>
@@ -300,13 +205,17 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
 
         <div class="flex flex-col lg:flex-row gap-8">
+
+            <!-- LEFT (2/3) -->
             <div class="lg:w-2/3 space-y-8">
+
+                <!-- Comptes -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {% for compte in comptes %}
                     <div class="glass-panel p-6 rounded-3xl glass-card-hover transition-all duration-300 flex flex-col justify-between h-40 relative overflow-hidden group">
                         <div class="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-ice-100 to-transparent rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500"></div>
 
-                        <a href="{% url 'fermer_compte' compte.id %}" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/60 text-slate-400 hover:bg-red-100 hover:text-red-500 flex items-center justify-center transition-all z-20" title="Gérer / Clôturer ce compte">
+                        <a href="{% url 'fermer_compte' compte.id %}" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/60 text-slate-400 hover:bg-red-100 hover:text-red-500 flex items-center justify-center transition-all z-20">
                             <i class="bi bi-gear-fill text-xs"></i>
                         </a>
 
@@ -342,6 +251,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     {% endif %}
                 </div>
 
+                <!-- Analyse des dépenses -->
                 <div class="glass-panel p-6 md:p-8 rounded-3xl">
                     <div class="flex justify-between items-center mb-6">
                         <div>
@@ -356,6 +266,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div class="h-72 w-full">
                         <canvas id="spendingChart"></canvas>
                     </div>
+
                     {% if credit_labels|length > 0 %}
                     <div class="mt-8 border-t border-slate-100 pt-6">
                         <div class="flex items-center justify-between mb-3">
@@ -369,6 +280,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     {% endif %}
                 </div>
 
+                <!-- Transactions Récentes -->
                 <div class="glass-panel rounded-3xl overflow-hidden">
                     <div class="p-6 md:p-8 border-b border-slate-100 flex justify-between items-center bg-white/40">
                         <h3 class="font-display font-bold text-slate-900 text-lg">Transactions Récentes</h3>
@@ -405,6 +317,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                 </div>
 
+                <!-- Dernières demandes de crédit -->
                 <div class="glass-panel p-6 rounded-3xl">
                     <h3 class="font-display font-bold text-slate-900 mb-4">Dernières demandes de crédit</h3>
                     <div class="divide-y divide-slate-100/80">
@@ -426,58 +339,51 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
             </div>
 
+
+            <!-- RIGHT (1/3) -->
             <div class="lg:w-1/3 space-y-8">
 
-                <!-- Carte 3D + holographique -->
-                <div id="card-wrapper" class="relative perspective-1000">
-                    <a href="{% url 'cartes' %}"
-                       id="card"
-                       class="block relative w-full rounded-3xl p-5 sm:p-8 
-                              shadow-2xl border border-white/10 group 
-                              transition-all duration-200 cursor-pointer 
-                              bg-gradient-to-br from-slate-800 to-black
-                              h-48 sm:h-64 will-change-transform transform-gpu overflow-hidden">
+                <!-- ⚡ CARTE BANCAIRE — VERSION RESPONSIVE ⚡ -->
+                <a href="{% url 'cartes' %}"
+                   class="block relative w-full rounded-3xl p-5 sm:p-8 
+                          shadow-2xl border border-white/10 group transform hover:scale-[1.02]
+                          transition-all duration-500 overflow-hidden cursor-pointer shine 
+                          bg-gradient-to-br from-slate-800 to-black
+                          h-48 sm:h-64">
 
-                        <!-- couche holographique -->
-                        <div id="holo-layer"
-                             class="absolute inset-0 rounded-3xl pointer-events-none opacity-60 mix-blend-overlay"
-                             style="background:
-                                 radial-gradient(circle at 20% 20%, rgba(255,0,150,0.45), transparent 45%),
-                                 radial-gradient(circle at 80% 80%, rgba(0,200,255,0.4), transparent 45%),
-                                 linear-gradient(120deg, rgba(255,255,255,0.25) 0%, rgba(0,0,0,0) 60%);
-                             ">
+                    <div class="flex justify-between items-start mb-6 sm:mb-10 relative z-10">
+                        <i class="bi bi-snow2 text-white/90 text-2xl sm:text-3xl"></i>
+                        <i class="bi bi-wifi text-white/60 text-xl sm:text-2xl rotate-90"></i>
+                    </div>
+
+                    <div class="space-y-4 sm:space-y-6 relative z-10">
+                        <div class="text-white/90 font-mono text-xl sm:text-2xl tracking-widest">
+                            {% if cartes %}**** **** **** {{ cartes.0.numero_visible }}{% else %}**** **** **** 0000{% endif %}
                         </div>
 
-                        <div class="flex justify-between items-start mb-6 sm:mb-10 relative z-10">
-                            <i class="bi bi-snow2 text-white/90 text-2xl sm:text-3xl"></i>
-                            <i class="bi bi-wifi text-white/60 text-xl sm:text-2xl rotate-90"></i>
-                        </div>
-
-                        <div class="space-y-4 sm:space-y-6 relative z-10">
-                            <div class="text-white/90 font-mono text-xl sm:text-2xl tracking-widest">
-                                {% if cartes %}**** **** **** {{ cartes.0.numero_visible }}{% else %}**** **** **** 0000{% endif %}
-                            </div>
-                            <div class="flex justify-between items-end">
-                                <div>
-                                    <div class="text-white/60 text-[8px] sm:text-[10px] font-bold uppercase tracking-wider mb-1">Titulaire</div>
-                                    <div class="text-white font-bold tracking-wide uppercase text-xs sm:text-sm truncate">
-                                        {{ user.first_name }} {{ user.last_name|upper }}
-                                    </div>
-                                    <div class="text-white font-bold italic tracking-wide mt-1 sm:mt-2 text-xs sm:text-sm">VISA</div>
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <div class="text-white/60 text-[8px] sm:text-[10px] font-bold uppercase tracking-wider mb-1">Titulaire</div>
+                                <div class="text-white font-bold tracking-wide uppercase text-xs sm:text-sm truncate">
+                                    {{ user.first_name }} {{ user.last_name|upper }}
                                 </div>
-                                <div class="text-right">
-                                    <div class="text-white/60 text-[8px] sm:text-[10px] font-bold uppercase tracking-wider mb-1">Exp.</div>
-                                    <div class="text-white font-mono text-xs sm:text-sm font-bold">
-                                        {% if cartes %}{{ cartes.0.date_expiration|date:"m/y" }}{% else %}00/00{% endif %}
-                                    </div>
+                                <div class="text-white font-bold italic tracking-wide mt-1 sm:mt-2 text-xs sm:text-sm">VISA</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-white/60 text-[8px] sm:text-[10px] font-bold uppercase tracking-wider mb-1">Exp.</div>
+                                <div class="text-white font-mono text-xs sm:text-sm font-bold">
+                                    {% if cartes %}{{ cartes.0.date_expiration|date:"m/y" }}{% else %}00/00{% endif %}
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] mix-blend-overlay pointer-events-none rounded-3xl"></div>
-                    </a>
-                </div>
+                    <div class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl pointer-events-none"></div>
+                    <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] mix-blend-overlay"></div>
+                </a>
 
+
+                <!-- Formule actuelle -->
                 <div class="glass-panel p-6 rounded-3xl space-y-4">
                     <div class="flex items-start justify-between gap-3">
                         <div>
@@ -490,47 +396,73 @@ document.addEventListener("DOMContentLoaded", () => {
                         </div>
                         <a href="{% url 'abonnements' %}" class="text-xs font-bold text-ice-700 hover:text-ice-900 underline underline-offset-4">Avantages</a>
                     </div>
+
+                    <!-- Changement d'abonnement -->
                     <div class="space-y-2">
                         <div class="text-xs text-slate-500">Changer de formule (confirmation requise) :</div>
                         <div class="grid grid-cols-1 gap-2">
                             <form method="post" action="{% url 'changer_abonnement' %}" class="subscription-form">{% csrf_token %}
                                 <input type="hidden" name="plan" value="ESSENTIEL">
                                 <input type="hidden" name="password" value="">
-                                <button type="submit" {% if profil_client.abonnement == 'ESSENTIEL' %}disabled{% endif %}
-                                    class="w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors {% if profil_client.abonnement == 'ESSENTIEL' %}border-ice-200 bg-ice-50 text-ice-700 opacity-70 cursor-not-allowed{% else %}border-slate-200 text-slate-700 hover:border-ice-200 hover:text-ice-700{% endif %}">
+                                <button type="submit"
+                                    {% if profil_client.abonnement == 'ESSENTIEL' %}disabled{% endif %}
+                                    class="w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors 
+                                        {% if profil_client.abonnement == 'ESSENTIEL' %}
+                                            border-ice-200 bg-ice-50 text-ice-700 opacity-70 cursor-not-allowed
+                                        {% else %}
+                                            border-slate-200 text-slate-700 hover:border-ice-200 hover:text-ice-700
+                                        {% endif %}">
                                     <span class="font-bold text-sm">Essentiel {% if profil_client.abonnement == 'ESSENTIEL' %}(actuel){% endif %}</span>
                                     <span class="text-xs text-slate-500">0 €</span>
                                 </button>
                             </form>
+
                             <form method="post" action="{% url 'changer_abonnement' %}" class="subscription-form">{% csrf_token %}
                                 <input type="hidden" name="plan" value="PLUS">
                                 <input type="hidden" name="password" value="">
-                                <button type="submit" {% if profil_client.abonnement == 'PLUS' %}disabled{% endif %}
-                                    class="w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors {% if profil_client.abonnement == 'PLUS' %}border-ice-200 bg-ice-50 text-ice-700 opacity-70 cursor-not-allowed{% else %}border-slate-200 text-slate-700 hover:border-ice-200 hover:text-ice-700{% endif %}">
+                                <button type="submit"
+                                    {% if profil_client.abonnement == 'PLUS' %}disabled{% endif %}
+                                    class="w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors 
+                                        {% if profil_client.abonnement == 'PLUS' %}
+                                            border-ice-200 bg-ice-50 text-ice-700 opacity-70 cursor-not-allowed
+                                        {% else %}
+                                            border-slate-200 text-slate-700 hover:border-ice-200 hover:text-ice-700
+                                        {% endif %}">
                                     <span class="font-bold text-sm">Plus {% if profil_client.abonnement == 'PLUS' %}(actuel){% endif %}</span>
                                     <span class="text-xs text-slate-500">9,90 €</span>
                                 </button>
                             </form>
+
                             <form method="post" action="{% url 'changer_abonnement' %}" class="subscription-form">{% csrf_token %}
                                 <input type="hidden" name="plan" value="INFINITE">
                                 <input type="hidden" name="password" value="">
-                                <button type="submit" {% if profil_client.abonnement == 'INFINITE' %}disabled{% endif %}
-                                    class="w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors {% if profil_client.abonnement == 'INFINITE' %}border-ice-200 bg-ice-50 text-ice-700 opacity-70 cursor-not-allowed{% else %}border-slate-200 text-slate-700 hover:border-ice-200 hover:text-ice-700{% endif %}">
+                                <button type="submit"
+                                    {% if profil_client.abonnement == 'INFINITE' %}disabled{% endif %}
+                                    class="w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors 
+                                        {% if profil_client.abonnement == 'INFINITE' %}
+                                            border-ice-200 bg-ice-50 text-ice-700 opacity-70 cursor-not-allowed
+                                        {% else %}
+                                            border-slate-200 text-slate-700 hover:border-ice-200 hover:text-ice-700
+                                        {% endif %}">
                                     <span class="font-bold text-sm">Infinite {% if profil_client.abonnement == 'INFINITE' %}(actuel){% endif %}</span>
                                     <span class="text-xs text-slate-500">19,90 €</span>
                                 </button>
                             </form>
                         </div>
                     </div>
+
                     {% if profil_client.abonnement != 'ESSENTIEL' %}
                     <form method="post" action="{% url 'changer_abonnement' %}" class="pt-2 subscription-form">{% csrf_token %}
                         <input type="hidden" name="plan" value="RESILIER">
                         <input type="hidden" name="password" value="">
-                        <button type="submit" class="w-full px-4 py-3 text-xs font-bold rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-left">Résilier (fin de période)</button>
+                        <button type="submit" class="w-full px-4 py-3 text-xs font-bold rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-left">
+                            Résilier (fin de période)
+                        </button>
                     </form>
                     {% endif %}
                 </div>
 
+                <!-- Actions rapides -->
                 <div class="glass-panel p-6 rounded-3xl">
                     <h3 class="font-display font-bold text-slate-900 mb-6">Actions Rapides</h3>
                     <div class="grid grid-cols-2 gap-4">
@@ -540,30 +472,35 @@ document.addEventListener("DOMContentLoaded", () => {
                             </div>
                             <span class="text-sm font-bold text-slate-600 group-hover:text-ice-700">Virement</span>
                         </a>
+
                         <a href="{% url 'simulation' %}" class="p-4 rounded-2xl bg-white border border-slate-100 hover:border-purple-200 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300 flex flex-col items-center gap-3 group">
                             <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
                                 <i class="bi bi-calculator-fill"></i>
                             </div>
                             <span class="text-sm font-bold text-slate-600 group-hover:text-purple-700">Simuler</span>
                         </a>
+
                         <a href="{% url 'cartes' %}" class="p-4 rounded-2xl bg-white border border-slate-100 hover:border-orange-200 hover:shadow-lg hover:shadow-orange-500/10 transition-all duration-300 flex flex-col items-center gap-3 group">
                             <div class="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
                                 <i class="bi bi-credit-card-2-front-fill"></i>
                             </div>
                             <span class="text-sm font-bold text-slate-600 group-hover:text-orange-700">Cartes</span>
                         </a>
+
                         <a href="{% url 'support' %}" class="p-4 rounded-2xl bg-white border border-slate-100 hover:border-green-200 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300 flex flex-col items-center gap-3 group">
                             <div class="w-12 h-12 rounded-xl bg-green-50 text-green-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
                                 <i class="bi bi-chat-dots-fill"></i>
                             </div>
                             <span class="text-sm font-bold text-slate-600 group-hover:text-green-700">Aide</span>
                         </a>
+
                         <a href="{% url 'historique' %}" class="p-4 rounded-2xl bg-white border border-slate-100 hover:border-cyan-200 hover:shadow-lg hover:shadow-cyan-500/10 transition-all duration-300 flex flex-col items-center gap-3 group">
                             <div class="w-12 h-12 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
                                 <i class="bi bi-journal-text"></i>
                             </div>
                             <span class="text-sm font-bold text-slate-600 group-hover:text-cyan-700">Hist. crédits</span>
                         </a>
+
                         <a href="{% url 'statistiques' %}" class="p-4 rounded-2xl bg-white border border-slate-100 hover:border-amber-200 hover:shadow-lg hover:shadow-amber-500/10 transition-all duration-300 flex flex-col items-center gap-3 group">
                             <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
                                 <i class="bi bi-bar-chart-line"></i>
@@ -573,6 +510,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                 </div>
 
+                <!-- Découvert -->
                 <div class="glass-panel p-6 rounded-3xl space-y-3">
                     <div class="flex items-start justify-between gap-3">
                         <div>
@@ -597,6 +535,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     </form>
                 </div>
 
+                <!-- Projet Immobilier -->
                 <div class="relative rounded-3xl overflow-hidden bg-slate-900 p-6 text-white shadow-xl">
                     <div class="absolute top-0 right-0 w-40 h-40 bg-ice-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
                     <div class="relative z-10">
@@ -610,6 +549,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
 
             </div>
+
         </div>
     </div>
 </div>
