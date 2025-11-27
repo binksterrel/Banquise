@@ -29,6 +29,9 @@ class MessageSupport(models.Model):
     est_admin = models.BooleanField(default=False)
     date_envoi = models.DateTimeField(auto_now_add=True)
     est_lu = models.BooleanField(default=False)
+    image = models.ImageField(upload_to='support/', null=True, blank=True)
+    mis_a_jour_le = models.DateTimeField(auto_now=True)
+    a_ete_modifie = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['date_envoi']

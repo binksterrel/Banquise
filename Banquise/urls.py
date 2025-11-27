@@ -4,6 +4,8 @@ URL configuration for Banquise project.
 from django.contrib import admin
 from django.urls import path, include
 from scoring import views as scoring_views
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     # Routes admin custom avant l'admin Django pour éviter le catch-all
@@ -16,3 +18,6 @@ urlpatterns = [
 
 handler404 = 'scoring.views.custom_404'
 handler200 = 'scoring.views.custom_200'
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

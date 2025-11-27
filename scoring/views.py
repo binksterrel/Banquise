@@ -787,22 +787,46 @@ def chat_support(request):
     unread_count = Notification.objects.filter(user=request.user, est_lu=False).count()
 
     if request.method == 'POST':
-        contenu = request.POST.get('message', '').strip()
-        if contenu:
-            MessageSupport.objects.create(
-                user=request.user,
-                contenu=contenu,
-                est_admin=False
-            )
-            notifier(request.user, "Message envoyé", "Votre message a été envoyé au support.", "INFO", url=reverse('chat_support'))
-            # Notify all staff members
-            staff_users = User.objects.filter(is_staff=True)
-            for admin in staff_users:
-                notifier(admin, "Nouveau message client", f"{request.user.username}: {contenu[:80]}", "INFO", url=f"{reverse('chat_support_admin')}?user={request.user.id}")
-            messages.success(request, "Message envoyé au support.")
+        action = request.POST.get('action', 'create')
+        if action == 'delete':
+            msg_id = request.POST.get('message_id')
+            msg = get_object_or_404(MessageSupport, id=msg_id, user=request.user)
+            msg.delete()
+            messages.success(request, "Message supprimé.")
+            return redirect('chat_support')
+        elif action == 'edit':
+            msg_id = request.POST.get('message_id')
+            msg = get_object_or_404(MessageSupport, id=msg_id, user=request.user, est_admin=False)
+            contenu = (request.POST.get('message') or "").strip()
+            if not contenu:
+                messages.error(request, "Le message doit contenir du texte.")
+            elif contenu == msg.contenu:
+                messages.info(request, "Aucun changement détecté.")
+            else:
+                msg.contenu = contenu
+                msg.a_ete_modifie = True
+                msg.save()
+                messages.success(request, "Message modifié.")
             return redirect('chat_support')
         else:
-            messages.error(request, "Le message ne peut pas être vide.")
+            contenu = (request.POST.get('message') or "").strip()
+            image = request.FILES.get('image')
+            if not contenu and not image:
+                messages.error(request, "Le message doit contenir du texte ou une image.")
+            else:
+                MessageSupport.objects.create(
+                    user=request.user,
+                    contenu=contenu or "",
+                    est_admin=False,
+                    image=image
+                )
+                notifier(request.user, "Message envoyé", "Votre message a été envoyé au support.", "INFO", url=reverse('chat_support'))
+                # Notify all staff members
+                staff_users = User.objects.filter(is_staff=True)
+                for admin in staff_users:
+                    notifier(admin, "Nouveau message client", f"{request.user.username}: {(contenu or 'Pièce jointe')[:80]}", "INFO", url=f"{reverse('chat_support_admin')}?user={request.user.id}")
+                messages.success(request, "Message envoyé au support.")
+                return redirect('chat_support')
 
     return render(request, 'scoring/chat_support.html', {
         'messages_support': messages_support,
@@ -827,19 +851,43 @@ def chat_support_admin(request):
 
     # Réponse à un utilisateur ciblé
     if request.method == 'POST':
-        target_user_id = request.POST.get('target_user')
-        contenu = request.POST.get('message', '').strip()
-        if target_user_id and contenu:
-            MessageSupport.objects.create(
-                user_id=target_user_id,
-                contenu=contenu,
-                est_admin=True
-            )
-            notifier(User.objects.get(id=target_user_id), "Réponse support", contenu[:120], "INFO", url=reverse('chat_support'))
-            messages.success(request, "Message envoyé au client.")
+        action = request.POST.get('action', 'reply')
+        if action == 'delete':
+            msg_id = request.POST.get('message_id')
+            msg = get_object_or_404(MessageSupport, id=msg_id)
+            msg.delete()
+            messages.success(request, "Message supprimé.")
+            return redirect('chat_support_admin')
+        elif action == 'edit':
+            msg_id = request.POST.get('message_id')
+            msg = get_object_or_404(MessageSupport, id=msg_id, est_admin=True)
+            contenu = (request.POST.get('message') or "").strip()
+            if not contenu:
+                messages.error(request, "Le message doit contenir du texte.")
+            elif contenu == msg.contenu:
+                messages.info(request, "Aucun changement détecté.")
+            else:
+                msg.contenu = contenu
+                msg.a_ete_modifie = True
+                msg.save()
+                messages.success(request, "Message modifié.")
             return redirect('chat_support_admin')
         else:
-            messages.error(request, "Sélectionnez un utilisateur et saisissez un message.")
+            target_user_id = request.POST.get('target_user')
+            contenu = (request.POST.get('message') or "").strip()
+            image = request.FILES.get('image')
+            if target_user_id and (contenu or image):
+                MessageSupport.objects.create(
+                    user_id=target_user_id,
+                    contenu=contenu or "",
+                    est_admin=True,
+                    image=image
+                )
+                notifier(User.objects.get(id=target_user_id), "Réponse support", (contenu or "Pièce jointe")[:120], "INFO", url=reverse('chat_support'))
+                messages.success(request, "Message envoyé au client.")
+                return redirect('chat_support_admin')
+            else:
+                messages.error(request, "Sélectionnez un utilisateur et saisissez un message ou une image.")
 
     return render(request, 'scoring/chat_support_admin.html', {
         'conversations': conversations,
