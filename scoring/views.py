@@ -857,6 +857,13 @@ def chat_support_admin(request):
                 'unread': unread,
                 'unseen_last': unseen_last,
             })
+    selected_user = filter_user or (conversations[0]['user'].id if conversations else None)
+    selected_convo = None
+    if selected_user:
+        for convo in conversations:
+            if str(convo['user'].id) == str(selected_user):
+                selected_convo = convo
+                break
     # Marquer la conversation sélectionnée comme lue
     if selected_convo and selected_convo.get('messages'):
         msg_ids = [m.id for m in selected_convo['messages'] if not m.est_lu]
@@ -870,13 +877,6 @@ def chat_support_admin(request):
                     conv['unseen_last'] = False
                     conv['unread'] = False
         selected_convo['unseen_last'] = False
-    selected_user = filter_user or (conversations[0]['user'].id if conversations else None)
-    selected_convo = None
-    if selected_user:
-        for convo in conversations:
-            if str(convo['user'].id) == str(selected_user):
-                selected_convo = convo
-                break
 
     # Réponse à un utilisateur ciblé
     if request.method == 'POST':
