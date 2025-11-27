@@ -406,11 +406,11 @@ Le système Banquise implique trois acteurs principaux :
 \subsection{Module Support Client}
 \begin{itemize}[leftmargin=1.5cm]
     \item Chat bidirectionnel client $\leftrightarrow$ admin
-    \item Envoi de messages par le client
-    \item Réponses des administrateurs
+    \item Envoi de messages texte et pièces jointes (images) par le client
+    \item Réponses des administrateurs (édition/suppression possibles côté staff)
     \item Notifications côté client et staff
-    \item Liste des conversations pour les admins
-    \item Filtrage par utilisateur
+    \item Liste des conversations pour les admins (aperçu façon messagerie, ouverture d'un fil dédié)
+    \item Filtrage par utilisateur et marquage lu/non lu
 \end{itemize}
 
 \subsection{Module Administration}
@@ -651,7 +651,8 @@ Le système Banquise implique trois acteurs principaux :
     \item \textbf{Base de données} : SQLite (développement et déploiement actuel)
     \item \textbf{Front} : Templates Django + Tailwind CDN + Bootstrap Icons
     \item \textbf{Notifications} : modèle interne (table Notification), extensible vers e-mail/SMS
-    \item \textbf{Stockage statique} : collectstatic vers un bucket/CDN en production
+    \item \textbf{Stockage statique} : collectstatic (Whitenoise) et prêt pour CDN
+    \item \textbf{Médias} : répertoire \texttt{media/} pour pièces jointes (chat support)
     \item \textbf{Tâches planifiées} : commande cron pour rapport hebdo (crédits, comptes à risque)
     \item \textbf{Monitoring} : journaux applicatifs (errors, accès), alertes sur erreurs critiques
 \end{itemize}
@@ -684,7 +685,7 @@ Le système Banquise implique trois acteurs principaux :
 \begin{itemize}[leftmargin=1.5cm]
     \item \textbf{MVP} : Auth, comptes, virements, cartes (blocage manuel), notifications de base
     \item \textbf{V1} : Abonnements, scoring crédit IA, validation admin, support chat
-    \item \textbf{V2} : Découvert dynamique, rapports admin (heatmap, comptes à risque), tâches planifiées
+    \item \textbf{V2} : Découvert dynamique, rapports admin (heatmap, comptes à risque), tâches planifiées, support chat avec pièces jointes et gestion des fils côté admin
     \item \textbf{V3} : Déploiement cloud (stockage statique), durcissement sécurité (2FA, HSTS)
 \end{itemize}
 
@@ -1716,6 +1717,8 @@ Banquise2.0/
     \item \texttt{SECURE\_SSL\_REDIRECT = True}
     \item \texttt{SECURE\_HSTS\_SECONDS = 31536000}
     \item \texttt{X\_FRAME\_OPTIONS = 'DENY'}
+    \item Whitenoise pour servir les statiques (fallback stockage local, prêt CDN)
+    \item \texttt{MEDIA\_ROOT} et \texttt{MEDIA\_URL} pour les pièces jointes du chat support
 \end{itemize}
 
 \subsection{Middleware de sécurité}
@@ -1854,7 +1857,7 @@ Banquise représente une solution complète de néobanque digitale, intégrant l
     \item Système de virements sécurisés
     \item Scoring automatique de crédit
     \item Notifications en temps réel
-    \item Support client intégré
+    \item Support client intégré (chat + pièces jointes + gestion par admin)
     \item Back-office administrateur complet
 \end{itemize}
 
@@ -1868,7 +1871,7 @@ Le projet a été développé en respectant les meilleures pratiques de sécurit
     \item \checkmark{} Système de notifications complet
     \item \checkmark{} Scoring crédit avec IA
     \item \checkmark{} Gestion des découverts automatisée
-    \item \checkmark{} Support client bidirectionnel
+    \item \checkmark{} Support client bidirectionnel (messages + pièces jointes, admin peut éditer/supprimer)
     \item \checkmark{} Dashboard administrateur avec statistiques
 \end{itemize}
 
