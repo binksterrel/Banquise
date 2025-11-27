@@ -1786,6 +1786,16 @@ gunicorn Banquise.wsgi:application --bind 0.0.0.0:8000
 # Statiques : Whitenoise (collectstatic) ; Médias : stockage local (prévoir volume/bucket si nécessaire)
 \end{verbatim}
 
+\subsection{Déploiement Render (banquise.onrender.com)}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Service web Render, repo GitHub \texttt{binksterrel/Banquise} (branche \texttt{main})
+    \item Build : \texttt{pip install -r requirements.txt \&\& python manage.py migrate \&\& python manage.py collectstatic --noinput}
+    \item Start : \texttt{gunicorn Banquise.wsgi:application --bind 0.0.0.0:\$PORT}
+    \item Variables : \texttt{DJANGO\_ALLOWED\_HOSTS=banquise.onrender.com,.onrender.com}, \texttt{DJANGO\_DEBUG=0}
+    \item Statiques : Whitenoise + collectstatic (prêt CDN)
+    \item Médias : stockage local (\texttt{media/}) — prévoir bucket/volume si besoin de persistance accrue
+\end{itemize}
+
 \section{Tests}
 
 \subsection{Stratégie de tests}
@@ -1973,6 +1983,24 @@ L'architecture modulaire et la méthodologie agile adoptées permettront d'inté
     \item PSD2 - Payment Services Directive 2
     \item Gunicorn Documentation - \url{https://docs.gunicorn.org/}
 \end{enumerate}
+
+\chapter{Annexes}
+\section{Déploiement Render}
+\begin{itemize}[leftmargin=1.5cm]
+    \item URL : \url{https://banquise.onrender.com} (branche \texttt{main} du repo GitHub).
+    \item Build : \texttt{pip install -r requirements.txt \&\& python manage.py migrate \&\& python manage.py collectstatic --noinput}
+    \item Start : \texttt{gunicorn Banquise.wsgi:application --bind 0.0.0.0:\$PORT}
+    \item Variables : \texttt{DJANGO\_ALLOWED\_HOSTS=banquise.onrender.com,.onrender.com}, \texttt{DJANGO\_DEBUG=0}
+    \item Statiques : Whitenoise + collectstatic ; Médias : dossier \texttt{media/} (prévoir bucket/volume si besoin).
+\end{itemize}
+
+\section{Support chat (fonctionnalités)}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Messages client/admin bidirectionnels avec pièces jointes (images).
+    \item Admin : édition/suppression de ses messages, vue “messagerie” avec liste des conversations et fil actif.
+    \item Lu/non lu : marquage lu à l'ouverture de la conversation, pastille optionnelle.
+    \item Stockage : fichiers dans \texttt{media/support/}, servi localement (prévoir stockage persistant en prod).
+\end{itemize}
 
 % Ajout de sections vides pour les futures captures d'écran
 \chapter{Captures d'écran de l'interface}
