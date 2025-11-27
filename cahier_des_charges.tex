@@ -215,8 +215,17 @@ L'IA Banquise vise à :
     \item \textbf{Mensualité théorique} : formule d'annuité (taux mensuel, durée, montant).
     \item \textbf{DTI} (Debt-to-Income) : (mensualité + charges) / revenus nets.
     \item \textbf{LTV} (Loan-to-Value) : montant prêté / valeur du bien (ou apport total).
-    \item \textbf{Score IA} : pondération des critères (DTI, LTV, stabilité pro, bonus propriétaire, historique Banquise).
-    \item \textbf{Recommandation} : si dépassement de seuils, proposition d'une durée ajustée et d'une mensualité cible.
+    \item \textbf{Score heuristique} : pondération des critères (DTI, LTV, stabilité pro, bonus propriétaire, historique Banquise).
+    \item \textbf{Suggestion DTI 35\%} : si la mensualité dépasse le DTI cible (35\%), calcul d'une mensualité conseillée et d'une durée ajustée (plafond 40 ans) proposée à l'utilisateur.
+\end{itemize}
+
+\section{Modèle ML simplifié (runtime)}
+En complément des règles heuristiques, un petit modèle de régression logistique est entraîné à l'exécution sur un jeu de données synthétique :
+\begin{itemize}[leftmargin=1.3cm]
+    \item Génération de 600 profils aléatoires (revenus 1-12 k€, DTI 10-70\%, LTV 50-110\%, apport 0-60\%).
+    \item Étiquette "bon profil" si au moins 3 critères sur 4 sont satisfaits (revenus $>$ 4 k€, DTI $<$ 40\%, LTV $<$ 90\%, apport $>$ 20\%).
+    \item Normalisation des variables, ajout d'un biais, descente de gradient (300 itérations, lr = 0{,}05) pour obtenir les poids \texttt{\_ML\_WEIGHTS}.
+    \item Au moment de la simulation, le modèle est chargé si absent, produit un score 0-100 (\texttt{\_ml\_score}) à partir des features normalisées (revenus, DTI, LTV, ratio apport) ; ce score est moyenné avec le score heuristique pour l'\textbf{avis automatique}.
 \end{itemize}
 
 \section{Seuils et décisions}
@@ -239,7 +248,7 @@ L'IA Banquise vise à :
 \section{Intégration produit}
 \begin{itemize}[leftmargin=1.3cm]
     \item \textbf{Dashboard} : courbe des dépenses incluant les mensualités crédit (multi-couleurs si plusieurs crédits).
-    \item \textbf{Simulation} : avis IA affiché, avec suggestion de durée/mensualité quand nécessaire.
+    \item \textbf{Simulation} : avis IA affiché, suggestion durée/mensualité si le DTI dépasse 35\% (bouton "Appliquer" remplit les sliders).
     \item \textbf{Historique} : statut verrouillé si crédit accepté ; modification impossible côté client.
     \item \textbf{Console admin} : modification des paramètres du crédit (montant/durée) et annulation possible même après acceptation.
 \end{itemize}

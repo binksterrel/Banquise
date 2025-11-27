@@ -13,6 +13,7 @@
         const valMensualite = document.getElementById('valMensualite');
         const affichageMontant = document.getElementById('affichage-montant');
         const applyBtn = document.getElementById('applyChanges');
+        const applySuggestionBtn = document.getElementById('applySuggestion');
         const statusMsg = document.getElementById('saveStatus');
 
         // Base rate from simulation (fallback 3.5)
@@ -88,6 +89,24 @@
                 const mensualite = parseFloat(rangeMensualite.value || 0);
                 const duree = parseInt(rangeDuree.value || 1);
                 pushUpdate(duree, mensualite, true);
+            });
+        }
+
+        if (applySuggestionBtn && rangeDuree && rangeMensualite) {
+            applySuggestionBtn.addEventListener('click', () => {
+                const suggDuree = parseInt(applySuggestionBtn.dataset.suggDuree || "0", 10);
+                const suggMens = parseInt(applySuggestionBtn.dataset.suggMens || "0", 10);
+                if (suggDuree > 0 && suggMens > 0) {
+                    rangeDuree.value = suggDuree;
+                    rangeMensualite.value = suggMens;
+                    if (valDuree) valDuree.innerText = suggDuree;
+                    if (valMensualite) valMensualite.innerText = suggMens;
+                    if (affichageMontant) {
+                        const principal = computePrincipal(suggMens, suggDuree);
+                        affichageMontant.innerText = principal.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' €';
+                    }
+                    pushUpdate(suggDuree, suggMens, true);
+                }
             });
         }
     });
@@ -205,6 +224,16 @@
                         </button>
                         <span id="saveStatus" class="text-sm text-green-600 hidden">Modifications enregistrées.</span>
                     </div>
+                    {% if suggested_mensualite and suggested_duree %}
+                    <div class="mt-4 p-3 rounded-xl border border-ice-100 bg-ice-50 text-sm text-slate-700 flex items-start gap-3">
+                        <i class="bi bi-magic text-ice-600 text-lg"></i>
+                        <div class="flex-1">
+                            <p class="font-bold text-slate-900">Suggestion</p>
+                            <p class="text-slate-600">Pour viser un DTI autour de 35 %, essaye {{ suggested_duree }} ans et environ {{ suggested_mensualite }} €/mois.</p>
+                        </div>
+                        <button type="button" id="applySuggestion" data-sugg-duree="{{ suggested_duree }}" data-sugg-mens="{{ suggested_mensualite }}" class="px-3 py-2 rounded-lg bg-slate-900 text-white text-xs font-bold hover:-translate-y-0.5 transition">Appliquer</button>
+                    </div>
+                    {% endif %}
                 </div>
                 {% endif %}
 
