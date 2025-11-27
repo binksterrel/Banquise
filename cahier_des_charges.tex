@@ -211,6 +211,7 @@ L'IA Banquise vise à :
 \end{itemize}
 
 \section{Calculs principaux}
+\paragraph{}Le moteur combine des règles métiers (annuités, DTI/LTV, pondérations de stabilité pro et apport) et un micro-modèle ML entraîné à la volée sur un dataset synthétique. L'objectif est de produire un avis automatique cohérent dès la simulation, tout en restant explicable et ajustable par l'utilisateur (suggestion si le DTI est trop élevé).
 \begin{itemize}[leftmargin=1.3cm]
     \item \textbf{Mensualité théorique} : formule d'annuité (taux mensuel, durée, montant).
     \item \textbf{DTI} (Debt-to-Income) : (mensualité + charges) / revenus nets.
@@ -333,6 +334,7 @@ Le système Banquise implique trois acteurs principaux :
 \section{Besoins fonctionnels}
 
 \subsection{Module Authentification}
+\paragraph{}Parcours classique d'inscription/connexion avec sécurisation des sessions, récupération de mot de passe et gestion du profil. Les rôles (client/staff) conditionnent l'accès aux écrans admin.
 \begin{itemize}[leftmargin=1.5cm]
     \item Inscription avec validation des informations
     \item Connexion sécurisée
@@ -343,6 +345,7 @@ Le système Banquise implique trois acteurs principaux :
 \end{itemize}
 
 \subsection{Module Gestion des Comptes}
+\paragraph{}Le client ouvre/ferme des comptes (courant, épargne, pro), consulte soldes et relevés paginés, et exporte ses relevés ou RIB. Les opérations sont historisées.
 \begin{itemize}[leftmargin=1.5cm]
     \item Ouverture de compte (Courant, Épargne, Pro)
     \item Fermeture de compte
@@ -354,6 +357,7 @@ Le système Banquise implique trois acteurs principaux :
 \end{itemize}
 
 \subsection{Module Cartes Bancaires}
+\paragraph{}Visualisation et pilotage des cartes : blocage, sans-contact, international et plafonds. Le système applique aussi des blocages automatiques en cas de dépassement de découvert.
 \begin{itemize}[leftmargin=1.5cm]
     \item Affichage des cartes associées
     \item Blocage/déblocage manuel des cartes
@@ -366,6 +370,7 @@ Le système Banquise implique trois acteurs principaux :
 \end{itemize}
 
 \subsection{Module Virements}
+\paragraph{}Gestion des bénéficiaires (ajout, édition) et exécution de virements internes/externe avec contrôles de solde, normalisation IBAN et notifications émetteur/destinataire.
 \begin{itemize}[leftmargin=1.5cm]
     \item Ajout de bénéficiaires (IBAN)
     \item Gestion des bénéficiaires enregistrés
@@ -378,6 +383,7 @@ Le système Banquise implique trois acteurs principaux :
 \end{itemize}
 
 \subsection{Module Abonnements}
+\paragraph{}Plans Essentiel/Plus/Infinite avec changement de palier, facturation immédiate et prochaine échéance à J+30. La résiliation est programmée en fin de période et impacte le découvert autorisé.
 \begin{itemize}[leftmargin=1.5cm]
     \item Plans disponibles : Essentiel (gratuit), Plus (9,90€), Infinite (19,90€)
     \item Changement d'abonnement avec débit immédiat
@@ -389,6 +395,7 @@ Le système Banquise implique trois acteurs principaux :
 \end{itemize}
 
 \subsection{Module Crédit}
+\paragraph{}Un simulateur de crédit calcule score/DTI/LTV, affiche un avis automatique, l’historique et permet à l’admin de valider/refuser. La page résultat propose une suggestion de durée/mensualité si le DTI est trop élevé.
 \begin{itemize}[leftmargin=1.5cm]
     \item Simulation de crédit avec formulaire détaillé
     \item Calcul automatique du score de solvabilité
@@ -401,6 +408,7 @@ Le système Banquise implique trois acteurs principaux :
 \end{itemize}
 
 \subsection{Module Notifications}
+\paragraph{}Centre de notifications in-app : badge sur avatar, marquage lu/non-lu, déclenchées pour virements, abonnements, crédits, messages support et décisions IA/admin.
 \begin{itemize}[leftmargin=1.5cm]
     \item Centre de notifications utilisateur
     \item Badge sur l'avatar indiquant les notifications non lues
@@ -413,6 +421,7 @@ Le système Banquise implique trois acteurs principaux :
 \end{itemize}
 
 \subsection{Module Support Client}
+\paragraph{}Le support embarque un vrai fil de discussion : côté client, on envoie du texte et des images ; côté admin, on retrouve une vue type messagerie (liste des conversations, fil actif), avec édition/suppression des messages staff, marquage lu/non-lu et notifications associées. Les pièces jointes sont stockées dans \texttt{media/support/} et servies via Django/Whitenoise.
 \begin{itemize}[leftmargin=1.5cm]
     \item Chat bidirectionnel client $\leftrightarrow$ admin
     \item Envoi de messages texte et pièces jointes (images) par le client
@@ -423,6 +432,7 @@ Le système Banquise implique trois acteurs principaux :
 \end{itemize}
 
 \subsection{Module Administration}
+\paragraph{}Console staff pour suivre les métriques clés, valider les crédits, gérer comptes/cartes/bénéficiaires et consulter les transactions. Accès Django admin pour les besoins CRUD avancés.
 \begin{itemize}[leftmargin=1.5cm]
     \item Dashboard avec statistiques clés :
     \begin{itemize}
@@ -655,6 +665,7 @@ Le système Banquise implique trois acteurs principaux :
 \chapter{Architecture technique et sécurité}
 
 \section{Architecture cible}
+\paragraph{}L'architecture applicative repose sur un socle Django 4.2 (Python) avec un rendu serveur classique (templates) et une livraison des assets via Tailwind CDN / Bootstrap Icons. Les statiques sont servis par Whitenoise et peuvent être poussés vers un CDN. Les médias (pièces jointes du chat support) sont conservés dans \texttt{media/} en attendant, avec la possibilité de basculer sur un bucket ou un volume persistant. Aucune base cloud managée n'est requise aujourd'hui : SQLite reste le moteur en déploiement Render.
 \begin{itemize}[leftmargin=1.5cm]
     \item \textbf{Backend} : Django 4.2, Python 3.9+
     \item \textbf{Base de données} : SQLite (développement et déploiement actuel)
@@ -1995,21 +2006,12 @@ L'architecture modulaire et la méthodologie agile adoptées permettront d'inté
 
 \chapter{Annexes}
 \section{Déploiement Render}
-\begin{itemize}[leftmargin=1.5cm]
-    \item URL : \url{https://banquise.onrender.com} (branche \texttt{main} du repo GitHub).
-    \item Build : \texttt{pip install -r requirements.txt \&\& python manage.py migrate \&\& python manage.py collectstatic --noinput}
-    \item Start : \texttt{gunicorn Banquise.wsgi:application --bind 0.0.0.0:\$PORT}
-    \item Variables : \texttt{DJANGO\_ALLOWED\_HOSTS=banquise.onrender.com,.onrender.com}, \texttt{DJANGO\_DEBUG=0}
-    \item Statiques : Whitenoise + collectstatic ; Médias : dossier \texttt{media/} (prévoir bucket/volume si besoin).
-\end{itemize}
+Le service est déployé sur Render (\url{https://banquise.onrender.com}) à partir de la branche \texttt{main} du dépôt GitHub. Build et start commands sont configurées pour installer les dépendances, appliquer les migrations puis collecter les statiques avant de lancer Gunicorn. Les variables d'environnement incluent \texttt{DJANGO\_ALLOWED\_HOSTS=banquise.onrender.com,.onrender.com} et \texttt{DJANGO\_DEBUG=0}. Les fichiers statiques sont servis via Whitenoise (prêts à être placés derrière un CDN) et les médias résident dans \texttt{media/} ; un bucket/volume pourra être ajouté pour la persistance longue durée.
 
 \section{Support chat (fonctionnalités)}
-\begin{itemize}[leftmargin=1.5cm]
-    \item Messages client/admin bidirectionnels avec pièces jointes (images).
-    \item Admin : édition/suppression de ses messages, vue “messagerie” avec liste des conversations et fil actif.
-    \item Lu/non lu : marquage lu à l'ouverture de la conversation, pastille optionnelle.
-    \item Stockage : fichiers dans \texttt{media/support/}, servi localement (prévoir stockage persistant en prod).
-\end{itemize}
+Le chat support est bidirectionnel et accepte du texte et des images. Côté admin, une interface type messagerie affiche la liste des conversations (aperçu du dernier message, indicateur de lecture) et le fil actif, avec possibilité d'éditer/supprimer les messages staff. Les messages non lus sont marqués comme lus à l'ouverture du fil. Les pièces jointes sont stockées dans \texttt{media/support/} et servies localement ; en production, un stockage persistant peut être ajouté (bucket ou volume Render).
+\section{Notifications et e-mail (Mailtrap)}
+Pour les e-mails, l'application utilise la SMTP sandbox Mailtrap (\texttt{sandbox.smtp.mailtrap.io}) afin d'éviter la création d'une boîte réelle pour le projet démo. Les paramètres SMTP sont configurés via les variables d'environnement ; le module interne \texttt{Notification} assure le flux in-app et pourra être relié à un provider de production (Postmark/Sendgrid) en changeant les credentials.
 
 % Ajout de sections vides pour les futures captures d'écran
 \chapter{Captures d'écran de l'interface}
