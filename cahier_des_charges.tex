@@ -317,6 +317,15 @@ En complément des règles heuristiques, un petit modèle de régression logisti
 \paragraph{}En plus de l'ancienne logique heuristique et du micro-modèle synthétique, une version plus réaliste est introduite. Elle suit un cycle classique “\textbf{entraînement hors-ligne} \textrightarrow{} \textbf{sérialisation} \textrightarrow{} \textbf{prédiction en ligne}” :
 \begin{enumerate}[leftmargin=1.3cm]
     \item \textbf{Préparation des données} (pandas) : chargement d'un dataset public anonymisé depuis \texttt{data/} (CSV/XLSX). Gestion des colonnes numériques et catégorielles, imputation des valeurs manquantes, encodage OneHot et normalisation.
+    \item \textbf{Source des données} : dataset public \href{https://huggingface.co/datasets/mariosyahirhalimm/loan_prediction_dataset/blob/main/loan_prediction_dataset.csv}{\texttt{loan\_prediction\_dataset.csv}} (Hugging Face). Exemple de 5 lignes :
+\begin{CodeBlock}
+Loan_ID Gender Married Dependents Education     Self_Employed ApplicantIncome CoapplicantIncome LoanAmount Loan_Amount_Term Credit_History Property_Area Loan_Status
+LP001002 Male   No      0         Graduate      No            5849            0.0               NaN        360.0            1.0            Urban         Y
+LP001003 Male   Yes     1         Graduate      No            4583            1508.0            128.0      360.0            1.0            Rural         N
+LP001005 Male   Yes     0         Graduate      Yes           3000            0.0               66.0       360.0            1.0            Urban         Y
+LP001006 Male   Yes     0         Not Graduate  No            2583            2358.0            120.0      360.0            1.0            Urban         Y
+LP001008 Male   No      0         Graduate      No            6000            0.0               141.0      360.0            1.0            Urban         Y
+\end{CodeBlock}
     \item \textbf{Entraînement hors-ligne} (\texttt{ml/train\_credit\_model.py}) : construction d'un \textit{pipeline} scikit-learn (prétraitement + modèle). Trois modèles testés (régression logistique, arbre, random forest). Sélection du meilleur sur ROC AUC/F1, puis sauvegarde du pipeline complet (prépro + modèle) avec \texttt{joblib} dans \texttt{scoring/model\_credit.pkl}.
     \item \textbf{Chargement en production} (\texttt{scoring/ml.py}) : au démarrage, le pipeline est chargé une seule fois (lazy load, cache). La fonction \texttt{predict\_credit(features: dict)} applique automatiquement le même prétraitement et renvoie la probabilité de “bon payeur”, le label (ACCEPTEE/REFUSEE) et un score 0-100.
     \item \textbf{Fallback} : si le fichier \texttt{model\_credit.pkl} est absent ou invalide, l'heuristique historique est utilisée pour garder une simulation fonctionnelle.
