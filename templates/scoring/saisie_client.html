@@ -80,8 +80,31 @@
 </style>
 {% endblock %}
 
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const showSuggestionToast = {{ from_suggestion|yesno:"true,false" }};
+        const toast = document.getElementById('suggestionToastSimulation');
+        if (showSuggestionToast && toast) {
+            toast.classList.remove('opacity-0');
+            toast.classList.add('opacity-100');
+            toast.textContent = "La simulation reprend les valeurs de la suggestion.";
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0');
+            }, 3000);
+        }
+    });
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="relative min-h-screen overflow-hidden">
+
+    <div id="suggestionToastSimulation"
+        class="pointer-events-none fixed bottom-6 right-6 bg-ice-50 border border-ice-200 text-slate-700 px-5 py-3 rounded-2xl shadow-xl shadow-slate-900/30 transition-opacity duration-500 opacity-0">
+        Pré-remplissage par la suggestion
+    </div>
 
     <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
         <div

@@ -14,8 +14,8 @@ from django.core.paginator import Paginator
 from django.utils import timezone
 from django.urls import reverse
 from datetime import timedelta, datetime
-from decimal import Decimal
-from math import exp, log
+from decimal import Decimal, ROUND_HALF_UP
+from math import exp, log, ceil
 import random
 import io
 import json
@@ -1500,7 +1500,10 @@ def page_simulation(request):
             form.fields['dettes_mensuelles'].widget.attrs['min'] = accepted_count
             if not request.GET.get('dettes'):
                 form.initial['dettes_mensuelles'] = accepted_count
-    return render(request, 'scoring/saisie_client.html', {'form': form})
+    return render(request, 'scoring/saisie_client.html', {
+        'form': form,
+        'from_suggestion': request.GET.get('from_suggestion') == '1'
+    })
 
 @login_required
 def page_resultat(request, demande_id):
@@ -1509,40 +1512,43 @@ def page_resultat(request, demande_id):
     unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
     score_val = demande.score_calcule or 0
     gauge_offset = max(0, 440 - (score_val * 4.4))
-    # Suggestion durée/mensualité si DTI trop élevé
+
+    # Suggestion durée/mensualité si DTI trop élevé (ou avis refusé)
     suggested_mensualite = None
     suggested_duree = None
-    try:
-        revenus = Decimal(demande.revenus_mensuels or 0)
-        dettes_totales = Decimal(demande.dettes_mensuelles or 0) + Decimal(demande.loyer_actuel or 0)
-        mensualite_actuelle = Decimal(demande.mensualite_calculee or 0)
-        principal = Decimal(demande.montant_souhaite or 0)
-        taux = Decimal(demande.taux_calcule or (demande.produit.taux_ref if demande.produit else Decimal("3.50")) or 0)
-        r = (taux / Decimal("100")) / Decimal("12")
-        # mensualité cible pour viser DTI 35%
-        cible = (revenus * Decimal("0.35")) - dettes_totales
-        if cible > 0 and mensualite_actuelle and mensualite_actuelle > cible:
+    revenus = Decimal(demande.revenus_mensuels or 0)
+    dettes_totales = Decimal(demande.dettes_mensuelles or 0) + Decimal(demande.loyer_actuel or 0)
+    mensualite_actuelle = Decimal(demande.mensualite_calculee or 0)
+    principal = Decimal(demande.montant_souhaite or 0)
+    taux = Decimal(demande.taux_calcule or (demande.produit.taux_ref if demande.produit else Decimal("3.50")) or 0)
+    r = (taux / Decimal("100")) / Decimal("12")
+    cible = (revenus * Decimal("0.35")) - dettes_totales
+
+    # Cas où la mensualité dépasse le DTI cible
+    if cible > 0 and mensualite_actuelle and mensualite_actuelle > cible:
+        try:
             suggested_mensualite = int(max(Decimal("50"), cible))
-            # Durée nécessaire pour atteindre cette mensualité
             months = None
             if r > 0 and suggested_mensualite > 0 and (r * principal) < (Decimal(suggested_mensualite) * Decimal("0.99")):
-                try:
-                    months = -log(1 - (r * principal / Decimal(suggested_mensualite))) / log(1 + r)
-                except Exception:
-                    months = None
+                months = -log(1 - (r * principal / Decimal(suggested_mensualite))) / log(1 + r)
             if months is None or months <= 0:
-                if suggested_mensualite > 0:
-                    months = principal / Decimal(suggested_mensualite)
-                else:
-                    months = 0
+                months = principal / Decimal(suggested_mensualite) if suggested_mensualite > 0 else 0
             if months and months > 0:
-                suggested_duree = max(1, min(40, int((months + 11) // 12)))  # en années, plafond 40 ans
-            else:
-                suggested_mensualite = None
-                suggested_duree = None
-    except Exception:
-        suggested_mensualite = None
-        suggested_duree = None
+                suggested_duree = max(1, min(40, int(ceil(months / 12))))
+        except Exception:
+            suggested_mensualite = None
+            suggested_duree = None
+
+    # Fallback si refus : proposer toujours une durée/mensualité cible DTI 35 %
+    if (suggested_mensualite is None or suggested_duree is None) and demande.ia_decision == 'REFUSEE':
+        try:
+            fallback_target = max(cible, Decimal("50"))
+            suggested_mensualite = int(fallback_target.to_integral_value(rounding=ROUND_HALF_UP))
+            months = principal / Decimal(suggested_mensualite) if suggested_mensualite > 0 else 12
+            suggested_duree = max(1, min(40, int(ceil(months / 12))))
+        except Exception:
+            suggested_mensualite = suggested_mensualite or None
+            suggested_duree = suggested_duree or None
     return render(request, 'scoring/resultat.html', {
         'demande': demande,
         'montant_propose_formate': f"{demande.montant_souhaite:,.0f}".replace(',', ' '),

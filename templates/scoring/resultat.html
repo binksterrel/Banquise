@@ -92,20 +92,39 @@
             });
         }
 
-        if (applySuggestionBtn && rangeDuree && rangeMensualite) {
+        const simulationBaseUrl = "{% url 'simulation' %}";
+        const suggestionToast = document.getElementById('suggestionToast');
+        if (applySuggestionBtn) {
             applySuggestionBtn.addEventListener('click', () => {
                 const suggDuree = parseInt(applySuggestionBtn.dataset.suggDuree || "0", 10);
                 const suggMens = parseInt(applySuggestionBtn.dataset.suggMens || "0", 10);
                 if (suggDuree > 0 && suggMens > 0) {
-                    rangeDuree.value = suggDuree;
-                    rangeMensualite.value = suggMens;
-                    if (valDuree) valDuree.innerText = suggDuree;
-                    if (valMensualite) valMensualite.innerText = suggMens;
-                    if (affichageMontant) {
-                        const principal = computePrincipal(suggMens, suggDuree);
-                        affichageMontant.innerText = principal.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' €';
+                    const params = new URLSearchParams({
+                        montant: applySuggestionBtn.dataset.montant || "",
+                        duree: suggDuree,
+                        apport: applySuggestionBtn.dataset.apport || "",
+                        revenus: applySuggestionBtn.dataset.revenus || "",
+                        loyer: applySuggestionBtn.dataset.loyer || "",
+                        dettes: applySuggestionBtn.dataset.dettes || "",
+                        enfants: applySuggestionBtn.dataset.enfants || "",
+                        produit: applySuggestionBtn.dataset.produit || "",
+                        emploi: applySuggestionBtn.dataset.emploi || "",
+                        logement: applySuggestionBtn.dataset.logement || "",
+                        sante: applySuggestionBtn.dataset.sante || "",
+                        from_suggestion: "1",
+                    });
+                    if (suggestionToast) {
+                        suggestionToast.textContent = "Application de la suggestion en cours…";
+                        suggestionToast.classList.remove("opacity-0");
+                        suggestionToast.classList.add("opacity-100");
+                        setTimeout(() => {
+                            suggestionToast.classList.remove("opacity-100");
+                            suggestionToast.classList.add("opacity-0");
+                        }, 1600);
                     }
-                    pushUpdate(suggDuree, suggMens, true);
+                    setTimeout(() => {
+                        window.location.href = `${simulationBaseUrl}?${params.toString()}`;
+                    }, 600);
                 }
             });
         }
@@ -115,6 +134,11 @@
 
 {% block content %}
 <div class="relative min-h-screen overflow-hidden">
+
+    <div id="suggestionToast"
+        class="pointer-events-none fixed bottom-6 right-6 bg-ice-50 border border-ice-200 text-slate-700 px-5 py-3 rounded-2xl shadow-xl shadow-slate-900/30 transition-opacity duration-500 opacity-0">
+        Action en cours...
+    </div>
 
     <div
         class="absolute top-0 right-0 w-[600px] h-[600px] bg-green-400/10 rounded-full blur-[120px] pointer-events-none animate-blob">
@@ -153,11 +177,14 @@
                 <div class="relative w-40 h-40">
                     <svg class="w-full h-full transform -rotate-90 drop-shadow-xl">
                         <circle cx="80" cy="80" r="70" stroke="#f1f5f9" stroke-width="12" fill="none"></circle>
-                        <circle cx="80" cy="80" r="70" stroke="{% if demande.score_calcule|default:0|add:0 > 50 %}#10b981{% else %}#ef4444{% endif %}"
+                        {% with sc=demande.score_calcule|default:0|add:0 %}
+                        <circle cx="80" cy="80" r="70"
+                            stroke="{% if sc > 75 %}#10b981{% elif sc > 45 %}#f59e0b{% else %}#ef4444{% endif %}"
                             stroke-width="12" fill="none" stroke-dasharray="440" stroke-linecap="round"
                             stroke-dashoffset="{{ gauge_offset|default:440 }}"
                             class="transition-all duration-1000 ease-out">
                         </circle>
+                        {% endwith %}
                     </svg>
                     <div class="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center">
                         <span class="text-4xl font-display font-bold text-slate-900">{{ demande.score_calcule|default:"0" }}</span>
@@ -224,16 +251,33 @@
                         </button>
                         <span id="saveStatus" class="text-sm text-green-600 hidden">Modifications enregistrées.</span>
                     </div>
-                    {% if suggested_mensualite and suggested_duree %}
-                    <div class="mt-4 p-3 rounded-xl border border-ice-100 bg-ice-50 text-sm text-slate-700 flex items-start gap-3">
-                        <i class="bi bi-magic text-ice-600 text-lg"></i>
-                        <div class="flex-1">
-                            <p class="font-bold text-slate-900">Suggestion</p>
-                            <p class="text-slate-600">Pour viser un DTI autour de 35 %, essaye {{ suggested_duree }} ans et environ {{ suggested_mensualite }} €/mois.</p>
-                        </div>
-                        <button type="button" id="applySuggestion" data-sugg-duree="{{ suggested_duree }}" data-sugg-mens="{{ suggested_mensualite }}" class="px-3 py-2 rounded-lg bg-slate-900 text-white text-xs font-bold hover:-translate-y-0.5 transition">Appliquer</button>
+                </div>
+                {% endif %}
+
+                {% if suggested_mensualite and suggested_duree and demande.ia_decision != 'ACCEPTEE' %}
+                <div class="mt-6 p-3 rounded-xl border border-ice-100 bg-ice-50 text-sm text-slate-700 flex items-start gap-3">
+                    <i class="bi bi-magic text-ice-600 text-lg"></i>
+                    <div class="flex-1">
+                        <p class="font-bold text-slate-900">Suggestion</p>
+                        <p class="text-slate-600">Si la mensualité dépasse le DTI cible (35 %), cette suggestion ajuste la durée et le montant pour recoller au ratio.</p>
+                        <p class="text-slate-600 font-semibold">En pratique : {{ suggested_duree }} ans et environ {{ suggested_mensualite }} €/mois.</p>
                     </div>
-                    {% endif %}
+                    <button type="button" id="applySuggestion"
+                        data-sugg-duree="{{ suggested_duree }}"
+                        data-sugg-mens="{{ suggested_mensualite }}"
+                        data-montant="{{ demande.montant_souhaite }}"
+                        data-apport="{{ demande.apport_personnel }}"
+                        data-revenus="{{ demande.revenus_mensuels }}"
+                        data-loyer="{{ demande.loyer_actuel }}"
+                        data-dettes="{{ demande.dettes_mensuelles }}"
+                        data-enfants="{{ demande.enfants_a_charge }}"
+                        data-produit="{{ demande.produit.id|default_if_none:'' }}"
+                        data-emploi="{{ demande.emploi_snapshot.id|default_if_none:'' }}"
+                        data-logement="{{ demande.logement_snapshot.id|default_if_none:'' }}"
+                        data-sante="{{ demande.sante_snapshot }}"
+                        class="px-3 py-2 rounded-lg bg-slate-900 text-white text-xs font-bold hover:-translate-y-0.5 transition">
+                        Appliquer
+                    </button>
                 </div>
                 {% endif %}
 
