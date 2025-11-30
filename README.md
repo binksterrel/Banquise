@@ -46,7 +46,8 @@ python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver
 ```
-Variables utiles (dev) : `DJANGO_SETTINGS_MODULE=Banquise.settings`, `DEBUG=1`, `SECRET_KEY` à régénérer en prod. Basculer sur PostgreSQL pour la prod (ENGINE/NAME/USER/PASSWORD/HOST/PORT).
+Variables utiles (dev) : `DJANGO_SETTINGS_MODULE=Banquise.settings`, `DEBUG=1`, `SECRET_KEY` à régénérer en prod. Basculer sur PostgreSQL pour la prod (ENGINE/NAME/USER/PASSWORD/HOST/PORT).  
+Ajoute aussi les dépendances ML : `numpy`, `pandas`, `scikit-learn`, `openpyxl`, `joblib` (déjà listées dans `requirements.txt`) pour pouvoir entraîner/charger le pipeline de scoring.
 
 ## 4. Arborescence (principale)
 ```
@@ -64,12 +65,16 @@ Banquise/
 │  ├─ models.py               # Modèles (Compte, Carte, Transaction, etc.)
 │  ├─ urls.py                 # Routes de l’app
 │  ├─ views.py                # Vues (dashboard, virement, crédits, admin custom…)
+│  ├─ ml.py                   # Chargement du pipeline ML sérialisé
 │  ├─ migrations/             # Migrations base
 │  └─ templatetags/           # Tags/filters personnalisés
 ├─ templates/                 # Templates HTML
 │  ├─ base.html               # Layout principal
 │  ├─ registration/           # Templates auth Django
 │  └─ scoring/                # Pages app (home, dashboard, admin custom, produits, etc.)
+├─ data/                      # Datasets publics (GiveMeSomeCredit, German Credit, etc.) pour le scoring ML
+├─ ml/                        # Scripts d'entraînement offline (ml/train_credit_model.py)
+├─ scoring/model_credit.pkl   # Pipeline ML sérialisé (à générer via `ml/train_credit_model.py`)
 ├─ README.md                  # Présentation et guide
 └─ cahier_des_charges.tex     # Spécifications fonctionnelles/techniques
 ```
@@ -101,7 +106,12 @@ Banquise/
 - Planifier cette commande via cron/cron-like (ou GitHub Actions) pour recevoir le résumé par mail chaque lundi matin.
 
 ## 8. Données / Migrations
-Modèles et migrations dans `scoring/`. Si `db.sqlite3` absent : `python manage.py migrate`. Créer un compte admin pour valider les crédits et répondre au support.
+Modèles et migrations dans `scoring/`. Si `db.sqlite3` absent : `python manage.py migrate`. Créer un compte admin pour valider les crédits et répondre au support.  
+Les datasets publics (GiveMeSomeCredit, German Credit, etc.) résident dans `data/` et alimentent `ml/train_credit_model.py`. Lance par exemple :
+```
+python ml/train_credit_model.py --input data/GiveMeSomeCredit.xlsx --target SeriousDlqin2yrs
+```
+pour générer `scoring/model_credit.pkl`, qui est ensuite chargé via `scoring/ml.py` dans les simulations de crédit.
 
 ## 9. Tests manuels
 - Création compte, login, profil, changement de mot de passe.

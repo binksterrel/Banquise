@@ -4,6 +4,11 @@ django-crispy-forms
 crispy-bootstrap5
 django-mathfilters
 reportlab
+numpy
+pandas
+scikit-learn
+openpyxl
+joblib
 
 gunicorn
 whitenoise

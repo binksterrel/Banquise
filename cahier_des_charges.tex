@@ -18,10 +18,20 @@
 \usepackage{array}
 \usepackage{amsmath}  % pour \text, formules...
 \usepackage{amssymb}  % pour \checkmark, symboles maths
+\usepackage{fvextra}  % verbatim amélioré (retour à la ligne automatique)
 % Ajout de la bibliothèque pour les diagrammes UML améliorés
 \usetikzlibrary{positioning, arrows.meta, shapes, calc}
 
-\geometry{margin=2.5cm}
+\geometry{left=2.5cm, right=1cm, top=2.5cm, bottom=2.5cm}
+\setlength{\emergencystretch}{3pt}
+\sloppy
+
+\DefineVerbatimEnvironment{CodeBlock}{Verbatim}{
+  fontsize=\small,
+  breaklines=true,
+  breakanywhere=true,
+  formatcom=\color{ink},
+}
 
 % === Réglages pour les captures ===
 % Vos images seront cherchées dans le dossier ./captures/
@@ -72,36 +82,69 @@
 
 \begin{document}
 
-% Page de garde personnalisée (charte Banquise)
+% Page de garde Banquise (charte ice/purple)
 \begin{titlepage}
 \begin{tikzpicture}[remember picture,overlay]
-    % Fond dégradé doux bleu / violet
-    \fill[ice50] (current page.south west) rectangle (current page.north east);
-    \path[fill=ice200] ([xshift=-1cm,yshift=-2cm]current page.north east) circle (7cm);
-    \path[fill=purple!20] ([xshift=2cm,yshift=1cm]current page.center) circle (6cm);
-    \path[fill=ice500!18] ([xshift=-3cm,yshift=1cm]current page.center) circle (5cm);
-    % Bandeau gradient
-    \path[fill=ice500!35] ([xshift=-2cm]current page.north west) rectangle ([xshift=2cm,yshift=-2cm]current page.north east);
+    % Fond clair
+    \fill[ice50] (current page.north west) rectangle (current page.south east);
+    % Bande verticale douce
+    \shade[left color=ice500!35,right color=purple!25,opacity=0.18]
+        ([xshift=-1cm,yshift=1cm]current page.north west) rectangle
+        ([xshift=2.5cm,yshift=-1cm]current page.south west);
+    % Accents circulaires
+    \fill[ice200!35] ([xshift=1cm,yshift=-1cm]current page.north east) circle (2.3cm);
+    \fill[purple!18] ([xshift=-2.3cm,yshift=-7cm]current page.north east) circle (2.9cm);
 \end{tikzpicture}
 
-\begin{center}
-    \vspace*{2.5cm}
-    {\Large\textsc{Banquise}}\\[0.6cm]
-    {\huge\bfseries Cahier des Charges}\\[0.4cm]
-    {\Large\bfseries Plateforme de Néobanque Web}\\[0.8cm]
-    \rule{0.6\linewidth}{0.8pt}\\[0.6cm]
-    {\large Version du \today}\\[2.2cm]
+\vspace*{2.2cm}
 
-    \begin{tabular}{p{3.5cm}p{9cm}}
-        \textbf{Produit} : & Banquise (Django 4.2) \\
-        \textbf{Équipe} : & Terrel NUENTSA \\[-2pt]
-                          & Romain THIERRY \\[-2pt]
-                          & Daniel BADOYAN \\
-        \textbf{Contact} : & 43020094@parisnanterre.fr \\
+\begin{center}
+    % Badge année / projet
+    \begin{tikzpicture}
+        \node[
+            fill=ice200!45,
+            text=ice500,
+            rounded corners=9pt,
+            inner sep=7pt,
+            font=\large\bfseries
+        ] {Année 2025--2026 · Plateforme Banquise};
+    \end{tikzpicture}
+
+    \vspace{1.1cm}
+
+    % Titre principal
+    {\Huge\bfseries\color{ice500} CAHIER DES CHARGES}\\[0.35cm]
+    {\Large\bfseries Plateforme de Néobanque Web}\\[0.2cm]
+    {\LARGE\bfseries\color{ink} Banquise}\\[0.9cm]
+
+    % Ligne gradient
+    \begin{tikzpicture}
+        \shade[left color=ice500,right color=purple] (0,0) rectangle (12,0.18);
+    \end{tikzpicture}
+
+    \vspace{1.1cm}
+
+    % Carte infos
+    \begin{tabular}{@{}p{3.6cm}p{10cm}@{}}
+        \textbf{Produit} & Banquise (Django 4.2) \\
+        \textbf{Équipe} & Terrel NUENTSA \\[-2pt]
+                       & Romain THIERRY \\[-2pt]
+                       & Daniel BADOYAN \\
+        \textbf{Rôle} & Cahier des charges, architecture et spécifications \\
+        \textbf{Contact} & 43020094@parisnanterre.fr \\
+        \textbf{Version} & \today \\
+    \end{tabular}
+
+    \vspace{0.9cm}
+
+    % Liens projet
+    \begin{tabular}{@{}p{3.6cm}p{10cm}@{}}
+        \textbf{Dépôt GitHub} & \texttt{github.com/binksterrel/Banquise} \\
+        \textbf{Démo Render} & \texttt{https://banquise.onrender.com} \\
     \end{tabular}
 
     \vfill
-    \textit{Banquise : comptes, cartes, virements, crédits avec scoring IA, notifications temps réel, support intégré et console admin.}
+    \textit{Banquise : comptes, cartes, virements, crédits avec scoring IA (offline + heuristique), notifications in-app, support intégré et console admin.}
 \end{center}
 \end{titlepage}
 
@@ -121,8 +164,9 @@ Ce document constitue le cahier des charges du projet Banquise, une plateforme d
 \begin{itemize}[leftmargin=1.3cm]
     \item Comptes et cartes (blocage, plafonds, RIB/IBAN, relevés PDF)
     \item Virements et bénéficiaires (ajout, modification, suppression sécurisée)
-    \item Abonnements (Essentiel / Plus / Infinite) avec confirmation par mot de passe et résiliation encadrée
+    \item Abonnements (Essentiel / Plus / Infinite) avec débit immédiat, prochaine échéance à J+30 et résiliation encadrée
     \item Crédits avec scoring IA, simulations, validations admin et versement automatique sur compte
+    \item Découverts temporaires : demandes client, validation admin, seuils de blocage cartes ajustés
     \item Notifications temps réel (pastille dock) et toasts temporisés
     \item Support (chat, FAQ, avis utilisateur) et console admin (gestion crédits, comptes, cartes)
 \end{itemize}
@@ -160,9 +204,10 @@ Banquise propose une plateforme web complète comprenant :
 \begin{itemize}[leftmargin=1.5cm]
     \item Gestion multi-comptes (courant, épargne) et cartes virtuelles avec contrôle (blocage, plafonds)
     \item Virements instantanés, ajout/modification/suppression de bénéficiaires avec validations
-    \item Abonnements flexibles (Essentiel, Plus, Infinite) avec confirmation par mot de passe
+    \item Abonnements flexibles (Essentiel, Plus, Infinite) avec débit immédiat et prochaine échéance à J+30
     \item Simulation et demande de crédit avec scoring IA, historique et versement automatique en cas d'acceptation
     \item Prévision des mensualités crédit dans les analyses de dépenses (courbes superposées)
+    \item Découverts temporaires validés par l'admin, appliqués au blocage/déblocage des cartes
     \item Notifications en temps réel (dock et pastille) et toasts à durée limitée
     \item Support client (chat, FAQ enrichie, avis affichés sur la page d'accueil)
     \item Console administrateur : gestion des crédits (acceptation, annulation, modification des paramètres), comptes, cartes et bénéficiaires
@@ -220,7 +265,7 @@ L'IA Banquise vise à :
     \item \textbf{Suggestion DTI 35\%} : si la mensualité dépasse le DTI cible (35\%), calcul d'une mensualité conseillée et d'une durée ajustée (plafond 40 ans) proposée à l'utilisateur.
 \end{itemize}
 
-\section{Modèle ML simplifié (runtime)}
+\section{Modèle ML simplifié – runtime (ancienne version}
 En complément des règles heuristiques, un petit modèle de régression logistique est entraîné à l'exécution sur un jeu de données synthétique :
 \begin{itemize}[leftmargin=1.3cm]
     \item Génération de 600 profils aléatoires (revenus 1-12 k€, DTI 10-70\%, LTV 50-110\%, apport 0-60\%).
@@ -231,9 +276,9 @@ En complément des règles heuristiques, un petit modèle de régression logisti
 
 \section{Seuils et décisions}
 \begin{itemize}[leftmargin=1.3cm]
-    \item DTI seuil : 40\% (ajustable).
-    \item LTV seuil : 90\% (ajustable).
-    \item Score minimal : 70/100 pour une acceptation automatique.
+    \item DTI seuil : 42\% (revenus $<$ 6000€) ou 47\% (revenus $\geq$ 6000€).
+    \item LTV seuil : 95\%, porté à 97\% si montant $\geq$ 250k€ et apport $\geq$ 10\%.
+    \item Score minimal : 55/100 pour une acceptation automatique (avis IA).
     \item Cas limites : si DTI légèrement au-dessus, l'IA suggère d'allonger la durée ou d'augmenter l'apport.
 \end{itemize}
 
@@ -242,7 +287,7 @@ En complément des règles heuristiques, un petit modèle de régression logisti
     \item L'utilisateur remplit la simulation (montant, durée, revenus, charges, apport).
     \item L'IA calcule DTI, LTV, mensualité, score et rend un \textit{avis automatique} (accepté / ajusté / refusé).
     \item Si l'utilisateur valide, la demande passe en \textbf{EN\_ATTENTE} pour revue admin.
-    \item En cas d'acceptation admin, le montant est crédité sur le compte et les mensualités sont planifiées (débits mensuels).
+    \item En cas d'acceptation admin, le montant est crédité sur le compte et les mensualités sont planifiées (débits mensuels, rattrapage des échéances manquantes).
     \item L'historique et l'analyse des dépenses affichent la projection des mensualités jusqu'à échéance.
 \end{enumerate}
 
@@ -263,10 +308,27 @@ En complément des règles heuristiques, un petit modèle de régression logisti
 
 \section{Limites et évolutions}
 \begin{itemize}[leftmargin=1.3cm]
-    \item Version actuelle : moteur heuristique + règles métiers (DTI/LTV/score pondéré).
-    \item Évolution envisagée : modèle ML supervisé avec jeu de données anonymisé, calibration des seuils, détection de risques.
-    \item Explicabilité : conserver les raisons d'un refus (DTI/LTV/score) pour transparence utilisateur.
+\item Version actuelle : moteur heuristique + règles métiers (DTI/LTV/score pondéré).
+\item Évolution envisagée : modèle ML supervisé avec jeu de données anonymisé, calibration des seuils, détection de risques.
+\item Explicabilité : conserver les raisons d'un refus (DTI/LTV/score) pour transparence utilisateur.
 \end{itemize}
+
+\section{Pipeline ML entraîné hors-ligne (dernière version)}
+\paragraph{}En plus de l'ancienne logique heuristique et du micro-modèle synthétique, une version plus réaliste est introduite. Elle suit un cycle classique “\textbf{entraînement hors-ligne} \textrightarrow{} \textbf{sérialisation} \textrightarrow{} \textbf{prédiction en ligne}” :
+\begin{enumerate}[leftmargin=1.3cm]
+    \item \textbf{Préparation des données} (pandas) : chargement d'un dataset public anonymisé depuis \texttt{data/} (CSV/XLSX). Gestion des colonnes numériques et catégorielles, imputation des valeurs manquantes, encodage OneHot et normalisation.
+    \item \textbf{Entraînement hors-ligne} (\texttt{ml/train\_credit\_model.py}) : construction d'un \textit{pipeline} scikit-learn (prétraitement + modèle). Trois modèles testés (régression logistique, arbre, random forest). Sélection du meilleur sur ROC AUC/F1, puis sauvegarde du pipeline complet (prépro + modèle) avec \texttt{joblib} dans \texttt{scoring/model\_credit.pkl}.
+    \item \textbf{Chargement en production} (\texttt{scoring/ml.py}) : au démarrage, le pipeline est chargé une seule fois (lazy load, cache). La fonction \texttt{predict\_credit(features: dict)} applique automatiquement le même prétraitement et renvoie la probabilité de “bon payeur”, le label (ACCEPTEE/REFUSEE) et un score 0-100.
+    \item \textbf{Fallback} : si le fichier \texttt{model\_credit.pkl} est absent ou invalide, l'heuristique historique est utilisée pour garder une simulation fonctionnelle.
+    \item \textbf{Décision} : probabilité $\geq 0{,}5$ $\Rightarrow$ label ACCEPTEE, sinon REFUSEE ; le score affiché est \texttt{proba\_good * 100}.
+\end{enumerate}
+\paragraph{Extrait (appel runtime)} 
+\begin{CodeBlock}
+from scoring.ml import predict_credit
+result = predict_credit(payload_dict)
+# -> {'proba_good': ..., 'label': 'ACCEPTEE'/'REFUSEE', 'score_0_100': ...}
+\end{CodeBlock}
+\paragraph{Synthèse} : le flux est compréhensible même pour un non-spécialiste : on entraîne d'abord un modèle sur des données réelles (hors application), on sauvegarde tout (prétraitement compris) dans un fichier, puis l'application charge ce fichier pour prédire en ligne ; si le fichier manque, on retombe sur la logique heuristique historique.
 
 % ============================================================================
 % CHAPITRE 2 : ANALYSE ET SPÉCIFICATION DES BESOINS
@@ -323,6 +385,7 @@ Le système Banquise implique trois acteurs principaux :
 
 \begin{description}[style=nextline, leftmargin=3cm]
     \item[Découvert autorisé] Plafond de solde négatif toléré selon l'abonnement (Essentiel : 100€, Plus : 500€, Infinite : 1000€)
+    \item[Découvert temporaire] Relèvement ponctuel du découvert autorisé, validé par un administrateur avec expiration optionnelle
     \item[DTI] Debt-to-Income : ratio d'endettement mensuel calculé pour l'évaluation de crédit
     \item[LTV] Loan-to-Value : ratio entre le montant du prêt et la valeur du bien financé
     \item[Scoring] Algorithme d'évaluation automatique de la solvabilité d'un client
@@ -334,21 +397,22 @@ Le système Banquise implique trois acteurs principaux :
 \section{Besoins fonctionnels}
 
 \subsection{Module Authentification}
-\paragraph{}Parcours classique d'inscription/connexion avec sécurisation des sessions, récupération de mot de passe et gestion du profil. Les rôles (client/staff) conditionnent l'accès aux écrans admin.
+\paragraph{}Parcours d'inscription en deux étapes avec code email (6 chiffres, valable 10 minutes), validation stricte des données et création automatique du premier compte. Les rôles (client/staff) conditionnent l'accès aux écrans admin et au chat côté staff.
 \begin{itemize}[leftmargin=1.5cm]
-    \item Inscription avec validation des informations
-    \item Connexion sécurisée
-    \item Déconnexion
-    \item Gestion du profil utilisateur
+    \item Inscription en 2 étapes (envoi et saisie d'un code email, blocage d'une nouvelle inscription tant qu'un code est en attente)
+    \item Validation email (unicité/format), mot de passe fort (8+ caractères, chiffre, caractère spécial), âge $<$ 70 ans
+    \item Activation du compte : profil créé, compte courant crédité de 100€ et carte associée générée
+    \item Connexion sécurisée, déconnexion avec purge de session et en-têtes no-cache
+    \item Gestion du profil utilisateur (nom, ville, téléphone, email)
     \item Changement de mot de passe
     \item Réinitialisation de mot de passe
 \end{itemize}
 
 \subsection{Module Gestion des Comptes}
-\paragraph{}Le client ouvre/ferme des comptes (courant, épargne, pro), consulte soldes et relevés paginés, et exporte ses relevés ou RIB. Les opérations sont historisées.
+\paragraph{}Le client ouvre/ferme des comptes (courant, épargne, pro), consulte soldes et relevés paginés, et exporte ses relevés ou RIB. Limite : 3 comptes actifs maximum, pas de doublon par type.
 \begin{itemize}[leftmargin=1.5cm]
-    \item Ouverture de compte (Courant, Épargne, Pro)
-    \item Fermeture de compte
+    \item Ouverture de compte (Courant, Épargne, Pro), IBAN généré, carte créée automatiquement
+    \item Fermeture de compte : interdite si solde négatif ; si solde positif, virement obligatoire vers un autre compte actif
     \item Consultation du solde en temps réel
     \item Relevé de compte paginé
     \item Export PDF du relevé
@@ -365,8 +429,9 @@ Le système Banquise implique trois acteurs principaux :
     \item Activation/désactivation paiements étrangers
     \item Gestion des plafonds de paiement
     \item Gestion des plafonds de retrait
-    \item Blocage automatique en cas de dépassement du découvert autorisé
-    \item Déblocage automatique lorsque le solde repasse au-dessus
+    \item Alerte préventive à 80\% du découvert autorisé (limite ajustée si un découvert temporaire est accepté)
+    \item Blocage automatique en cas de dépassement du découvert autorisé (y compris découvert temporaire)
+    \item Déblocage automatique lorsque le solde repasse au-dessus du seuil
 \end{itemize}
 
 \subsection{Module Virements}
@@ -374,8 +439,7 @@ Le système Banquise implique trois acteurs principaux :
 \begin{itemize}[leftmargin=1.5cm]
     \item Ajout de bénéficiaires (IBAN)
     \item Gestion des bénéficiaires enregistrés
-    \item Virement vers bénéficiaire existant
-    \item Virement vers IBAN saisi manuellement
+    \item Virement vers bénéficiaire existant OU vers un IBAN saisi (validation souple, insensible casse/espaces ; les deux ne peuvent être saisis simultanément, priorité au bénéficiaire si double saisie)
     \item Vérification du solde disponible
     \item Transaction miroir pour virements internes Banquise
     \item Normalisation IBAN (insensible casse et espaces)
@@ -386,23 +450,37 @@ Le système Banquise implique trois acteurs principaux :
 \paragraph{}Plans Essentiel/Plus/Infinite avec changement de palier, facturation immédiate et prochaine échéance à J+30. La résiliation est programmée en fin de période et impacte le découvert autorisé.
 \begin{itemize}[leftmargin=1.5cm]
     \item Plans disponibles : Essentiel (gratuit), Plus (9,90€), Infinite (19,90€)
-    \item Changement d'abonnement avec débit immédiat
-    \item Création d'une transaction associée
+    \item Changement d'abonnement avec débit immédiat sur le premier compte actif
+    \item Création d'une transaction associée et notification
     \item Prochaine facturation à J+30
-    \item Résiliation programmée en fin de période
+    \item Résiliation programmée en fin de période (retour à Essentiel)
     \item Notifications de changement d'abonnement
     \item Découvert autorisé selon le plan
 \end{itemize}
 
+\subsection{Module Découvert temporaire}
+\paragraph{}Relèvement ponctuel du découvert autorisé via demande client, décision staff et date d'expiration optionnelle. La limite effective est le maximum entre l'abonnement et le dernier découvert temporaire accepté non expiré.
+\begin{itemize}[leftmargin=1.5cm]
+    \item Demande de découvert temporaire (montant, durée optionnelle)
+    \item Statut EN\_ATTENTE \textrightarrow{} ACCEPTEE / REFUSEE par un administrateur (commentaire possible)
+    \item Notification client lors de la décision
+    \item Intégration directe dans le calcul de blocage/déblocage des cartes
+\end{itemize}
+
 \subsection{Module Crédit}
-\paragraph{}Un simulateur de crédit calcule score/DTI/LTV, affiche un avis automatique, l’historique et permet à l’admin de valider/refuser. La page résultat propose une suggestion de durée/mensualité si le DTI est trop élevé.
+\paragraph{}Un simulateur de crédit calcule score/DTI/LTV, affiche un avis automatique, l’historique et permet à l’admin de valider/refuser. La page résultat propose une suggestion de durée/mensualité si le DTI est trop élevé et les mensualités acceptées sont prélevées automatiquement chaque mois.
 \begin{itemize}[leftmargin=1.5cm]
     \item Simulation de crédit avec formulaire détaillé
-    \item Calcul automatique du score de solvabilité
-    \item Avis IA basé sur DTI, LTV et tolérance au risque
+    \item Calcul automatique du score de solvabilité : heuristique embarquée + modèle ML entraîné hors-ligne (pipeline scikit-learn sérialisé)
+    \item Avis IA basé sur DTI, LTV et tolérance au risque (score final $\geq$ 55 $\Rightarrow$ avis auto accepté)
     \item Statut initial « En attente de validation humaine »
+    \item Versement automatique sur le premier compte actif si l'admin accepte
+    \item Prélèvements mensuels automatiques sur les crédits acceptés (rattrapage des mensualités manquantes)
     \item Historique des demandes de crédit
     \item Page résultat dédiée avec détails
+    \item Suggestion de mensualité/durée si DTI dépasse 35\%
+    \item Possibilité de soumettre ou de conserver la simulation sans soumission
+    \item Modification de la simulation impossible une fois le crédit accepté
     \item Validation/refus par administrateur
     \item Notifications à chaque étape
 \end{itemize}
@@ -443,9 +521,11 @@ Le système Banquise implique trois acteurs principaux :
         \item Transactions récentes
         \item Top dépenses
     \end{itemize}
-    \item Console de validation des crédits
-    \item Gestion des comptes/cartes/bénéficiaires
-    \item Consultation des transactions
+    \item Console de validation des crédits (versement automatique si acceptation, refus explicite)
+    \item Gestion des comptes/cartes/bénéficiaires (blocage cartes, suppression bénéficiaire, clôture compte)
+    \item Gestion des demandes de découvert temporaire (acceptation/refus, expiration, commentaire)
+    \item Consultation des transactions et export CSV (comptes, cartes, crédits)
+    \item Blocage massif des cartes via sélection d'identifiants
     \item Accès Django admin pour CRUD complet
 \end{itemize}
 
@@ -465,7 +545,7 @@ Le système Banquise implique trois acteurs principaux :
     \item Gestion des rôles (staff/client)
     \item HTTPS recommandé en production
     \item Rotation des clés secrètes
-    \item 2FA pour les administrateurs
+    \item 2FA pour les administrateurs (à planifier, non implémenté dans la version actuelle)
     \item Journal d'audit des actions sensibles
 \end{itemize} \\
 \hline
@@ -488,7 +568,7 @@ Le système Banquise implique trois acteurs principaux :
 \textbf{Scalabilité} & 
 \begin{itemize}[leftmargin=0.5cm]
     \item Stockage statique dédié (CDN)
-    \item Files d'attente pour notifications
+    \item Files d'attente pour notifications (à prévoir, non implémenté)
     \item Architecture horizontalement scalable
 \end{itemize} \\
 \hline
@@ -738,6 +818,8 @@ Le système Banquise implique trois acteurs principaux :
     \item Le scoring IA produit un score et une décision, mais l’admin reste décisionnaire
     \item Les notifications critiques (virement, crédit, découvert) sont créées et visibles
     \item Les tâches planifiées (rapport hebdo) s’exécutent sans erreur
+    \item Limite de 3 comptes actifs respectée et non contournable
+    \item Prélèvements automatiques des crédits acceptés déclenchés et historisés (échéances payées)
 \end{itemize}
 
 \section{Règles métier}
@@ -760,6 +842,19 @@ Infinite & 19,90 € & 1 000 € \\
 \caption{Découverts autorisés par abonnement}
 \end{table}
 
+\subsection{Découvert temporaire (boost)}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Demande initiée par le client (montant, durée optionnelle)
+    \item Décision staff : ACCEPTEE ou REFUSEE, avec commentaire et expiration possible
+    \item La limite appliquée est le maximum entre la limite d'abonnement et le dernier boost accepté non expiré
+\end{itemize}
+
+\subsection{Limitation des comptes actifs}
+\begin{itemize}[leftmargin=1.5cm]
+    \item 3 comptes actifs maximum par utilisateur (un par type Courant, Épargne, Pro)
+    \item Ouverture refusée si le type de compte est déjà actif
+\end{itemize}
+
 \subsection{Blocage automatique des cartes}
 \begin{itemize}[leftmargin=1.5cm]
     \item Si solde $<$ $-$limite découvert : blocage automatique de toutes les cartes
@@ -768,39 +863,84 @@ Infinite & 19,90 € & 1 000 € \\
     \item Alerte préventive à 80\% de la limite
 \end{itemize}
 
+\paragraph{Extrait de code (blocage lié au découvert)} 
+\begin{verbatim}
+seuil_alerte = -limit * Decimal("0.8")
+if solde <= seuil_alerte: notifier(...)
+if solde < -limit:
+    cartes.filter(est_bloquee=False).update(est_bloquee=True)
+else:
+    cartes.filter(est_bloquee=True).update(est_bloquee=False)
+\end{verbatim}
+Cet extrait illustre l'alerte préventive et le blocage/déblocage automatique des cartes en fonction du découvert autorisé effectif.
+
 \subsection{Virements internes}
 \begin{itemize}[leftmargin=1.5cm]
-    \item Détection automatique des IBAN Banquise (FR76)
+    \item Détection automatique des IBAN Banquise (IBAN interne normalisé, insensible casse/espaces)
     \item Création d'une transaction miroir en crédit pour le destinataire
     \item Notification émetteur : « Virement de X€ effectué »
     \item Notification destinataire : « Virement de X€ reçu »
     \item Normalisation IBAN : insensible à la casse et aux espaces
 \end{itemize}
 
-\subsection{Scoring crédit}
-Le calcul du score de crédit prend en compte :
+\subsection{Prélèvements automatiques des crédits acceptés}
 \begin{itemize}[leftmargin=1.5cm]
-    \item \textbf{DTI (Debt-to-Income)} : ratio dettes/revenus
-    \item \textbf{LTV (Loan-to-Value)} : ratio montant prêt/valeur financée
-    \item \textbf{Situation professionnelle} : CDI, CDD, indépendant, retraité
-    \item \textbf{État de santé} : bon, moyen, faible
-    \item \textbf{Nombre d'enfants à charge}
-    \item \textbf{Apport personnel}
+    \item Débit mensuel automatique sur le premier compte actif du client
+    \item Rattrapage des mensualités manquantes au chargement du dashboard (sur la base de la date de demande)
+    \item Suivi du nombre d'échéances payées et de la dernière date de prélèvement
 \end{itemize}
 
-\textbf{Formule de scoring} :
-\[
-\text{Score} = 1000 - (\text{DTI} \times 10) - (\text{LTV} \times 5) + \text{bonus\_emploi} + \text{bonus\_santé}
-\]
+\paragraph{Extrait de code (rattrapage des mensualités)} 
+\begin{verbatim}
+due_months = min(total_months, months_diff(today, credit.date_demande.date()) + 1)
+manquantes = max(0, due_months - credit.echeances_payees)
+for _ in range(manquantes):
+    Transaction.objects.create(..., libelle="Mensualité crédit")
+credit.echeances_payees += manquantes
+credit.dernier_prelevement = today
+credit.save(...)
+\end{verbatim}
+Cet extrait montre le rattrapage automatique des mensualités dues en fonction de la date de demande et du nombre d'échéances déjà payées.
+
+\subsection{Scoring crédit}
+Le calcul du score de crédit combine une heuristique et un micro-modèle logistique entraîné à la volée :
+\begin{itemize}[leftmargin=1.5cm]
+    \item \textbf{DTI} : mensualité + charges / revenus (pénalité au-delà de 30\%, seuil dynamique 42\% ou 47\% selon revenus)
+    \item \textbf{LTV} : pénalité au-delà de 85\% (seuil jusqu'à 97\% si montant $\geq$ 250k€ et apport $\geq$ 10\%)
+    \item \textbf{Revenus et apport} : bonus si apport $\geq$ 20\% ; malus si revenus $<$ 2000€
+    \item \textbf{Profil} : bonus CDI, bonus propriétaire, bonus santé BON
+    \item \textbf{Modèle ML} : régression logistique sur dataset synthétique (revenus, DTI, LTV, ratio apport), moyenné avec le score heuristique
+    \item \textbf{Décision IA} : score final $\geq$ 55 $\Rightarrow$ avis auto accepté ; sinon refus (statut métier reste EN\_ATTENTE jusqu’à validation admin)
+    \item \textbf{Suggestion} : si DTI dépasse 35\%, proposition d'une mensualité cible et d'une durée ajustée (plafond 40 ans)
+\end{itemize}
+
+\paragraph{Formule heuristique (profil “bon”)} Le score heuristique est initialisé à 100 et pénalisé/bonifié ainsi :
+{\small
+\begin{multline*}
+\text{score\_h} = \max\Big(0,\ \min\big(100,\ 100 - \underbrace{\max(0,DTI-30)}_{\text{malus DTI}} - \underbrace{0{,}25\times \max(0,LTV-85)}_{\text{malus LTV}} \\
+- \underbrace{\mathbf{1}_{revenus<2000}\times 8}_{\text{revenus faibles}} + \underbrace{\mathbf{1}_{apport\ge 20\%}\times 10}_{\text{bonus apport}} + \underbrace{\mathbf{1}_{CDI}\times 10}_{\text{bonus CDI}} + \underbrace{\mathbf{1}_{proprio}\times 10}_{\text{bonus logement}} + \underbrace{\mathbf{1}_{santé=BON}\times 2}_{\text{bonus santé}} \big)\Big)
+\end{multline*}
+}
+Le score final est la moyenne \(\frac{\text{score\_heur} + \text{score\_ml}}{2}\) (si \texttt{numpy} indisponible : score heuristique seul) ; un crédit est considéré “bon” par l’IA si le score final $\geq 55$.
+
+\paragraph{Extrait de code (seuils et avis IA)} 
+\begin{verbatim}
+final_score = int((score + (ml_score if ml_score else score)) / 2)
+ia_decision = 'ACCEPTEE' if final_score >= 55 else 'REFUSEE'
+dti_limit = 42 if revenus_mensuels < 6000 else 47
+ltv_limit = 97 if montant >= 250000 and apport >= 0.10*montant else 95
+\end{verbatim}
+Cet extrait montre le calcul du score final, l'avis IA et les seuils DTI/LTV dynamiques.
 
 \subsection{Cycle de vie du crédit}
 \begin{enumerate}
     \item Client remplit le formulaire de simulation
-    \item Système calcule le score et génère un avis IA
-    \item Statut initial : « EN\_ATTENTE »
-    \item Notification envoyée au client et aux admins
+    \item Système calcule le score et génère un avis IA (score final $\geq$ 55 = avis accepté)
+    \item Statut initial : « EN\_ATTENTE » (même en cas d'avis IA accepté)
+    \item Notification envoyée au client et aux admins, possibilité de soumettre ou de garder la simulation
     \item Admin examine la demande et décide
-    \item Statut mis à jour : « ACCEPTEE » ou « REFUSEE »
+    \item Statut mis à jour : « ACCEPTEE » ou « REFUSEE » ; en cas d'acceptation, versement automatique sur le premier compte actif
+    \item Prélèvements mensuels automatiques des échéances (rattrapage si nécessaire)
     \item Notification de décision envoyée au client
 \end{enumerate}
 
@@ -865,6 +1005,14 @@ Ce chapitre présente l'architecture logique et physique du système, ainsi que 
 \texttt{scoring.urls} & Configuration des routes URL \\
 \hline
 \texttt{scoring.utils} & Fonctions utilitaires (calcul découvert, scoring, normalisation IBAN) \\
+\hline
+\texttt{scoring.ml} & Chargement du modèle ML sérialisé (\texttt{model\_credit.pkl}) et prédiction (\texttt{predict\_credit}) \\
+\hline
+\texttt{scoring.context\_processors} & Exposition globale des notifications non lues \\
+\hline
+\texttt{scoring.templatetags} & Filtres personnalisés (ratio, multiply/subtract, accès dictionnaire) \\
+\hline
+\texttt{ml/train\_credit\_model.py} & Script d'entraînement offline (pandas/scikit-learn) pour générer \texttt{model\_credit.pkl} \\
 \hline
 \texttt{templates/} & Templates HTML avec Tailwind CSS et Bootstrap Icons \\
 \hline
@@ -1240,6 +1388,8 @@ Ce chapitre décrit la structure de la base de données, les tables et leurs rel
 \caption{Modèle relationnel simplifié}
 \end{figure}
 
+\noindent\textit{Tables complémentaires (non représentées dans le schéma simplifié)} : \texttt{produit\_pret}, \texttt{type\_emploi}, \texttt{type\_logement}, \texttt{demande\_decouvert}, \texttt{message\_support}.
+
 \section{Dictionnaire des données}
 
 \subsection{Table: auth\_user}
@@ -1426,6 +1576,8 @@ user\_id & Integer & FK & Référence vers auth\_user \\
 \hline
 nom & String(100) & NOT NULL & Nom du bénéficiaire \\
 \hline
+surnom & String(100) & NULL & Surnom facultatif \\
+\hline
 iban & String(34) & NOT NULL & IBAN du bénéficiaire \\
 \hline
 date\_ajout & DateTime & AUTO & Date d'ajout du bénéficiaire \\
@@ -1451,33 +1603,33 @@ id & Integer & PK, AUTO & Identifiant unique de la demande \\
 \hline
 user\_id & Integer & FK & Référence vers auth\_user \\
 \hline
-produit\_id & Integer & FK & Référence vers produit\_pret \\
+produit\_id & Integer & FK, NULL & Référence vers produit\_pret \\
 \hline
 montant\_souhaite & Integer & NOT NULL & Montant du crédit demandé (€) \\
 \hline
-duree\_annees & Integer & NOT NULL & Durée souhaitée en années \\
+duree\_souhaitee\_annees & Integer & NOT NULL & Durée souhaitée en années \\
 \hline
-apport\_personnel & Integer & NOT NULL & Montant de l'apport personnel (€) \\
+apport\_personnel & Integer & DEFAULT 0 & Montant de l'apport personnel (€) \\
 \hline
-revenus\_mensuels & Integer & NOT NULL & Revenus mensuels nets (€) \\
+revenus\_mensuels & Integer & DEFAULT 0 & Revenus mensuels nets (€) \\
 \hline
-loyer\_actuel & Integer & NULL & Loyer actuel (€) \\
+loyer\_actuel & Integer & DEFAULT 0 & Loyer/charges (€) \\
 \hline
-dettes\_mensuelles & Integer & NOT NULL & Charges de dettes mensuelles (€) \\
+dettes\_mensuelles & Integer & DEFAULT 0 & Charges de dettes mensuelles (€) \\
 \hline
 enfants\_a\_charge & Integer & DEFAULT 0 & Nombre d'enfants à charge \\
 \hline
-emploi\_snapshot\_id & Integer & FK & Type d'emploi au moment de la demande \\
+emploi\_snapshot\_id & Integer & FK, NULL & Type d'emploi au moment de la demande \\
 \hline
-logement\_snapshot\_id & Integer & FK & Type de logement actuel \\
+logement\_snapshot\_id & Integer & FK, NULL & Type de logement actuel \\
 \hline
-sante\_snapshot & String(10) & NOT NULL & État de santé (BON, MOYEN, FAIBLE) \\
+sante\_snapshot & String(10) & DEFAULT BON & État de santé (BON, MOYEN, FAIBLE) \\
 \hline
-score\_calcule & Integer & NULL & Score calculé par l'algorithme \\
+score\_calcule & Integer & NULL & Score calculé (moyenne heuristique/ML) \\
 \hline
 taux\_calcule & Decimal(5,2) & NULL & Taux d'intérêt calculé (\%) \\
 \hline
-recommendation & String(50) & NULL & Recommandation IA \\
+recommendation & String(50) & NULL & Recommandation IA (texte court) \\
 \hline
 statut & String(20) & DEFAULT EN\_ATTENTE & EN\_ATTENTE, ACCEPTEE, REFUSEE \\
 \hline
@@ -1487,8 +1639,47 @@ ia\_decision & String(20) & NULL & Avis automatique de l'IA \\
 \hline
 mensualite\_calculee & Decimal(10,2) & NULL & Mensualité estimée (€) \\
 \hline
+soumise & Boolean & DEFAULT FALSE & Simulation envoyée à un conseiller ou non \\
+\hline
+echeances\_payees & Integer & DEFAULT 0 & Nombre d'échéances déjà prélevées \\
+\hline
+dernier\_prelevement & Date & NULL & Date du dernier prélèvement \\
+\hline
 
 \caption{Structure de la table demande\_credit}
+\end{longtable}
+
+\subsection{Table: demande\_decouvert}
+\begin{longtable}{|p{3.5cm}|p{2.5cm}|p{2cm}|p{6cm}|}
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Champ} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\
+\hline
+\endfirsthead
+\hline
+\rowcolor{banquiseblue!30}
+\textbf{Champ} & \textbf{Type} & \textbf{Contraintes} & \textbf{Description} \\
+\hline
+\endhead
+
+id & Integer & PK, AUTO & Identifiant unique de la demande \\
+\hline
+user\_id & Integer & FK & Référence vers auth\_user \\
+\hline
+montant\_souhaite & Decimal(10,2) & NOT NULL & Montant de découvert temporaire demandé (€) \\
+\hline
+statut & String(15) & DEFAULT EN\_ATTENTE & EN\_ATTENTE, ACCEPTEE, REFUSEE \\
+\hline
+expire\_le & Date & NULL & Date d'expiration du découvert temporaire \\
+\hline
+commentaire\_admin & Text & NULL & Commentaire éventuel de l'administrateur \\
+\hline
+cree\_le & DateTime & AUTO & Date de création \\
+\hline
+mis\_a\_jour\_le & DateTime & AUTO & Date de dernière mise à jour \\
+\hline
+
+\caption{Structure de la table demande\_decouvert}
 \end{longtable}
 
 \subsection{Table: notification}
@@ -1549,6 +1740,12 @@ date\_envoi & DateTime & AUTO & Date et heure d'envoi \\
 \hline
 est\_lu & Boolean & DEFAULT FALSE & Message lu ou non \\
 \hline
+image & Image & NULL & Pièce jointe image \\
+\hline
+mis\_a\_jour\_le & DateTime & AUTO & Date de dernière modification \\
+\hline
+a\_ete\_modifie & Boolean & DEFAULT FALSE & Indique si le message a été édité \\
+\hline
 
 \caption{Structure de la table message\_support}
 \end{longtable}
@@ -1595,6 +1792,8 @@ beneficiaire & user\_id & Listage des bénéficiaires d'un utilisateur \\
 \hline
 message\_support & user\_id, date\_envoi & Tri chronologique des conversations \\
 \hline
+demande\_decouvert & user\_id, statut, expire\_le & Décisions en attente et expirations à filtrer \\
+\hline
 \end{tabular}
 \caption{Index de la base de données}
 \end{table}
@@ -1629,6 +1828,18 @@ django-crispy-forms & Latest & Rendu des formulaires \\
 crispy-bootstrap5 & Latest & Templates Bootstrap 5 pour forms \\
 \hline
 django-mathfilters & Latest & Filtres mathématiques dans templates \\
+\hline
+numpy & Latest & Calcul scientifique (support ML) \\
+\hline
+pandas & Latest & Chargement/préparation des données (ML) \\
+\hline
+scikit-learn & Latest & Pipelines de prétraitement + modèles de scoring \\
+\hline
+openpyxl & Latest & Lecture des fichiers Excel (datasets Kaggle) \\
+\hline
+joblib & Latest & Sérialisation du pipeline ML (\texttt{model\_credit.pkl}) \\
+\hline
+ReportLab (optionnel) & Latest & Génération des relevés et RIB en PDF \\
 \hline
 \end{tabular}
 \caption{Technologies Backend}
@@ -1694,9 +1905,10 @@ virtualenv / venv & Latest & Environnements virtuels Python \\
 
 \newpage
 
+## No idea but patch: use CodeBlock
 \section{Architecture des fichiers}
 
-\begin{verbatim}
+\begin{CodeBlock}
 Banquise2.0/
 |-- Banquise/              # Configuration Django
 |   |-- __init__.py
@@ -1711,7 +1923,9 @@ Banquise2.0/
 |   |-- urls.py            # Routes de l'application
 |   |-- utils.py           # Fonctions utilitaires
 |   |-- admin.py           # Configuration Django Admin
-|   `-- middleware.py      # Middleware personnalisé
+|   |-- middleware.py      # Middleware personnalisé
+|   |-- ml.py              # Chargement du pipeline ML sérialisé
+|   `-- tests.py           # Tests Django
 |-- templates/             # Templates HTML
 |   |-- base.html          # Template de base
 |   |-- registration/      # Templates authentification
@@ -1721,9 +1935,13 @@ Banquise2.0/
 |   |-- js/
 |   `-- images/
 |-- media/                 # Fichiers uploadés
+|-- data/                  # Datasets publics pour scorer (GiveMeSomeCredit, German Credit…)
+|-- ml/                    # Scripts d'entraînement (train_credit_model.py)
+|-- scoring/model_credit.pkl # Pipeline ML sérialisé (ou générer via ml/train_credit_model.py)
 |-- manage.py              # Commandes Django
 `-- requirements.txt       # Dépendances Python
-\end{verbatim}
+`-- cahier_des_charges.tex  # Spec. fonctionnelles/techniques
+\end{CodeBlock}
 
 \section{Configuration de sécurité}
 
@@ -1743,6 +1961,8 @@ Banquise2.0/
 
 \subsection{Middleware de sécurité}
 \begin{itemize}[leftmargin=1.5cm]
+    \item \texttt{SecurityHeadersMiddleware} : CSP permissive adaptée aux ressources CDN (Tailwind/jsdelivr/fonts), headers X-Content-Type-Options, X-Frame-Options, Referrer-Policy
+    \item \texttt{NoCacheForAuthMiddleware} : entêtes \texttt{no-store} pour éviter l'accès aux pages protégées après déconnexion
     \item \texttt{SecurityMiddleware} : Headers de sécurité
     \item \texttt{CsrfViewMiddleware} : Protection CSRF
     \item \texttt{AuthenticationMiddleware} : Gestion de session
@@ -1779,8 +1999,10 @@ Backups & Sauvegardes quotidiennes automatisées \\
 \caption{Configuration de production}
 \end{table}
 
+#subsection command... not? need patch
 \subsection{Commandes de déploiement}
-\begin{verbatim}
+\begin{tcolorbox}[colback=ice50, colframe=ice500!50, breakable, enhanced, arc=4pt]
+\begin{CodeBlock}
 # Installer les dépendances
 pip install -r requirements.txt
 
@@ -1804,7 +2026,8 @@ gunicorn Banquise.wsgi:application --bind 0.0.0.0:8000
 # Start command : gunicorn Banquise.wsgi:application --bind 0.0.0.0:$PORT
 # Variables : DJANGO_ALLOWED_HOSTS=banquise.onrender.com,.onrender.com ; DJANGO_DEBUG=0
 # Statiques : Whitenoise (collectstatic) ; Médias : stockage local (prévoir volume/bucket si nécessaire)
-\end{verbatim}
+\end{CodeBlock}
+\end{tcolorbox}
 
 \subsection{Déploiement Render (banquise.onrender.com)}
 \begin{itemize}[leftmargin=1.5cm]
@@ -2099,5 +2322,127 @@ Pour les e-mails, l'application utilise la SMTP sandbox Mailtrap (\texttt{sandbo
     \caption{Interface de support client (côté admin)}
     \label{fig:admin-support-client}
 \end{figure}
+
+\subsection{Inscription en deux étapes (code email)}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{inscription_code_email.png}
+    \caption{Inscription : envoi du code et saisie pour activation}
+    \label{fig:inscription-2etapes}
+\end{figure}
+
+\subsection{Dashboard avec projections crédits}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{dashboard_projections_credits.png}
+    \caption{Dashboard client : dépenses 6/12 mois et projections de mensualités}
+    \label{fig:dashboard-projections}
+\end{figure}
+
+\subsection{Blocage automatique des cartes (découvert)}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{blocage_cartes_decouvert.png}
+    \caption{Alerte 80\% et blocage/déblocage automatique des cartes}
+    \label{fig:blocage-cartes-decouvert}
+\end{figure}
+
+\subsection{Virement et bénéficiaires}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{virement_beneficiaire_iban.png}
+    \caption{Formulaire de virement : bénéficiaire enregistré ou IBAN saisi}
+    \label{fig:virement-beneficiaire}
+\end{figure}
+
+\subsection{Découvert temporaire}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{demande_decouvert_temporaire.png}
+    \caption{Demande de découvert temporaire (client) et décision admin}
+    \label{fig:decouvert-temporaire}
+\end{figure}
+
+\subsection{Simulation crédit et suggestion DTI 35\%}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{simulation_credit_suggestion.png}
+    \caption{Simulation crédit : score, DTI/LTV, suggestion de mensualité/durée}
+    \label{fig:simulation-credit-suggestion}
+\end{figure}
+
+\subsection{Console admin crédits et exports}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{console_admin_credits_exports.png}
+    \caption{Console admin : acceptation/refus crédits, exports CSV, blocage massif}
+    \label{fig:console-credits-exports}
+\end{figure}
+
+\subsection{Chat support (client et admin)}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{chat_support_pj_edit.png}
+    \caption{Chat support : pièce jointe image et message édité (client/admin)}
+    \label{fig:chat-support}
+\end{figure}
+
+% ============================
+% Remerciements
+% ============================
+\newpage
+\chapter*{Remerciements}
+\addcontentsline{toc}{section}{Remerciements}
+
+Je souhaite exprimer ma gratitude à toutes les personnes ayant contribué, de près ou de loin, à la réalisation du projet \textbf{Banquise}.\\[0.3cm]
+
+Merci aux enseignants et encadrants pour la méthodologie transmise, ainsi qu'à l'équipe projet pour les échanges et l'entraide. Leur soutien a été essentiel pour mener à bien ce cahier des charges ainsi que le développement de \textbf{Banquise}.
+
+% ============================
+% Fin du document
+% ============================
+\newpage
+\phantomsection
+\addcontentsline{toc}{section}{Fin du document}
+\begin{titlepage}
+    \centering
+    \begin{tikzpicture}[remember picture, overlay]
+        % Fond clair et accents Banquise
+        \fill[ice50] (current page.north west) rectangle (current page.south east);
+        \shade[left color=ice500!70,right color=purple!60, opacity=0.15]
+            ([xshift=-1cm,yshift=1.2cm]current page.north west) rectangle
+            ([xshift=2.5cm,yshift=-1cm]current page.south west);
+        \fill[ice200!25] ([xshift=1cm,yshift=-1cm]current page.north east) circle (2cm);
+        \fill[purple!15] ([xshift=-2.5cm,yshift=-8cm]current page.north east) circle (2.8cm);
+    \end{tikzpicture}
+
+    \vspace*{2.2cm}
+
+    {\small\color{slate500} Cahier des charges — 2025--2026}\\[0.35cm]
+    {\Huge\bfseries\color{ice500} Merci pour votre lecture}\\[0.35cm]
+    {\Large\bfseries\color{ink} Banquise}\\[1cm]
+
+    \begin{tikzpicture}
+        \shade[left color=ice500,right color=purple] (0,0) rectangle (12,0.18);
+    \end{tikzpicture}
+
+    \vspace{1.2cm}
+
+    \begin{tabular}{@{}p{3cm}p{10cm}@{}}
+        \textbf{Synthèse} & Plateforme de néobanque web : comptes, cartes, virements, crédits avec scoring IA (offline + heuristique), notifications in-app, support intégré, console admin. \\[0.25cm]
+        \textbf{Livrables} & Cahier des charges, architecture, guide utilisateur/admin, pipeline ML sérialisé, templates et scripts d'entraînement. \\[0.25cm]
+        \textbf{Contact} & Terrel NUENTSA — \texttt{nuentsa.terrel@gmail.com}
+    \end{tabular}
+
+    \vspace{0.9cm}
+
+    \begin{tabular}{@{}p{3.6cm}p{10cm}@{}}
+        \textbf{Dépôt GitHub} & \texttt{github.com/binksterrel/Banquise} \\
+        \textbf{Démo Render} & \texttt{https://banquise.onrender.com} \\
+    \end{tabular}
+
+    \vfill
+    {\small \today}
+\end{titlepage}
 
 \end{document}

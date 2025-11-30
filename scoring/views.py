@@ -16,10 +16,6 @@ from django.urls import reverse
 from datetime import timedelta, datetime
 from decimal import Decimal
 from math import exp, log
-try:
-    import numpy as np
-except ImportError:
-    np = None
 import random
 import io
 import json
@@ -48,6 +44,7 @@ from .models import (
     Beneficiaire, MessageSupport, Notification, DemandeDecouvert
 )
 from .utils import overdraft_limit_for_user
+from .ml import predict_credit, is_model_available, ModelNotLoaded
 
 # BIC Statique pour la démo
 BANQUISE_BIC = "BANQFR76"
@@ -57,58 +54,6 @@ PLAN_CONFIG = {
     'PLUS': {'prix': Decimal("9.90"), 'label': 'Plus'},
     'INFINITE': {'prix': Decimal("19.90"), 'label': 'Infinite'},
 }
-
-# Petit modèle ML entraîné sur un dataset synthétique (logistic regression)
-_ML_WEIGHTS = None
-
-
-def _train_credit_model():
-    """Entraîne rapidement un modèle logistique sur un dataset synthétique pour approximer le risque."""
-    global _ML_WEIGHTS
-    if _ML_WEIGHTS is not None or np is None:
-        return
-    rng = np.random.default_rng(42)
-    n = 600
-    revenus = rng.uniform(1, 12, size=n)      # k€
-    dti = rng.uniform(10, 70, size=n)         # %
-    ltv = rng.uniform(50, 110, size=n)        # %
-    apport = rng.uniform(0, 0.6, size=n)      # ratio
-
-    # Règle synthétique pour générer un label
-    score = (revenus > 4).astype(int) + (dti < 40).astype(int) + (ltv < 90).astype(int) + (apport > 0.2).astype(int)
-    y = (score >= 3).astype(float)  # 1 si profil jugé "bon" par la règle, sinon 0
-
-    X = np.column_stack([revenus, dti, ltv, apport])
-    X = (X - X.mean(axis=0)) / (X.std(axis=0) + 1e-6)  # normalisation simple
-    X = np.concatenate([np.ones((n, 1)), X], axis=1)   # biais
-    w = np.zeros(X.shape[1])
-    lr = 0.05
-    for _ in range(300):  # descente de gradient rapide
-        z = X @ w
-        pred = 1 / (1 + np.exp(-z))
-        grad = X.T @ (pred - y) / n
-        w -= lr * grad
-    _ML_WEIGHTS = w
-
-
-def _ml_score(revenus, dti, ltv, apport_ratio):
-    """Retourne un score 0-100 issu du modèle logistique synthétique."""
-    if np is None:
-        return None
-    if _ML_WEIGHTS is None:
-        _train_credit_model()
-    if _ML_WEIGHTS is None:
-        return None
-    x = np.array([
-        1.0,
-        (revenus - 6) / 3,          # centrage approximatif
-        (dti - 40) / 15,
-        (ltv - 90) / 15,
-        (apport_ratio - 0.2) / 0.15
-    ])
-    z = float(np.dot(_ML_WEIGHTS, x))
-    prob = 1 / (1 + exp(-z))
-    return int(max(0, min(100, prob * 100)))
 
 def notifier(user, titre, contenu, type_evt='INFO', url=''):
     Notification.objects.create(
@@ -1427,47 +1372,78 @@ def page_simulation(request):
             dti = ((mensualite + dettes_totales) / revenus) * Decimal("100")
             ltv = Decimal("100") * (Decimal("1") - (Decimal(demande.apport_personnel or 0) / Decimal(max(1, demande.montant_souhaite or 1))))
 
-            score = Decimal("100")
-            # Heuristique plus souple
+            # Heuristique (fallback si modèle ML indisponible)
+            heur_score = Decimal("100")
             if dti > Decimal("30"):
-                score -= (dti - Decimal("30")) * Decimal("1.0")
+                heur_score -= (dti - Decimal("30")) * Decimal("1.0")
             if ltv > Decimal("85"):
-                score -= (ltv - Decimal("85")) * Decimal("0.25")
+                heur_score -= (ltv - Decimal("85")) * Decimal("0.25")
             if revenus < Decimal("2000"):
-                score -= Decimal("8")
+                heur_score -= Decimal("8")
             if Decimal(demande.apport_personnel or 0) >= Decimal(demande.montant_souhaite or 0) * Decimal("0.2"):
-                score += Decimal("10")
+                heur_score += Decimal("10")
             if demande.sante_snapshot == 'BON':
-                score += Decimal("2")
+                heur_score += Decimal("2")
             if demande.emploi_snapshot and demande.emploi_snapshot.nom.lower().startswith('cdi'):
-                score += Decimal("10")
-            if demande.logement_snapshot and 'propri' in demande.logement_snapshot.nom.lower():
-                score += Decimal("10")
+                heur_score += Decimal("10")
+            if demande.logement_snapshot and 'propri' in (demande.logement_snapshot.nom or '').lower():
+                heur_score += Decimal("10")
+            heur_score = int(max(0, min(100, heur_score)))
 
-            score = int(max(0, min(100, score)))
+            # Préparation des features pour le modèle ML entraîné offline
+            def _build_ml_payload():
+                profil = getattr(request.user, "profil", None)
+                age_val = None
+                try:
+                    if profil and profil.date_de_naissance:
+                        today = timezone.now().date()
+                        age_val = (today - profil.date_de_naissance).days // 365
+                except Exception:
+                    age_val = None
 
-            # ---- Score ML entraîné sur dataset synthétique (logistic regression) ----
-            ml_score = _ml_score(
-                revenus=float(revenus) / 1000.0,
-                dti=float(dti),
-                ltv=float(ltv),
-                apport_ratio=float(demande.apport_personnel or 0) / float(max(1, demande.montant_souhaite or 1))
-            )
-            final_score = int((score + (ml_score if ml_score is not None else score)) / 2)
+                dettes_totales_num = float(dettes_totales or 0)
+                revenus_num = float(revenus or 0)
+                debt_ratio = dettes_totales_num / revenus_num if revenus_num > 0 else None
+                rev_util = dettes_totales_num / revenus_num if revenus_num > 0 else None
+                dependants = int(demande.enfants_a_charge or 0)
+                # Tentative d'alignement sur GiveMeSomeCredit
+                return {
+                    "RevolvingUtilizationOfUnsecuredLines": rev_util,
+                    "age": age_val,
+                    "NumberOfTime30-59DaysPastDueNotWorse": 0,
+                    "DebtRatio": debt_ratio,
+                    "MonthlyIncome": revenus_num or None,
+                    "NumberOfOpenCreditLinesAndLoans": DemandeCredit.objects.filter(user=request.user, statut='ACCEPTEE').count() or 0,
+                    "NumberOfTimes90DaysLate": 0,
+                    "NumberRealEstateLoansOrLines": 1 if demande.logement_snapshot and 'propri' in (demande.logement_snapshot.nom or '').lower() else 0,
+                    "NumberOfTime60-89DaysPastDueNotWorse": 0,
+                    "NumberOfDependents": dependants,
+                }
 
-            # Seuils dynamiques
+            ml_result = None
+            if is_model_available():
+                try:
+                    ml_result = predict_credit(_build_ml_payload())
+                except ModelNotLoaded:
+                    ml_result = None
+                except Exception:
+                    ml_result = None
+
+            final_score = ml_result["score_0_100"] if ml_result else heur_score
+            ia_decision = ml_result["label"] if ml_result else ('ACCEPTEE' if final_score >= 55 else 'REFUSEE')
+
+            # Seuils dynamiques (affichage)
             dti_limit = 42 if demande.revenus_mensuels < 6000 else 47
             ltv_limit = 95
             if demande.montant_souhaite and demande.montant_souhaite >= Decimal("250000") and demande.apport_personnel >= demande.montant_souhaite * Decimal("0.10"):
                 ltv_limit = 97
 
-            ia_decision = 'ACCEPTEE' if ( final_score >= 55) else 'REFUSEE'
             recommendation = (
                 f"Avis automatique {ia_decision.lower()} "
                 f"(score final {final_score}, dti {dti:.1f}% / seuil {dti_limit}%, ltv {ltv:.1f}% / seuil {ltv_limit}%)"
             )
 
-            surcharge_risque = Decimal(max(0, (70 - score)) * 0.02).quantize(Decimal("0.01"))
+            surcharge_risque = Decimal(max(0, (70 - final_score)) * 0.02).quantize(Decimal("0.01"))
             taux_final = Decimal(base_rate) + surcharge_risque
 
             demande.score_calcule = final_score
