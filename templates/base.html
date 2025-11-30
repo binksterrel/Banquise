@@ -6,6 +6,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}BANQUISE | La Banque de Demain{% endblock %}</title>
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Banquise">
+    <meta property="og:title" content="Banquise — Gérez votre argent avec une clarté glacée">
+    <meta property="og:description" content="Banquise offre des comptes, cartes, virements, crédits avec scoring IA et une interface fluide et sécurisée.">
+    <meta property="og:image" content="{% static 'docs/logobanquise.png' %}">
+    <meta property="og:url" content="{{ request.build_absolute_uri|default:'https://banquise.onrender.com' }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Banquise — Gérez votre argent avec une clarté glacée">
+    <meta name="twitter:description" content="Comptes, cartes, virements, crédits IA, support intégré et console admin.">
+    <meta name="twitter:image" content="{% static 'docs/logobanquise.png' %}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
