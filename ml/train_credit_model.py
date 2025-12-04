@@ -1,17 +1,3 @@
-"""
-Script d'entraînement du modèle de scoring crédit.
-
-- Charge un dataset tabulaire (CSV ou XLSX) depuis data/
-- Prétraite (imputation numérique/catégorielle, encodage, scaling)
-- Entraîne plusieurs modèles (logistique, arbre, forêt)
-- Compare les métriques (accuracy, precision, recall, f1, roc_auc)
-- Sérialise le meilleur pipeline (prépro + modèle) dans scoring/model_credit.pkl
-
-Usage (exemples) :
-    python ml/train_credit_model.py --input data/GiveMeSomeCredit.xlsx --target SeriousDlqin2yrs
-    python ml/train_credit_model.py --input data/german_credit.csv --target credit_risk
-"""
-
 import argparse
 from pathlib import Path
 from typing import List, Tuple
