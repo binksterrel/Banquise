@@ -22,7 +22,7 @@
 % Ajout de la bibliothèque pour les diagrammes UML améliorés
 \usetikzlibrary{positioning, arrows.meta, shapes, calc}
 
-\geometry{left=2.5cm, right=1cm, top=2.5cm, bottom=2.5cm}
+\geometry{left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm}
 \setlength{\emergencystretch}{3pt}
 \sloppy
 
@@ -37,7 +37,6 @@
 % Vos images seront cherchées dans le dossier ./captures/
 \graphicspath{{captures/}}
 % Vous pouvez déposer des PNG/JPG/JPEG/PDF sans préciser l'extension
-\DeclareGraphicsExtensions{.png,.jpg,.jpeg,.pdf}
 
 % Couleurs personnalisées (charte Banquise)
 \definecolor{ice50}{HTML}{F0F9FF}
@@ -684,65 +683,66 @@ Le système Banquise implique trois acteurs principaux :
 
 \section{User Stories principales}
 
-\begin{longtable}{|c|p{2.5cm}|p{7cm}|c|c|}
+\begin{longtable}{|c|p{2.5cm}|p{8cm}|c|}
 \hline
 \rowcolor{banquiseblue!30}
-\textbf{N°} & \textbf{Module} & \textbf{User Story} & \textbf{Priorité} & \textbf{Points} \\
+\textbf{N°} & \textbf{Module} & \textbf{User Story} & \textbf{Priorité} \\
 \hline
 \endfirsthead
+
 \hline
 \rowcolor{banquiseblue!30}
-\textbf{N°} & \textbf{Module} & \textbf{User Story} & \textbf{Priorité} & \textbf{Points} \\
+\textbf{N°} & \textbf{Module} & \textbf{User Story} & \textbf{Priorité} \\
 \hline
 \endhead
 
-1 & Authentification & En tant qu'utilisateur, je veux m'inscrire avec mes informations personnelles & Haute & 8 \\
+1 & Authentification & En tant qu'utilisateur, je veux m'inscrire avec mes informations personnelles & Haute \\
 \hline
-2 & Authentification & En tant qu'utilisateur, je veux me connecter de manière sécurisée & Haute & 5 \\
+2 & Authentification & En tant qu'utilisateur, je veux me connecter de manière sécurisée & Haute \\
 \hline
-3 & Authentification & En tant qu'utilisateur, je veux changer mon mot de passe & Haute & 3 \\
+3 & Authentification & En tant qu'utilisateur, je veux changer mon mot de passe & Haute \\
 \hline
-4 & Comptes & En tant que client, je veux ouvrir un nouveau compte & Haute & 5 \\
+4 & Comptes & En tant que client, je veux ouvrir un nouveau compte & Haute \\
 \hline
-5 & Comptes & En tant que client, je veux consulter mes soldes en temps réel & Haute & 3 \\
+5 & Comptes & En tant que client, je veux consulter mes soldes en temps réel & Haute \\
 \hline
-6 & Comptes & En tant que client, je veux consulter mon relevé de compte & Moyenne & 5 \\
+6 & Comptes & En tant que client, je veux consulter mon relevé de compte & Moyenne \\
 \hline
-7 & Comptes & En tant que client, je veux exporter mon relevé en PDF & Basse & 8 \\
+7 & Comptes & En tant que client, je veux exporter mon relevé en PDF & Basse \\
 \hline
-8 & Cartes & En tant que client, je veux bloquer/débloquer ma carte & Haute & 3 \\
+8 & Cartes & En tant que client, je veux bloquer/débloquer ma carte & Haute \\
 \hline
-9 & Cartes & En tant que client, je veux gérer mes plafonds de paiement & Moyenne & 5 \\
+9 & Cartes & En tant que client, je veux gérer mes plafonds de paiement & Moyenne \\
 \hline
-10 & Cartes & En tant que système, je veux bloquer automatiquement les cartes en cas de dépassement & Haute & 8 \\
+10 & Cartes & En tant que système, je veux bloquer automatiquement les cartes en cas de dépassement & Haute \\
 \hline
-11 & Virements & En tant que client, je veux ajouter un bénéficiaire & Haute & 3 \\
+11 & Virements & En tant que client, je veux ajouter un bénéficiaire & Haute \\
 \hline
-12 & Virements & En tant que client, je veux effectuer un virement & Haute & 5 \\
+12 & Virements & En tant que client, je veux effectuer un virement & Haute \\
 \hline
-13 & Virements & En tant que client, je veux être notifié des virements reçus & Haute & 3 \\
+13 & Virements & En tant que client, je veux être notifié des virements reçus & Haute \\
 \hline
-14 & Abonnements & En tant que client, je veux changer mon abonnement & Moyenne & 5 \\
+14 & Abonnements & En tant que client, je veux changer mon abonnement & Moyenne \\
 \hline
-15 & Abonnements & En tant que client, je veux résilier mon abonnement & Moyenne & 3 \\
+15 & Abonnements & En tant que client, je veux résilier mon abonnement & Moyenne \\
 \hline
-16 & Crédit & En tant que client, je veux simuler un crédit & Haute & 13 \\
+16 & Crédit & En tant que client, je veux simuler un crédit & Haute \\
 \hline
-17 & Crédit & En tant que système, je veux calculer un score de solvabilité & Haute & 13 \\
+17 & Crédit & En tant que système, je veux calculer un score de solvabilité & Haute \\
 \hline
-18 & Crédit & En tant qu'admin, je veux valider ou refuser un crédit & Haute & 5 \\
+18 & Crédit & En tant qu'admin, je veux valider ou refuser un crédit & Haute \\
 \hline
-19 & Notifications & En tant que client, je veux consulter mes notifications & Haute & 3 \\
+19 & Notifications & En tant que client, je veux consulter mes notifications & Haute \\
 \hline
-20 & Notifications & En tant que client, je veux voir un badge de notifications non lues & Moyenne & 2 \\
+20 & Notifications & En tant que client, je veux voir un badge de notifications non lues & Moyenne \\
 \hline
-21 & Support & En tant que client, je veux envoyer un message au support & Moyenne & 3 \\
+21 & Support & En tant que client, je veux envoyer un message au support & Moyenne \\
 \hline
-22 & Support & En tant qu'admin, je veux répondre aux messages clients & Moyenne & 5 \\
+22 & Support & En tant qu'admin, je veux répondre aux messages clients & Moyenne \\
 \hline
-23 & Admin & En tant qu'admin, je veux consulter le dashboard avec statistiques & Haute & 8 \\
+23 & Admin & En tant qu'admin, je veux consulter le dashboard avec statistiques & Haute \\
 \hline
-24 & Admin & En tant qu'admin, je veux gérer les comptes/cartes & Haute & 8 \\
+24 & Admin & En tant qu'admin, je veux gérer les comptes/cartes & Haute \\
 \hline
 
 \caption{Backlog des User Stories}
@@ -2245,49 +2245,93 @@ Le chat support est bidirectionnel et accepte du texte et des images. Côté adm
 \section{Notifications et e-mail (Mailtrap)}
 Pour les e-mails, l'application utilise la SMTP sandbox Mailtrap (\texttt{sandbox.smtp.mailtrap.io}) afin d'éviter la création d'une boîte réelle pour le projet démo. Les paramètres SMTP sont configurés via les variables d'environnement ; le module interne \texttt{Notification} assure le flux in-app et pourra être relié à un provider de production (Postmark/Sendgrid) en changeant les credentials.
 
-% Ajout de sections vides pour les futures captures d'écran
 \chapter{Captures d'écran de l'interface}
 
-\section{Interface utilisateur}
+% ---------------------------------------------------------
+% 1. Branding & identité visuelle
+% ---------------------------------------------------------
+\section{Identité visuelle}
 
-\subsection{Page d'accueil et connexion}
+\subsection{Logo Banquise}
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{accueil_connexion.png}
-    \caption{Page d'accueil et écran de connexion}
-    \label{fig:accueil-connexion}
+    \includegraphics[width=\textwidth]{logo.png}
+    \caption{Logo Banquise}
+    \label{fig:logo-banquise}
+\end{figure}
+
+% ---------------------------------------------------------
+% 2. Parcours d'inscription et de connexion
+% ---------------------------------------------------------
+\section{Parcours d'inscription et de connexion}
+
+\subsection{Page de connexion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{connexion.png}
+    \caption{Page de connexion}
+    \label{fig:connexion}
+\end{figure}
+
+\subsection{Page d'inscription : étape 1}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{inscription1.png}
+    \caption{Page d'inscription : étape 1}
+    \label{fig:inscription1}
+\end{figure}
+
+\subsection{Page d'inscription : étape 2}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{inscription2.png}
+    \caption{Page d'inscription : étape 2}
+    \label{fig:inscription2}
+\end{figure}
+
+\subsection{Page d'inscription : étape 3}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{inscription3.png}
+    \caption{Page d'inscription : étape 3}
+    \label{fig:inscription3}
+\end{figure}
+
+\subsection{Inscription : activation par code email}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{inscription_code_email.png}
+    \caption{Envoi et saisie du code d'activation}
+    \label{fig:inscription-2etapes}
+\end{figure}
+
+% ---------------------------------------------------------
+% 3. Interface utilisateur (client)
+% ---------------------------------------------------------
+\section{Interface utilisateur (client)}
+
+\subsection{Page d'accueil}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{accueil.png}
+    \caption{Page d'accueil}
+    \label{fig:accueil}
 \end{figure}
 
 \subsection{Dashboard client}
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{dashboard_client.png}
+    \includegraphics[width=0.8\textwidth]{dashboard_client.png}
     \caption{Dashboard client}
     \label{fig:dashboard-client}
 \end{figure}
 
-\subsection{Gestion des cartes}
+\subsection{Dashboard : projections crédits}
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{gestion_cartes.png}
-    \caption{Interface de gestion des cartes}
-    \label{fig:gestion-cartes}
-\end{figure}
-
-\subsection{Formulaire de virement}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{formulaire_virement.png}
-    \caption{Formulaire de virement}
-    \label{fig:formulaire-virement}
-\end{figure}
-
-\subsection{Simulation de crédit}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{simulation_credit.png}
-    \caption{Simulation de crédit}
-    \label{fig:simulation-credit}
+    \includegraphics[width=\textwidth]{dashboard_projections_credits.png}
+    \caption{Projections de mensualités et dépenses sur 6 mois}
+    \label{fig:dashboard-projections}
 \end{figure}
 
 \subsection{Centre de notifications}
@@ -2298,15 +2342,129 @@ Pour les e-mails, l'application utilise la SMTP sandbox Mailtrap (\texttt{sandbo
     \label{fig:centre-notifications}
 \end{figure}
 
-\section{Interface administrateur}
-
-\subsection{Dashboard admin avec statistiques}
+\subsection{Profil utilisateur}
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{admin_dashboard_statistiques.png}
-    \caption{Dashboard administrateur avec statistiques}
-    \label{fig:admin-dashboard}
+    \includegraphics[width=0.7\textwidth]{profil.png}
+    \caption{Profil utilisateur}
+    \label{fig:profil}
 \end{figure}
+
+% ---------------------------------------------------------
+% 4. Comptes & Cartes (client)
+% ---------------------------------------------------------
+\section{Gestion des comptes et cartes}
+
+\subsection{Ouverture d'un nouveau compte}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{ouverture_compte.png}
+    \caption{Ouverture d'un nouveau compte}
+    \label{fig:ouverture-compte}
+\end{figure}
+
+\subsection{Gestion des cartes}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{gestion_cartes.png}
+    \caption{Interface de gestion des cartes}
+    \label{fig:gestion-cartes}
+\end{figure}
+
+\subsection{Modification du plafond}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{plafond.png}
+    \caption{Modification des plafonds de paiement}
+    \label{fig:modification-plafond}
+\end{figure}
+
+\subsection{Blocage automatique des cartes (dépassement)}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{blocage_cartes_decouvert.png}
+    \caption{Alerte et blocage automatique en cas de dépassement}
+    \label{fig:blocage-cartes-decouvert}
+\end{figure}
+
+\subsection{Clôture de compte}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{cloture.png}
+    \caption{Clôture de compte}
+    \label{fig:cloture-compte}
+\end{figure}
+
+% ---------------------------------------------------------
+% 5. Virements & bénéficiaires
+% ---------------------------------------------------------
+\section{Virements et bénéficiaires}
+
+\subsection{Ajout d'un bénéficiaire}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{ajout_beneficiaire.png}
+    \caption{Ajout d'un bénéficiaire}
+    \label{fig:ajout-beneficiaire}
+\end{figure}
+
+\subsection{Formulaire de virement}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{formulaire_virement.png}
+    \caption{Formulaire de virement}
+    \label{fig:formulaire-virement}
+\end{figure}
+
+\subsection{Virement avec bénéficiaire ou IBAN}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{virement_beneficiaire_iban.png}
+    \caption{Virement : bénéficiaire enregistré ou IBAN manuel}
+    \label{fig:virement-beneficiaire}
+\end{figure}
+
+\subsection{Demande de découvert temporaire}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{demande_decouvert_temporaire.png}
+    \caption{Demande de découvert temporaire}
+    \label{fig:decouvert-temporaire}
+\end{figure}
+
+% ---------------------------------------------------------
+% 6. Crédit & scoring
+% ---------------------------------------------------------
+\section{Simulation de crédit et scoring}
+
+\subsection{Simulation de crédit}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{simulation_credit.png}
+    \caption{Simulation de crédit}
+    \label{fig:simulation-credit}
+\end{figure}
+
+\subsection{Résultat de la simulation}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{resultat_simulation_credit.png}
+    \caption{Résultat de simulation de crédit}
+    \label{fig:resultat_simulation_credit}
+\end{figure}
+
+\subsection{Simulation : score + DTI/LTV + suggestion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{simulation_credit_suggestion.png}
+    \caption{Analyse du score et proposition de mensualité/durée}
+    \label{fig:simulation-credit-suggestion}
+\end{figure}
+
+% ---------------------------------------------------------
+% 7. Interface administrateur
+% ---------------------------------------------------------
+\section{Interface administrateur}
 
 \subsection{Console de validation des crédits}
 \begin{figure}[H]
@@ -2320,81 +2478,18 @@ Pour les e-mails, l'application utilise la SMTP sandbox Mailtrap (\texttt{sandbo
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{admin_gestion_comptes_cartes.png}
-    \caption{Gestion des comptes et des cartes (administration)}
+    \caption{Gestion des comptes et cartes (administration)}
     \label{fig:admin-gestion-comptes-cartes}
 \end{figure}
 
-\subsection{Interface de support client}
+\subsection{Support client (administration)}
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{admin_support_client.png}
-    \caption{Interface de support client (côté admin)}
+    \caption{Interface de support client (administration)}
     \label{fig:admin-support-client}
 \end{figure}
 
-\subsection{Inscription en deux étapes (code email)}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{inscription_code_email.png}
-    \caption{Inscription : envoi du code et saisie pour activation}
-    \label{fig:inscription-2etapes}
-\end{figure}
-
-\subsection{Dashboard avec projections crédits}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{dashboard_projections_credits.png}
-    \caption{Dashboard client : dépenses 6/12 mois et projections de mensualités}
-    \label{fig:dashboard-projections}
-\end{figure}
-
-\subsection{Blocage automatique des cartes (découvert)}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{blocage_cartes_decouvert.png}
-    \caption{Alerte 80\% et blocage/déblocage automatique des cartes}
-    \label{fig:blocage-cartes-decouvert}
-\end{figure}
-
-\subsection{Virement et bénéficiaires}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{virement_beneficiaire_iban.png}
-    \caption{Formulaire de virement : bénéficiaire enregistré ou IBAN saisi}
-    \label{fig:virement-beneficiaire}
-\end{figure}
-
-\subsection{Découvert temporaire}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{demande_decouvert_temporaire.png}
-    \caption{Demande de découvert temporaire (client) et décision admin}
-    \label{fig:decouvert-temporaire}
-\end{figure}
-
-\subsection{Simulation crédit et suggestion DTI 35\%}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{simulation_credit_suggestion.png}
-    \caption{Simulation crédit : score, DTI/LTV, suggestion de mensualité/durée}
-    \label{fig:simulation-credit-suggestion}
-\end{figure}
-
-\subsection{Console admin crédits et exports}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{console_admin_credits_exports.png}
-    \caption{Console admin : acceptation/refus crédits, exports CSV, blocage massif}
-    \label{fig:console-credits-exports}
-\end{figure}
-
-\subsection{Chat support (client et admin)}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{chat_support_pj_edit.png}
-    \caption{Chat support : pièce jointe image et message édité (client/admin)}
-    \label{fig:chat-support}
-\end{figure}
 
 % ============================
 % Remerciements
@@ -2439,8 +2534,8 @@ Merci aux enseignants et encadrants pour la méthodologie transmise, ainsi qu'à
 
     \begin{tabular}{@{}p{3cm}p{10cm}@{}}
         \textbf{Synthèse} & Plateforme de néobanque web : comptes, cartes, virements, crédits avec scoring IA (offline + heuristique), notifications in-app, support intégré, console admin. \\[0.25cm]
-        \textbf{Livrables} & Cahier des charges, architecture, guide utilisateur/admin, pipeline ML sérialisé, templates et scripts d'entraînement. \\[0.25cm]
-        \textbf{Contact} & Terrel NUENTSA — \texttt{nuentsa.terrel@gmail.com}
+        \textbf{Livrables} & Cahier des charges\\[0.25cm]
+        \textbf{Contact} & Terrel NUENTSA — \texttt{43020094@parisnanterre.fr}
     \end{tabular}
 
     \vspace{0.9cm}

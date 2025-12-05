@@ -68,6 +68,7 @@
         function updateCalc() {
             if (valDuree && rangeDuree) valDuree.innerText = rangeDuree.value;
             if (valMensualite && rangeMensualite) valMensualite.innerText = rangeMensualite.value;
+            if (!hasInteracted) return; // ne pas écraser l'affichage tant que l'utilisateur n'a pas bougé un slider
             if (affichageMontant && rangeDuree && rangeMensualite) {
                 const mensualite = parseFloat(rangeMensualite.value || 0);
                 const duree = parseInt(rangeDuree.value || 1);
@@ -77,11 +78,17 @@
             }
         }
 
+        let hasInteracted = false;
         if (rangeDuree) {
             if (valMensualite && rangeMensualite) valMensualite.innerText = rangeMensualite.value;
-            rangeDuree.addEventListener('input', updateCalc);
-            if (rangeMensualite) rangeMensualite.addEventListener('input', updateCalc);
-            updateCalc();
+            rangeDuree.addEventListener('input', () => {
+                hasInteracted = true;
+                updateCalc();
+            });
+            if (rangeMensualite) rangeMensualite.addEventListener('input', () => {
+                hasInteracted = true;
+                updateCalc();
+            });
         }
 
         if (applyBtn && rangeDuree && rangeMensualite) {
@@ -98,6 +105,7 @@
             applySuggestionBtn.addEventListener('click', () => {
                 const suggDuree = parseInt(applySuggestionBtn.dataset.suggDuree || "0", 10);
                 const suggMens = parseInt(applySuggestionBtn.dataset.suggMens || "0", 10);
+                const montantInitial = parseFloat(applySuggestionBtn.dataset.montant || "0");
                 if (suggDuree > 0 && suggMens > 0) {
                     const params = new URLSearchParams({
                         montant: applySuggestionBtn.dataset.montant || "",
@@ -113,6 +121,10 @@
                         sante: applySuggestionBtn.dataset.sante || "",
                         from_suggestion: "1",
                     });
+                    // Affichage : garder le montant demandé, ne pas recalculer un capital plus élevé
+                    if (affichageMontant && montantInitial > 0) {
+                        affichageMontant.innerText = montantInitial.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' €';
+                    }
                     if (suggestionToast) {
                         suggestionToast.textContent = "Application de la suggestion en cours…";
                         suggestionToast.classList.remove("opacity-0");
@@ -236,11 +248,11 @@
                         <div class="flex justify-between mb-4">
                             <label class="text-sm font-bold text-slate-700">Mensualité Max</label>
                             <span class="text-lg font-bold text-ice-600 bg-ice-50 px-3 py-1 rounded-lg">
-                                <span id="valMensualite">{{ mensualite_max_possible|default:"100" }}</span> €
+                                <span id="valMensualite">{{ demande.mensualite_calculee|default:mensualite_max_possible|default:"100" }}</span> €
                             </span>
                         </div>
                         <input type="range" min="100" max="{{ mensualite_max_possible|default:" 100" }}"
-                            value="{{ mensualite_max_possible|default:" 100" }}" id="rangeMensualite"
+                            value="{{ demande.mensualite_calculee|default:mensualite_max_possible|default:" 100" }}" id="rangeMensualite"
                             class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-slate-900 hover:accent-ice-600 transition-all">
                     </div>
 

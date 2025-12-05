@@ -1,3 +1,13 @@
+"""
+Script d'entraînement du modèle de scoring crédit.
+
+- Charge un dataset tabulaire (CSV ou XLSX) depuis data/
+- Prétraite (imputation numérique/catégorielle, encodage, scaling)
+- Entraîne plusieurs modèles (logistique, arbre, forêt)
+- Compare les métriques (accuracy, precision, recall, f1, roc_auc)
+- Sérialise le meilleur pipeline (prépro + modèle) dans scoring/model_credit.pkl
+"""
+
 import argparse
 from pathlib import Path
 from typing import List, Tuple
@@ -34,7 +44,18 @@ def split_features_target(df: pd.DataFrame, target: str) -> Tuple[pd.DataFrame, 
         raise ValueError(f"Colonne cible '{target}' introuvable dans le dataset.")
     df = df.copy()
     df = df.dropna(subset=[target])
+    # Colonne identifiant souvent non pertinente
+    if "Loan_ID" in df.columns:
+        df = df.drop(columns=["Loan_ID"])
     y = df[target]
+    # Normalisation binaire des labels si chaîne de caractères (ex: 'Y'/'N')
+    if y.dtype == object or str(y.dtype).startswith("category"):
+        uniques = sorted(y.dropna().unique())
+        if len(uniques) == 2:
+            mapping = {uniques[0]: 0, uniques[1]: 1}
+            y = y.map(mapping)
+        else:
+            y = y.astype("category").cat.codes
     X = df.drop(columns=[target])
     return X, y
 
@@ -82,7 +103,7 @@ def evaluate_model(clf, X_test, y_test, average="binary") -> dict:
 def main():
     parser = argparse.ArgumentParser(description="Entraînement du modèle de scoring crédit.")
     parser.add_argument("--input", required=True, help="Chemin vers le fichier CSV/XLSX du dataset.")
-    parser.add_argument("--target", default="SeriousDlqin2yrs", help="Nom de la colonne cible.")
+    parser.add_argument("--target", default="Loan_Status", help="Nom de la colonne cible.")
     parser.add_argument("--sheet", default=None, help="Nom de l'onglet Excel (optionnel).")
     parser.add_argument(
         "--output",
