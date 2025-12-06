@@ -208,6 +208,56 @@ def register(request):
         except Exception:
             pass
 
+    def _activate_user_and_create_accounts(user):
+        user.is_active = True
+        user.save(update_fields=['is_active'])
+        try:
+            birth_date = timezone.datetime.fromisoformat(pending_birth_date).date() if pending_birth_date else None
+        except Exception:
+            birth_date = None
+        birth_city = pending_birth_city or ""
+        ProfilClient.objects.get_or_create(
+            user=user,
+            defaults={
+                'date_de_naissance': birth_date,
+                'ville_naissance': birth_city,
+                'abonnement': 'ESSENTIEL',
+                'prochaine_facturation': timezone.now().date() + timedelta(days=30)
+            }
+        )
+        if not Compte.objects.filter(user=user).exists():
+            compte = Compte.objects.create(
+                user=user,
+                type_compte='COURANT',
+                solde=100.00,
+                numero_compte=f"FR76{random.randint(1000,9999)}{random.randint(1000,9999)}{random.randint(1000,9999)}",
+                est_actif=True
+            )
+            Carte.objects.create(
+                compte=compte,
+                numero_visible=str(random.randint(1000,9999)),
+                date_expiration=timezone.now()+timedelta(days=365*4),
+                est_bloquee=False,
+                sans_contact_actif=True,
+                paiement_etranger_actif=False
+            )
+            Transaction.objects.create(
+                compte=compte,
+                montant=100.00,
+                libelle="Cadeau de bienvenue Banquise",
+                type='CREDIT',
+                categorie='SALAIRE'
+            )
+
+        # Nettoyage session
+        request.session.pop('pending_user_id', None)
+        request.session.pop('pending_email_code', None)
+        request.session.pop('pending_birth_date', None)
+        request.session.pop('pending_birth_city', None)
+        request.session.pop('pending_email', None)
+        request.session.pop('pending_code_sent_at', None)
+
+
     if request.method == 'POST':
         stage = request.POST.get('stage', 'register')
         # Étape 2 : saisie du code
@@ -218,55 +268,7 @@ def register(request):
             code_saisi = request.POST.get('code', '').strip()
             if code_saisi and code_saisi == pending_code:
                 user = User.objects.get(id=pending_user_id)
-                user.is_active = True
-                user.save(update_fields=['is_active'])
-
-                try:
-                    birth_date = timezone.datetime.fromisoformat(pending_birth_date).date() if pending_birth_date else None
-                except Exception:
-                    birth_date = None
-                birth_city = pending_birth_city or ""
-                ProfilClient.objects.get_or_create(
-                    user=user,
-                    defaults={
-                        'date_de_naissance': birth_date,
-                        'ville_naissance': birth_city,
-                        'abonnement': 'ESSENTIEL',
-                        'prochaine_facturation': timezone.now().date() + timedelta(days=30)
-                    }
-                )
-                if not Compte.objects.filter(user=user).exists():
-                    compte = Compte.objects.create(
-                        user=user,
-                        type_compte='COURANT',
-                        solde=100.00,
-                        numero_compte=f"FR76{random.randint(1000,9999)}{random.randint(1000,9999)}{random.randint(1000,9999)}",
-                        est_actif=True
-                    )
-                    Carte.objects.create(
-                        compte=compte,
-                        numero_visible=str(random.randint(1000,9999)),
-                        date_expiration=timezone.now()+timedelta(days=365*4),
-                        est_bloquee=False,
-                        sans_contact_actif=True,
-                        paiement_etranger_actif=False
-                    )
-                    Transaction.objects.create(
-                        compte=compte,
-                        montant=100.00,
-                        libelle="Cadeau de bienvenue Banquise",
-                        type='CREDIT',
-                        categorie='SALAIRE'
-                    )
-
-                # Nettoyage session
-                request.session.pop('pending_user_id', None)
-                request.session.pop('pending_email_code', None)
-                request.session.pop('pending_birth_date', None)
-                request.session.pop('pending_birth_city', None)
-                request.session.pop('pending_email', None)
-                request.session.pop('pending_code_sent_at', None)
-
+                _activate_user_and_create_accounts(user)
                 login(request, user)
                 messages.success(request, "Email confirmé, compte activé. 100€ offerts.")
                 return redirect('dashboard')
@@ -291,6 +293,18 @@ def register(request):
                 'awaiting_code': True,
                 'pending_email': pending_email or (user.email if 'user' in locals() else None)
             })
+
+        # Bouton temporaire : activer sans code (bypass)
+        if stage == 'skip_code' and awaiting_code:
+            try:
+                user = User.objects.get(id=pending_user_id)
+                _activate_user_and_create_accounts(user)
+                login(request, user)
+                messages.warning(request, "Activation effectuée sans code (mode temporaire). Pensez à réactiver l'email plus tard.")
+                return redirect('dashboard')
+            except Exception:
+                messages.error(request, "Impossible de passer l'étape pour le moment.")
+                return redirect('register')
 
         # Bloquer une nouvelle inscription tant qu'un code est en attente
         if awaiting_code:

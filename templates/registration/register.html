@@ -369,6 +369,13 @@
                             class="w-2/3 py-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white font-bold rounded-xl hover:from-ice-600 hover:to-ice-700 hover:shadow-lg hover:shadow-ice-500/25 transition-all duration-300 flex items-center justify-center gap-2 transform hover:-translate-y-0.5">
                             Valider le code
                         </button>
+                        <button type="submit" formnovalidate onclick="setStage('skip_code')"
+                            class="w-1/3 py-4 bg-yellow-50 border border-yellow-200 text-yellow-700 font-bold rounded-xl hover:bg-yellow-100 transition-colors text-xs leading-tight">
+                            Passer pour l'instant
+                        </button>
+                    </div>
+                    <p class="text-[11px] text-yellow-600 mt-1">Bouton temporaire (bypass) pour activer sans code pendant les tests.</p>
+                    <div class="flex gap-3 pt-2">
                         <button type="submit" name="resend" value="1" formnovalidate onclick="setStage('resend')"
                             class="w-1/3 py-4 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-colors">
                             Renvoyer
