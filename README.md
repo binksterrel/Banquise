@@ -16,7 +16,6 @@ Banquise est une néobanque web (Django 4.2) : comptes, cartes, virements, abonn
 11. Support / Contact
 12. Licence
 13. Contributeurs
-14. Automatisation
 
 ## 1. Fonctionnalités
 - Authentification, profil, tableau de bord.
