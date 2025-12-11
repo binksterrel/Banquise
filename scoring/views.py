@@ -1286,6 +1286,7 @@ def gestion_plafonds(request, carte_id):
 @login_required
 def virement(request):
     comptes = Compte.objects.filter(user=request.user, est_actif=True)
+    carte_plafond = Carte.objects.filter(compte__in=comptes).order_by('id').first()
     
     if request.method == 'POST':
         form = VirementForm(request.user, request.POST)
@@ -1360,7 +1361,7 @@ def virement(request):
                 return redirect('dashboard')
             else:
                 messages.error(request, "Solde insuffisant pour effectuer ce virement.")
-        return render(request, 'scoring/virement.html', {'form': form, 'comptes': comptes})
+        return render(request, 'scoring/virement.html', {'form': form, 'comptes': comptes, 'carte_plafond': carte_plafond})
     
     else:
         initial_data = {}
@@ -1374,7 +1375,7 @@ def virement(request):
                 
         form = VirementForm(request.user, initial=initial_data)
         
-    return render(request, 'scoring/virement.html', {'form': form, 'comptes': comptes})
+    return render(request, 'scoring/virement.html', {'form': form, 'comptes': comptes, 'carte_plafond': carte_plafond})
 
 @login_required
 def gestion_beneficiaires(request):
