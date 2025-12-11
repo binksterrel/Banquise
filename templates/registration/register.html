@@ -305,14 +305,6 @@
                         </div>
                         <p class="text-xs text-slate-500 mt-2">Utilisé pour les virements instantanés entre clients Banquise.</p>
                     </div>
-                    <div>
-                        <label class="label-ice">Choisissez un identifiant</label>
-                        <div class="input-group-ice">
-                            <div class="input-icon"><i class="bi bi-at"></i></div>
-                            <input type="text" name="username" class="form-control-ice" placeholder="jeandupont76"
-                                required value="{{ form.username.value|default:'' }}">
-                        </div>
-                    </div>
                     <button type="button" onclick="nextStep(2)"
                         class="w-full mt-6 py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 duration-200">
                         Suivant <i class="bi bi-arrow-right"></i>
@@ -323,6 +315,14 @@
                     <div class="text-center mb-8">
                         <h2 class="text-3xl font-display font-bold text-slate-900">Sécurisez votre coffre-fort</h2>
                         <p class="text-slate-500 mt-2">Choisissez un mot de passe robuste.</p>
+                    </div>
+                    <div>
+                        <label class="label-ice">Choisissez un identifiant</label>
+                        <div class="input-group-ice">
+                            <div class="input-icon"><i class="bi bi-at"></i></div>
+                            <input type="text" name="username" class="form-control-ice" placeholder="jeandupont76"
+                                required value="{{ form.username.value|default:'' }}">
+                        </div>
                     </div>
                     <div>
                         <label class="label-ice">Mot de passe</label>
