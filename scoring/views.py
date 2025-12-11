@@ -78,6 +78,17 @@ def find_account_by_iban(iban_norm: str):
             return c
     return None
 
+def normalize_phone(value: str) -> str:
+    return re.sub(r"[^0-9]", "", value or "")
+
+
+def find_account_by_phone(phone_norm: str):
+    profil = ProfilClient.objects.filter(telephone=phone_norm).select_related('user').first()
+    if not profil:
+        return None
+    return Compte.objects.filter(user=profil.user, est_actif=True).order_by('id').first()
+
+
 
 def custom_404(request, exception):
     return render(request, 'scoring/404.html', status=404)
@@ -158,6 +169,7 @@ def register(request):
     pending_email = request.session.get('pending_email')
     pending_birth_date = request.session.get('pending_birth_date')
     pending_birth_city = request.session.get('pending_birth_city')
+    pending_phone = request.session.get('pending_phone')
     awaiting_code = bool(pending_user_id and pending_code)
     default_initial_step = 4 if awaiting_code else 1
     if request.method == 'POST':
@@ -233,15 +245,20 @@ def register(request):
         except Exception:
             birth_date = None
         birth_city = pending_birth_city or ""
-        ProfilClient.objects.get_or_create(
+        phone = pending_phone or ""
+        profil, created = ProfilClient.objects.get_or_create(
             user=user,
             defaults={
                 'date_de_naissance': birth_date,
                 'ville_naissance': birth_city,
+                'telephone': phone,
                 'abonnement': 'ESSENTIEL',
                 'prochaine_facturation': timezone.now().date() + timedelta(days=30)
             }
         )
+        if phone and not created and not profil.telephone:
+            profil.telephone = phone
+            profil.save(update_fields=['telephone'])
         if not Compte.objects.filter(user=user).exists():
             compte = Compte.objects.create(
                 user=user,
@@ -272,6 +289,7 @@ def register(request):
         request.session.pop('pending_birth_date', None)
         request.session.pop('pending_birth_city', None)
         request.session.pop('pending_email', None)
+        request.session.pop('pending_phone', None)
         request.session.pop('pending_code_sent_at', None)
 
 
@@ -344,6 +362,7 @@ def register(request):
 
             request.session['pending_birth_date'] = str(form.cleaned_data.get('birth_date'))
             request.session['pending_birth_city'] = form.cleaned_data.get('birth_city')
+            request.session['pending_phone'] = form.cleaned_data.get('telephone')
             _send_confirmation_code(user)
 
             messages.info(request, "Nous avons envoyé un code à 6 chiffres sur votre email. Saisissez-le pour activer votre compte.")
@@ -451,16 +470,21 @@ def confirm_email(request):
             except Exception:
                 birth_date = None
             birth_city = request.session.get('pending_birth_city') or ""
+            phone = pending_phone or ""
             # Créer profil + compte si pas déjà fait
-            ProfilClient.objects.get_or_create(
+            profil, created = ProfilClient.objects.get_or_create(
                 user=user,
                 defaults={
                     'date_de_naissance': birth_date,
                     'ville_naissance': birth_city,
+                    'telephone': phone,
                     'abonnement': 'ESSENTIEL',
                     'prochaine_facturation': timezone.now().date() + timedelta(days=30)
                 }
             )
+            if phone and not created and not profil.telephone:
+                profil.telephone = phone
+                profil.save(update_fields=['telephone'])
             if not Compte.objects.filter(user=user).exists():
                 compte = Compte.objects.create(
                     user=user,
@@ -491,6 +515,7 @@ def confirm_email(request):
             request.session.pop('pending_birth_date', None)
             request.session.pop('pending_birth_city', None)
             request.session.pop('pending_email', None)
+            request.session.pop('pending_phone', None)
             request.session.pop('pending_code_sent_at', None)
 
             login(request, user)
@@ -1271,12 +1296,35 @@ def virement(request):
             
             beneficiaire = form.cleaned_data['beneficiaire_enregistre']
             nouvel_iban = form.cleaned_data['nouveau_beneficiaire_iban']
+            nouveau_phone = form.cleaned_data.get('nouveau_beneficiaire_phone') or ''
             
+            target_iban = ''
+            target_phone = ''
             destinataire_str = ""
             if beneficiaire:
-                destinataire_str = f"{beneficiaire.nom} ({beneficiaire.iban})"
+                target_iban = beneficiaire.iban or ''
+                target_phone = beneficiaire.telephone or ''
+                info_parts = [beneficiaire.nom]
+                if target_phone:
+                    info_parts.append(f"tel {target_phone}")
+                if target_iban:
+                    info_parts.append(f"IBAN {target_iban}")
+                destinataire_str = " - ".join(info_parts)
             elif nouvel_iban:
-                destinataire_str = f"IBAN {nouvel_iban}" 
+                target_iban = nouvel_iban
+                destinataire_str = f"IBAN {nouvel_iban}"
+            elif nouveau_phone:
+                target_phone = nouveau_phone
+                destinataire_str = f"Téléphone {nouveau_phone}"
+
+            compte_destinataire = None
+            if target_iban:
+                compte_destinataire = find_account_by_iban(normalize_iban(target_iban))
+            if not compte_destinataire and target_phone:
+                compte_destinataire = find_account_by_phone(target_phone)
+            if target_phone and not compte_destinataire:
+                messages.error(request, "Aucun compte Banquise trouvé pour ce numéro.")
+                return render(request, 'scoring/virement.html', {'form': form, 'comptes': comptes})
 
             if compte.solde >= montant:
                 with transaction.atomic():
@@ -1294,10 +1342,6 @@ def virement(request):
                     enforce_overdraft(compte)
 
                     # 2. Créditer le destinataire (si c'est un compte interne)
-                    iban_cible = beneficiaire.iban if beneficiaire else nouvel_iban
-                    iban_cible_norm = normalize_iban(iban_cible)
-
-                    compte_destinataire = find_account_by_iban(iban_cible_norm)
                     if compte_destinataire:
                         compte_destinataire.solde += montant
                         compte_destinataire.save()

@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 import re
-from .models import DemandeCredit, TypeEmploi, TypeLogement, ProduitPret, Compte, Transaction, Beneficiaire
+from .models import DemandeCredit, TypeEmploi, TypeLogement, ProduitPret, Compte, Transaction, Beneficiaire, ProfilClient
 from .cities import is_valid_french_city
 
 # --- UTILITAIRE DE VALIDATION IBAN (Version Souple pour Simulation) ---
@@ -38,6 +38,7 @@ def valider_format_iban(iban_value):
 class InscriptionForm(forms.ModelForm):
     birth_date = forms.DateField(label="Date de naissance", widget=forms.DateInput(attrs={'type': 'date'}))
     birth_city = forms.CharField(label="Ville de naissance", max_length=100)
+    telephone = forms.CharField(label="Numéro de téléphone", max_length=20)
     email = forms.EmailField(label="Email")
     confirm_email = forms.EmailField(label="Confirmer l'email")
     password = forms.CharField(widget=forms.PasswordInput, label="Mot de passe")
@@ -46,6 +47,9 @@ class InscriptionForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ['username', 'first_name', 'last_name', 'email']
+
+    def _normalize_phone(self, value: str) -> str:
+        return re.sub(r"[^0-9]", "", value or "")
 
     def clean_email(self):
         email = (self.cleaned_data.get("email") or "").strip().lower()
@@ -68,6 +72,16 @@ class InscriptionForm(forms.ModelForm):
         if not re.match(r"^[A-Za-zÀ-ÖØ-öø-ÿ' -]{2,50}$", last):
             raise ValidationError("Nom invalide (lettres, espaces, tirets seulement).")
         return last
+
+    def clean_telephone(self):
+        raw = (self.cleaned_data.get("telephone") or "").strip()
+        normalized = self._normalize_phone(raw)
+        if len(normalized) < 8 or len(normalized) > 15:
+            raise ValidationError("Numéro de téléphone invalide (8 à 15 chiffres).")
+        exists = ProfilClient.objects.filter(telephone=normalized).exists()
+        if exists:
+            raise ValidationError("Un compte utilise déjà ce numéro de téléphone.")
+        return normalized
 
     def clean_password(self):
         pwd = self.cleaned_data.get("password") or ""
@@ -120,16 +134,39 @@ class InscriptionForm(forms.ModelForm):
 class BeneficiaireForm(forms.ModelForm):
     class Meta:
         model = Beneficiaire
-        fields = ['nom', 'surnom', 'iban']
+        fields = ['nom', 'surnom', 'iban', 'telephone']
         labels = {
             'nom': 'Nom exact (comme sur la carte)',
             'surnom': 'Surnom (optionnel)',
-            'iban': 'IBAN'
+            'iban': 'IBAN',
+            'telephone': 'Numéro de téléphone (optionnel si IBAN renseigné)'
         }
     
+    def _normalize_phone(self, value: str) -> str:
+        return re.sub(r"[^0-9]", "", value or "")
+
+    def clean_telephone(self):
+        raw = self.cleaned_data.get('telephone') or ''
+        if not raw:
+            return ''
+        normalized = self._normalize_phone(raw)
+        if len(normalized) < 8 or len(normalized) > 15:
+            raise ValidationError("Numéro de téléphone invalide (8 à 15 chiffres).")
+        return normalized
+
     def clean_iban(self):
         iban = self.cleaned_data.get('iban')
-        return valider_format_iban(iban)
+        if iban:
+            return valider_format_iban(iban)
+        return ''
+
+    def clean(self):
+        cleaned = super().clean()
+        iban = cleaned.get('iban')
+        phone = cleaned.get('telephone')
+        if not iban and not phone:
+            raise ValidationError("Renseignez un IBAN ou un numéro de téléphone.")
+        return cleaned
 
 class VirementForm(forms.Form):
     compte_emetteur = forms.ModelChoiceField(queryset=None, label="Compte à débiter")
@@ -142,10 +179,15 @@ class VirementForm(forms.Form):
         empty_label="-- Sélectionner un bénéficiaire --"
     )
     
-    # Ou saisir un nouvel IBAN (Champ texte simple côté Python, géré par JS côté Template)
+    # Ou saisir un nouvel IBAN
     nouveau_beneficiaire_iban = forms.CharField(
         required=False, 
         label="IBAN"
+    )
+    # Ou saisir un numéro de téléphone
+    nouveau_beneficiaire_phone = forms.CharField(
+        required=False,
+        label="Numéro de téléphone"
     )
     
     montant = forms.DecimalField(min_value=0.01, decimal_places=2, label="Montant (€)")
@@ -153,28 +195,46 @@ class VirementForm(forms.Form):
 
     def __init__(self, user, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.user = user
         self.fields['compte_emetteur'].queryset = Compte.objects.filter(user=user, est_actif=True)
         self.fields['beneficiaire_enregistre'].queryset = Beneficiaire.objects.filter(user=user)
+
+    def _normalize_phone(self, value: str) -> str:
+        return re.sub(r"[^0-9]", "", value or "")
+
+    def clean_nouveau_beneficiaire_phone(self):
+        raw = self.cleaned_data.get('nouveau_beneficiaire_phone') or ''
+        if not raw:
+            return ''
+        normalized = self._normalize_phone(raw)
+        if len(normalized) < 8 or len(normalized) > 15:
+            raise ValidationError("Numéro de téléphone invalide (8 à 15 chiffres).")
+        # Vérifie qu'un profil existe avec ce numéro
+        if not ProfilClient.objects.filter(telephone=normalized).exists():
+            raise ValidationError("Aucun client Banquise trouvé avec ce numéro.")
+        return normalized
 
     def clean_nouveau_beneficiaire_iban(self):
         iban = self.cleaned_data.get('nouveau_beneficiaire_iban')
         if iban:
-            # On utilise la validation souple définie plus haut
             return valider_format_iban(iban)
-        return iban
+        return ''
 
     def clean(self):
         cleaned_data = super().clean()
         bene = cleaned_data.get("beneficiaire_enregistre")
         iban = cleaned_data.get("nouveau_beneficiaire_iban")
+        phone = cleaned_data.get("nouveau_beneficiaire_phone")
 
-        if not bene and not iban:
-            raise forms.ValidationError("Veuillez sélectionner un bénéficiaire OU saisir un IBAN.")
-            
-        if bene and iban:
-             # Priorité au bénéficiaire enregistré si les deux sont remplis
-             cleaned_data['nouveau_beneficiaire_iban'] = None
-             
+        options = [bool(bene), bool(iban), bool(phone)]
+        if not any(options):
+            raise forms.ValidationError("Veuillez sélectionner un bénéficiaire, un IBAN ou un numéro de téléphone.")
+        if sum(options) > 1:
+            raise forms.ValidationError("Choisissez une seule option : bénéficiaire enregistré, IBAN ou téléphone.")
+        
+        if bene:
+            cleaned_data['nouveau_beneficiaire_iban'] = None
+            cleaned_data['nouveau_beneficiaire_phone'] = ''
         return cleaned_data
 
 class OuvrirCompteForm(forms.Form):

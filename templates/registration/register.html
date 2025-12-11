@@ -296,6 +296,16 @@
                         </div>
                     </div>
                     <div>
+                        <label class="label-ice">Numéro de téléphone</label>
+                        <div class="input-group-ice">
+                            <div class="input-icon"><i class="bi bi-telephone"></i></div>
+                            <input type="tel" name="telephone" class="form-control-ice"
+                                placeholder="06 12 34 56 78" required pattern="[0-9 +()-]{8,20}"
+                                inputmode="tel" value="{{ form.telephone.value|default:'' }}">
+                        </div>
+                        <p class="text-xs text-slate-500 mt-2">Utilisé pour les virements instantanés entre clients Banquise.</p>
+                    </div>
+                    <div>
                         <label class="label-ice">Choisissez un identifiant</label>
                         <div class="input-group-ice">
                             <div class="input-icon"><i class="bi bi-at"></i></div>
@@ -532,6 +542,12 @@
             if (email1 !== email2) {
                 isValid = false;
                 errors.push("Les emails ne correspondent pas.");
+            }
+            const telInput = document.querySelector('input[name="telephone"]');
+            const telDigits = telInput.value.replace(/[^0-9]/g, '');
+            if (telDigits.length < 8 || telDigits.length > 15) {
+                isValid = false;
+                errors.push("Merci de saisir un numéro de téléphone valide (8 à 15 chiffres).");
             }
         }
 

@@ -59,8 +59,16 @@
                         <div>
                             <h3 class="font-bold text-slate-900 text-lg">{{ bene.surnom|default:bene.nom }}</h3>
                             <p class="text-xs text-slate-500">Nom officiel : {{ bene.nom }}</p>
-                            <div class="flex items-center gap-2 text-slate-500 text-sm font-mono">
-                                <i class="bi bi-credit-card"></i> {{ bene.iban }}
+                            <div class="flex items-center gap-3 text-slate-500 text-sm flex-wrap">
+                                {% if bene.iban %}
+                                <span class="inline-flex items-center gap-2 font-mono"><i class="bi bi-credit-card"></i> {{ bene.iban }}</span>
+                                {% endif %}
+                                {% if bene.telephone %}
+                                <span class="inline-flex items-center gap-2 font-mono"><i class="bi bi-telephone"></i> {{ bene.telephone }}</span>
+                                {% endif %}
+                                {% if not bene.iban and not bene.telephone %}
+                                <span class="text-xs text-red-500">Coordonnées manquantes</span>
+                                {% endif %}
                             </div>
                         </div>
                     </div>

@@ -135,7 +135,7 @@
                                     <select name="beneficiaire_enregistre" class="form-select appearance-none">
                                         <option value="" selected>-- Choisir un bénéficiaire --</option>
                                         {% for bene in form.beneficiaire_enregistre.field.queryset %}
-                                        <option value="{{ bene.id }}">{{ bene.nom }} ({{ bene.iban }})</option>
+                                        <option value="{{ bene.id }}">{{ bene.nom }}{% if bene.telephone %} - {{ bene.telephone }}{% endif %}{% if bene.iban %} ({{ bene.iban }}){% endif %}</option>
                                         {% endfor %}
                                     </select>
                                     <i
@@ -268,9 +268,27 @@
                                 {% endif %}
                             </div>
 
-                            {% if form.errors.beneficiaire_enregistre or form.errors.nouveau_beneficiaire_iban %}
-                            <p class="text-red-500 text-sm mt-2">Veuillez choisir un bénéficiaire ou saisir un IBAN.</p>
+                            {% if form.errors.beneficiaire_enregistre or form.errors.nouveau_beneficiaire_iban or form.errors.nouveau_beneficiaire_phone %}
+                            <p class="text-red-500 text-sm mt-2">Veuillez choisir un bénéficiaire, un IBAN ou un numéro de téléphone.</p>
                             {% endif %}
+                        </div>
+
+                        <div class="flex items-center justify-center my-4">
+                            <span
+                                class="bg-slate-100 text-slate-400 px-3 py-1 rounded-full text-xs font-bold">OU</span>
+                        </div>
+
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-2">Option 3 : Numéro de téléphone (client Banquise)</p>
+                            <div class="relative">
+                                <input type="tel" name="nouveau_beneficiaire_phone" placeholder="06 12 34 56 78"
+                                    class="form-control pl-10" inputmode="tel">
+                                <i class="bi bi-telephone absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            </div>
+                            {% if form.nouveau_beneficiaire_phone.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ form.nouveau_beneficiaire_phone.errors.0 }}</p>
+                            {% endif %}
+                            <p class="text-xs text-slate-500 mt-2">Pour envoyer vers un autre client Banquise sans IBAN. Si le numéro n'existe pas, ajoutez plutôt un IBAN.</p>
                         </div>
 
                         <hr class="border-slate-200">

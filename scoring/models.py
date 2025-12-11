@@ -75,12 +75,14 @@ class Beneficiaire(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='beneficiaires')
     nom = models.CharField(max_length=100)
     surnom = models.CharField(max_length=100, blank=True)
-    iban = models.CharField(max_length=34)
+    iban = models.CharField(max_length=34, blank=True)
+    telephone = models.CharField(max_length=20, blank=True)
     date_ajout = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         label = self.surnom or self.nom
-        return f"{label} - {self.iban}"
+        details = self.iban or self.telephone or "contact"
+        return f"{label} - {details}"
 
 # --- TRANSACTIONS ---
 class Transaction(models.Model):
