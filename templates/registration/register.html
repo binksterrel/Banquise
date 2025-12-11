@@ -108,6 +108,38 @@
             transform: translate3d(4px, 0, 0);
         }
     }
+
+    .city-suggestions {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        margin-top: 0.35rem;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        box-shadow: 0 18px 35px rgba(15, 23, 42, 0.08);
+        max-height: 240px;
+        overflow-y: auto;
+        z-index: 30;
+    }
+
+    .city-suggestions button {
+        width: 100%;
+        text-align: left;
+        padding: 0.75rem 1rem;
+        font-weight: 600;
+        color: #0f172a;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: background 0.15s ease, padding-left 0.2s ease;
+    }
+
+    .city-suggestions button:hover {
+        background: #f8fafc;
+        padding-left: 1.2rem;
+    }
 </style>
 {% endblock %}
 
@@ -189,6 +221,17 @@
             <form method="POST" id="registerForm" class="relative" onsubmit="handleSubmit(event)">
                 {% csrf_token %}
                 <input type="hidden" name="stage" id="form-stage" value="{% if awaiting_code %}confirm_code{% else %}register{% endif %}">
+                <input type="hidden" name="current_step" id="current-step-field" value="{{ initial_step|default:'1' }}">
+
+                <div id="stepErrors" class="hidden mb-6">
+                    <div class="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-red-700 flex gap-3">
+                        <div class="mt-0.5"><i class="bi bi-exclamation-circle-fill"></i></div>
+                        <div>
+                            <p class="font-bold text-sm mb-1">Veuillez corriger les erreurs :</p>
+                            <ul class="space-y-1 text-sm list-disc list-inside" id="stepErrorsList"></ul>
+                        </div>
+                    </div>
+                </div>
 
                 {% if form.errors %}
                 <div class="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl animate-fade-in-up">
@@ -322,6 +365,7 @@
                                 <div class="input-icon"><i class="bi bi-buildings"></i></div>
                                 <input type="text" name="birth_city" class="form-control-ice" placeholder="Paris"
                                     required value="{{ form.birth_city.value|default:'' }}">
+                                <div id="citySuggestions" class="city-suggestions hidden"></div>
                             </div>
                         </div>
                     </div>
@@ -419,19 +463,40 @@
 </div>
 
 <script>
-    let currentStep = 1;
+    const initialStep = parseInt('{{ initial_step|default:"1" }}', 10) || 1;
+    let currentStep = initialStep;
     const stageInput = document.getElementById('form-stage');
+    const currentStepField = document.getElementById('current-step-field');
     const awaitingCode = {{ awaiting_code|yesno:"true,false" }};
+    const stepErrors = document.getElementById('stepErrors');
+    const stepErrorsList = document.getElementById('stepErrorsList');
+    const cityInput = document.querySelector('input[name="birth_city"]');
+    const citySuggestions = document.getElementById('citySuggestions');
+    let cityFetchTimeout = null;
+    let cityAbortController = null;
+
+    function renderErrors(errors) {
+        if (!errors || errors.length === 0) {
+            stepErrors.classList.add('hidden');
+            stepErrorsList.innerHTML = '';
+            return;
+        }
+        stepErrorsList.innerHTML = errors.map(err => `<li>${err}</li>`).join('');
+        stepErrors.classList.remove('hidden');
+    }
 
     // Validation de l'étape courante
     function validateStep(step) {
         const stepDiv = document.getElementById(`step-${step}`);
         const inputs = stepDiv.querySelectorAll('input[required]');
         let isValid = true;
+        let missingRequired = false;
+        const errors = [];
 
         inputs.forEach(input => {
             if (!input.value) {
                 isValid = false;
+                missingRequired = true;
                 input.classList.add('border-red-400', 'bg-red-50');
                 // Animation secousse
                 input.parentElement.classList.add('animate-shake');
@@ -440,19 +505,33 @@
                 input.classList.remove('border-red-400', 'bg-red-50');
             }
         });
+        if (missingRequired) {
+            errors.push("Merci de remplir tous les champs obligatoires avant de continuer.");
+        }
 
         // Validation spécifique email (étape 1)
         if (step === 1) {
+            const namePattern = /^[A-Za-zÀ-ÖØ-öø-ÿ' -]{2,50}$/;
+            const firstName = document.querySelector('input[name="first_name"]').value.trim();
+            const lastName = document.querySelector('input[name="last_name"]').value.trim();
+            if (!namePattern.test(firstName)) {
+                isValid = false;
+                errors.push("Prénom invalide : utilisez uniquement des lettres, espaces ou tirets (min. 2 caractères).");
+            }
+            if (!namePattern.test(lastName)) {
+                isValid = false;
+                errors.push("Nom invalide : utilisez uniquement des lettres, espaces ou tirets (min. 2 caractères).");
+            }
             const email1 = document.querySelector('input[name="email"]').value.trim();
             const email2 = document.querySelector('input[name="confirm_email"]').value.trim();
             const emailPattern = /^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$/;
             if (!emailPattern.test(email1)) {
                 isValid = false;
-                alert("Merci de saisir un email valide (exemple : nom@domaine.fr).");
+                errors.push("Merci de saisir un email valide (exemple : nom@domaine.fr).");
             }
             if (email1 !== email2) {
                 isValid = false;
-                alert("Les emails ne correspondent pas.");
+                errors.push("Les emails ne correspondent pas.");
             }
         }
 
@@ -460,31 +539,53 @@
         if (step === 2) {
             const p1 = document.getElementById('pwd1').value;
             const p2 = document.getElementById('pwd2').value;
-            const strong = /^(?=.*\d)(?=.*[^A-Za-z0-9])(.{8,})$/;
+            const strong = /^(?=.*\d)(?=.*[^A-Za-z0-9])(.{12,})$/;
             if (!strong.test(p1)) {
                 isValid = false;
-                alert("Le mot de passe doit contenir au moins 8 caractères, 1 chiffre et 1 caractère spécial.");
+                errors.push("Le mot de passe doit contenir au moins 12 caractères, 1 chiffre et 1 caractère spécial.");
             }
             if (p1 && p2 && p1 !== p2) {
                 isValid = false;
-                alert("Les mots de passe ne correspondent pas.");
+                errors.push("Les mots de passe ne correspondent pas.");
             }
         }
+
+        // Validation spécifique ville de naissance (étape 3)
+        if (step === 3) {
+            const cityInput = document.querySelector('input[name="birth_city"]');
+            const cityPattern = /^[A-Za-zÀ-ÖØ-öø-ÿ' -]{2,100}$/;
+            if (cityInput) {
+                const cityValue = cityInput.value.trim();
+                if (!cityPattern.test(cityValue)) {
+                    isValid = false;
+                    errors.push("Merci de saisir une ville de naissance valide (lettres, espaces ou tirets).");
+                    cityInput.classList.add('border-red-400', 'bg-red-50');
+                } else {
+                    cityInput.classList.remove('border-red-400', 'bg-red-50');
+                }
+            }
+        }
+        renderErrors(errors);
         return isValid;
     }
 
     function nextStep(targetStep) {
         if (!validateStep(currentStep)) return;
+        renderErrors([]);
         updateUI(targetStep);
     }
 
     function prevStep(targetStep) {
+        renderErrors([]);
         updateUI(targetStep);
     }
 
     function updateUI(step) {
-        document.getElementById(`step-${currentStep}`).classList.remove('active');
-        document.getElementById(`step-${step}`).classList.add('active');
+        document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+        const target = document.getElementById(`step-${step}`);
+        if (target) {
+            target.classList.add('active');
+        }
         currentStep = step;
 
         const progressBar = document.getElementById('progress-bar');
@@ -498,6 +599,7 @@
 
         stepCount.textContent = `Étape ${step}/4`;
         if (stageInput) { stageInput.value = step === 4 ? 'confirm_code' : 'register'; }
+        if (currentStepField) { currentStepField.value = step; }
     }
 
     function checkAge() {
@@ -574,6 +676,62 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        // Autocomplete des communes
+        if (cityInput && citySuggestions) {
+            const renderCitySuggestions = (list) => {
+                citySuggestions.innerHTML = '';
+                if (!list || list.length === 0) {
+                    citySuggestions.classList.add('hidden');
+                    return;
+                }
+                list.forEach((name) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.textContent = name;
+                    btn.addEventListener('click', () => {
+                        cityInput.value = name;
+                        citySuggestions.classList.add('hidden');
+                        cityInput.classList.remove('border-red-400', 'bg-red-50');
+                    });
+                    citySuggestions.appendChild(btn);
+                });
+                citySuggestions.classList.remove('hidden');
+            };
+
+            const fetchCities = (query) => {
+                if (query.length < 3) {
+                    citySuggestions.classList.add('hidden');
+                    citySuggestions.innerHTML = '';
+                    return;
+                }
+                if (cityAbortController) {
+                    cityAbortController.abort();
+                }
+                cityAbortController = new AbortController();
+                fetch(`/api/communes/?q=${encodeURIComponent(query)}`, { signal: cityAbortController.signal })
+                    .then(resp => resp.ok ? resp.json() : { results: [] })
+                    .then(data => renderCitySuggestions(data.results || []))
+                    .catch(() => { /* silencieux */ });
+            };
+
+            cityInput.addEventListener('input', (e) => {
+                const value = e.target.value.trim();
+                clearTimeout(cityFetchTimeout);
+                cityFetchTimeout = setTimeout(() => fetchCities(value), 180);
+            });
+
+            cityInput.addEventListener('focus', (e) => {
+                const value = e.target.value.trim();
+                if (value.length >= 3) {
+                    fetchCities(value);
+                }
+            });
+
+            cityInput.addEventListener('blur', () => {
+                setTimeout(() => citySuggestions.classList.add('hidden'), 150);
+            });
+        }
+
         if (awaitingCode) {
             currentStep = 1; // reset pour updateUI
             updateUI(4);
@@ -581,6 +739,8 @@
                 inp.disabled = true;
                 inp.removeAttribute('required');
             });
+        } else {
+            updateUI(initialStep);
         }
     });
 </script>

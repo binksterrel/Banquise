@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 import re
 from .models import DemandeCredit, TypeEmploi, TypeLogement, ProduitPret, Compte, Transaction, Beneficiaire
+from .cities import is_valid_french_city
 
 # --- UTILITAIRE DE VALIDATION IBAN (Version Souple pour Simulation) ---
 def valider_format_iban(iban_value):
@@ -55,10 +56,23 @@ class InscriptionForm(forms.ModelForm):
             raise ValidationError("Un compte existe déjà avec cet email.")
         return email
 
+    def clean_first_name(self):
+        first = (self.cleaned_data.get("first_name") or "").strip()
+        # Autorise lettres + espaces/tirets/apostrophes, minimum 2 caractères
+        if not re.match(r"^[A-Za-zÀ-ÖØ-öø-ÿ' -]{2,50}$", first):
+            raise ValidationError("Prénom invalide (lettres, espaces, tirets seulement).")
+        return first
+
+    def clean_last_name(self):
+        last = (self.cleaned_data.get("last_name") or "").strip()
+        if not re.match(r"^[A-Za-zÀ-ÖØ-öø-ÿ' -]{2,50}$", last):
+            raise ValidationError("Nom invalide (lettres, espaces, tirets seulement).")
+        return last
+
     def clean_password(self):
         pwd = self.cleaned_data.get("password") or ""
-        if len(pwd) < 8:
-            raise ValidationError("Le mot de passe doit contenir au moins 8 caractères.")
+        if len(pwd) < 12:
+            raise ValidationError("Le mot de passe doit contenir au moins 12 caractères.")
         if not re.search(r"\d", pwd):
             raise ValidationError("Le mot de passe doit contenir au moins un chiffre.")
         if not re.search(r"[^\w\s]", pwd):
@@ -74,6 +88,14 @@ class InscriptionForm(forms.ModelForm):
         if age > 70:
             raise ValidationError("L'inscription est réservée aux moins de 70 ans.")
         return birth
+
+    def clean_birth_city(self):
+        city = (self.cleaned_data.get("birth_city") or "").strip()
+        if not re.match(r"^[A-Za-zÀ-ÖØ-öø-ÿ' -]{2,100}$", city):
+            raise ValidationError("Ville invalide : lettres, espaces ou tirets uniquement.")
+        if not is_valid_french_city(city):
+            raise ValidationError("Merci de saisir une ville française existante.")
+        return city
 
     def clean(self):
         cleaned_data = super().clean()

@@ -8,6 +8,7 @@ urlpatterns = [
     path('register/confirm/', views.confirm_email, name='confirm_email'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
+    path('api/communes/', views.api_communes, name='api_communes'),
 
     # --- GESTION COMPTES ---
     path('dashboard/', views.dashboard, name='dashboard'),

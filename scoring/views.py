@@ -6,6 +6,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
+from django.views.decorators.http import require_GET
 from django.core.mail import send_mail
 from django.db import transaction, models
 from django.db.models import Sum, F, Q
@@ -45,6 +46,7 @@ from .models import (
 )
 from .utils import overdraft_limit_for_user
 from .ml import predict_credit, is_model_available, ModelNotLoaded
+from .cities import search_cities
 
 # BIC Statique pour la démo
 BANQUISE_BIC = "BANQFR76"
@@ -142,6 +144,14 @@ def home(request):
         unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
     return render(request, 'scoring/home.html', {'unread_notifs': unread_notifs})
 
+
+@require_GET
+def api_communes(request):
+    """API légère pour l'autocomplete de villes de naissance."""
+    query = (request.GET.get('q') or "").strip()
+    results = search_cities(query, limit=15)
+    return JsonResponse({'results': results})
+
 def register(request):
     pending_user_id = request.session.get('pending_user_id')
     pending_code = request.session.get('pending_email_code')
@@ -149,6 +159,13 @@ def register(request):
     pending_birth_date = request.session.get('pending_birth_date')
     pending_birth_city = request.session.get('pending_birth_city')
     awaiting_code = bool(pending_user_id and pending_code)
+    default_initial_step = 4 if awaiting_code else 1
+    if request.method == 'POST':
+        try:
+            default_initial_step = int(request.POST.get('current_step', default_initial_step))
+        except (TypeError, ValueError):
+            default_initial_step = 1
+        default_initial_step = max(1, min(default_initial_step, 4))
     if awaiting_code and not pending_email:
         try:
             pending_email = User.objects.get(id=pending_user_id).email
@@ -277,7 +294,8 @@ def register(request):
                 return render(request, 'registration/register.html', {
                     'form': InscriptionForm(),
                     'awaiting_code': True,
-                    'pending_email': pending_email
+                    'pending_email': pending_email,
+                    'initial_step': 4
                 })
 
         # Renvoyer un code sans rejouer l'inscription
@@ -291,7 +309,8 @@ def register(request):
             return render(request, 'registration/register.html', {
                 'form': InscriptionForm(),
                 'awaiting_code': True,
-                'pending_email': pending_email or (user.email if 'user' in locals() else None)
+                'pending_email': pending_email or (user.email if 'user' in locals() else None),
+                'initial_step': 4
             })
 
         # Bouton temporaire : activer sans code (bypass)
@@ -312,7 +331,8 @@ def register(request):
             return render(request, 'registration/register.html', {
                 'form': InscriptionForm(),
                 'awaiting_code': True,
-                'pending_email': pending_email
+                'pending_email': pending_email,
+                'initial_step': 4
             })
 
         # Étape 1 : création du compte + envoi code
@@ -330,14 +350,23 @@ def register(request):
             return render(request, 'registration/register.html', {
                 'form': form,
                 'awaiting_code': True,
-                'pending_email': user.email
+                'pending_email': user.email,
+                'initial_step': 4
             })
+        else:
+            # Rester sur l'étape en cours (ex: ville invalide) sans repartir à l'étape 1
+            try:
+                step_posted = int(request.POST.get('current_step', default_initial_step) or default_initial_step)
+            except (TypeError, ValueError):
+                step_posted = default_initial_step
+            default_initial_step = max(1, min(step_posted, 4))
     else:
         form = InscriptionForm()
     return render(request, 'registration/register.html', {
         'form': form,
         'awaiting_code': awaiting_code,
-        'pending_email': pending_email
+        'pending_email': pending_email,
+        'initial_step': default_initial_step
     })
 
 
