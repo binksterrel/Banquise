@@ -338,7 +338,7 @@ class SimulationPretForm(forms.ModelForm):
             'user', 'statut', 'date_demande',
             'score_calcule', 'taux_calcule', 'recommendation',
             'sante_snapshot', 'ia_decision', 'mensualite_calculee',
-            'echeances_payees', 'dernier_prelevement'
+            'echeances_payees', 'dernier_prelevement', 'date_acceptation'
         ]
 
     def __init__(self, *args, **kwargs):
