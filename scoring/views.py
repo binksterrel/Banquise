@@ -2095,6 +2095,18 @@ def page_historique(request):
         d.next_echeance = next_installment_date(d) if d.statut == 'ACCEPTEE' else None
         d.echeancier = build_credit_schedule(d) if d.statut == 'ACCEPTEE' else []
     # Calendrier mensuel des échéances (toutes demandes acceptées)
+    palette = ["#0ea5e9", "#22c55e", "#f59e0b", "#6366f1", "#ef4444", "#14b8a6"]
+    accepted = [d for d in demandes if d.statut == 'ACCEPTEE']
+    credit_colors = {}
+    for idx, credit in enumerate(accepted):
+        credit_colors[credit.id] = palette[idx % len(palette)]
+
+    credit_filter = request.GET.get('credit')
+    try:
+        credit_filter_id = int(credit_filter) if credit_filter else None
+    except ValueError:
+        credit_filter_id = None
+
     today = timezone.now().date()
     month_param = request.GET.get('month')
     try:
@@ -2106,16 +2118,18 @@ def page_historique(request):
     except Exception:
         month_ref = today.replace(day=1)
     events = []
-    for d in demandes:
-        if d.statut != 'ACCEPTEE':
+    for d in accepted:
+        if credit_filter_id and d.id != credit_filter_id:
             continue
         label = d.produit.nom if d.produit else "Crédit"
+        color = credit_colors.get(d.id, "#0ea5e9")
         for e in d.echeancier:
             events.append({
                 'date': e['date'],
                 'status': e['status'],
                 'montant': e['montant'],
                 'label': label,
+                'color': color,
             })
     cal = calendar.Calendar(firstweekday=0)
     weeks = []
@@ -2140,6 +2154,16 @@ def page_historique(request):
         'calendar_prev': prev_month.strftime("%Y-%m"),
         'calendar_next': next_month.strftime("%Y-%m"),
         'calendar_headers': ['L', 'M', 'M', 'J', 'V', 'S', 'D'],
+        'credit_filter': credit_filter_id,
+        'credit_legend': [
+            {
+                'id': d.id,
+                'label': d.produit.nom if d.produit else "Crédit",
+                'color': credit_colors.get(d.id, "#0ea5e9"),
+                'mensualite': d.mensualite_calculee,
+                'next': d.next_echeance,
+            } for d in accepted
+        ],
     })
 
 @login_required

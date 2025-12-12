@@ -163,9 +163,19 @@
                     <p class="text-sm text-slate-500">Vue mensuelle et détaillée de vos crédits acceptés.</p>
                 </div>
                 <div class="flex items-center gap-3 text-sm font-bold text-slate-700">
-                    <a href="?month={{ calendar_prev }}" class="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-ice-200 hover:text-ice-700 transition"><i class="bi bi-chevron-left"></i></a>
+                    <a href="?month={{ calendar_prev }}{% if credit_filter %}&credit={{ credit_filter }}{% endif %}" class="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-ice-200 hover:text-ice-700 transition"><i class="bi bi-chevron-left"></i></a>
                     <span class="text-slate-900">{{ calendar_month_label|capfirst }}</span>
-                    <a href="?month={{ calendar_next }}" class="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-ice-200 hover:text-ice-700 transition"><i class="bi bi-chevron-right"></i></a>
+                    <a href="?month={{ calendar_next }}{% if credit_filter %}&credit={{ credit_filter }}{% endif %}" class="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-ice-200 hover:text-ice-700 transition"><i class="bi bi-chevron-right"></i></a>
+                    <form method="get" class="flex items-center gap-2">
+                        <input type="hidden" name="month" value="{{ calendar_month_label|date:'Y-m' }}">
+                        <select name="credit" class="px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 bg-white">
+                            <option value="">Tous les crédits</option>
+                            {% for c in credit_legend %}
+                            <option value="{{ c.id }}" {% if credit_filter == c.id %}selected{% endif %}>{{ c.label }}</option>
+                            {% endfor %}
+                        </select>
+                        <button class="px-3 py-2 rounded-xl bg-ice-600 text-white text-xs font-bold hover:bg-ice-700 transition">Filtrer</button>
+                    </form>
                 </div>
             </div>
 
@@ -202,7 +212,21 @@
                     {% endfor %}
                 </div>
             </div>
-            <p class="text-[11px] text-slate-500">Les échéances payées sont en vert, les échéances à venir en bleu.</p>
+            <div class="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                <span>Échéances :</span>
+                <span class="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 font-bold">Payée</span>
+                <span class="px-2 py-1 rounded-full bg-ice-50 text-ice-700 border border-ice-100 font-bold">À venir</span>
+            </div>
+            {% if credit_legend %}
+            <div class="flex flex-wrap gap-3 text-xs font-bold text-slate-700">
+                {% for c in credit_legend %}
+                <span class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-100 bg-white shadow-sm">
+                    <span class="w-3 h-3 rounded-full" style="background: {{ c.color }}"></span>
+                    {{ c.label }} ({{ c.mensualite }} €){% if c.next %} • Prochaine {{ c.next|date:"d M" }}{% endif %}
+                </span>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
