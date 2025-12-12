@@ -234,6 +234,7 @@ def process_credit_repayments_for_user(user):
         credit.echeances_payees = deja_payees + manquantes
         credit.dernier_prelevement = today
         credit.save(update_fields=['echeances_payees', 'dernier_prelevement'])
+        notifier(user, "Prélèvement crédit", f"{manquantes} mensualité(s) débitée(s) ({mensualite} €) pour votre crédit {credit.produit.nom if credit.produit else ''}.", "CREDIT", url=reverse('historique'))
 
 
 
@@ -319,6 +320,22 @@ def next_installment_date(credit: DemandeCredit):
     base_date = credit.date_acceptation or credit.date_demande.date()
     start = first_day_next_month(base_date)
     return add_months(start, already_paid)
+
+
+def build_credit_schedule(credit: DemandeCredit):
+    total_months = max(1, (credit.duree_souhaitee_annees or 1) * 12)
+    base_date = credit.date_acceptation or credit.date_demande.date()
+    start = first_day_next_month(base_date)
+    schedule = []
+    for i in range(total_months):
+        due_date = add_months(start, i)
+        schedule.append({
+            'numero': i + 1,
+            'date': due_date,
+            'montant': credit.mensualite_calculee or Decimal("0"),
+            'status': 'PAYEE' if (credit.echeances_payees or 0) > i else 'A_VENIR'
+        })
+    return schedule
 
 # ==============================================================================
 # 1. AUTHENTIFICATION
@@ -755,8 +772,10 @@ def dashboard(request):
     process_credit_repayments_for_user(request.user)
     for cr in credits_actifs:
         cr.next_echeance = next_installment_date(cr)
+        cr.echeancier = build_credit_schedule(cr)
     for cr in demandes_credit:
         cr.next_echeance = next_installment_date(cr) if cr.statut == 'ACCEPTEE' else None
+        cr.echeancier = build_credit_schedule(cr) if cr.statut == 'ACCEPTEE' else []
 
     # Analyse dépenses (débits) sur les 6 derniers mois
     def month_shift(date_obj, shift):
@@ -928,6 +947,8 @@ def changer_abonnement(request):
 
     if prix <= 0:
         notifier(request.user, "Abonnement modifié", f"Passage à {PLAN_CONFIG[plan]['label']}.", "INFO", url=reverse('dashboard'))
+    else:
+        notifier(request.user, "Abonnement modifié", f"Passage à {PLAN_CONFIG[plan]['label']} facturé {prix} €.", "TRANSACTION", url=reverse('dashboard'))
     messages.success(request, f"Formule {PLAN_CONFIG[plan]['label']} activée. Prochaine facturation dans 30 jours.")
     return redirect('dashboard')
 
@@ -2036,6 +2057,7 @@ def page_historique(request):
     demandes = DemandeCredit.objects.filter(user=request.user).order_by('-date_demande')
     for d in demandes:
         d.next_echeance = next_installment_date(d) if d.statut == 'ACCEPTEE' else None
+        d.echeancier = build_credit_schedule(d) if d.statut == 'ACCEPTEE' else []
     unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
     return render(request, 'scoring/historique.html', {'demandes': demandes, 'unread_notifs': unread_notifs})
 
@@ -2173,6 +2195,7 @@ def admin_edit_credit(request, demande_id):
 @staff_member_required
 def admin_manage(request):
     unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
+    unread_support = MessageSupport.objects.filter(est_lu=False, est_admin=False).count()
 
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -2287,6 +2310,7 @@ def admin_manage(request):
         'transactions': transactions,
         'beneficiaires': beneficiaries,
         'unread_notifs': unread_notifs,
+        'unread_support': unread_support,
         'credits': credits,
         'demandes_decouvert': demandes_decouvert,
         'risque_decouvert': risque_decouvert,

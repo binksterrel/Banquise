@@ -35,6 +35,12 @@
                     <a href="?export=comptes" class="px-3 py-2 rounded-lg bg-white text-slate-900 text-xs font-bold border border-white/30 hover:-translate-y-0.5 transition">Export comptes</a>
                     <a href="?export=cartes" class="px-3 py-2 rounded-lg bg-white text-slate-900 text-xs font-bold border border-white/30 hover:-translate-y-0.5 transition">Export cartes</a>
                     <a href="?export=credits" class="px-3 py-2 rounded-lg bg-white text-slate-900 text-xs font-bold border border-white/30 hover:-translate-y-0.5 transition">Export crédits</a>
+                    <a href="{% url 'chat_support_admin' %}" class="relative px-3 py-2 rounded-lg bg-ice-100 text-ice-900 text-xs font-bold border border-ice-200 hover:bg-ice-200 transition">
+                        Support
+                        {% if unread_support and unread_support > 0 %}
+                        <span class="absolute -top-2 -right-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold">{{ unread_support }}</span>
+                        {% endif %}
+                    </a>
                 </div>
             </div>
             <div class="flex gap-2">
