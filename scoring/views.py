@@ -193,6 +193,41 @@ def _run_scheduled_virements(user):
             print(f"[VirementProgramme] Echec virement id={v.id} user={user.username} : {e}")
 
 
+def process_credit_repayments_for_user(user):
+    comptes = Compte.objects.filter(user=user, est_actif=True)
+    credits_actifs = DemandeCredit.objects.filter(user=user, statut='ACCEPTEE').order_by('date_demande')
+    if not credits_actifs.exists() or not comptes.exists():
+        return
+    today = timezone.now().date()
+    compte_principal = comptes.order_by('id').first()
+    for credit in credits_actifs:
+        total_months = max(1, (credit.duree_souhaitee_annees or 1) * 12)
+        deja_payees = credit.echeances_payees or 0
+        start_date = credit.date_demande.date()
+        due_months = min(total_months, months_diff(today, start_date) + 1)
+        manquantes = max(0, due_months - deja_payees)
+        mensualite = credit.mensualite_calculee or Decimal("0")
+        if manquantes <= 0 or mensualite <= 0:
+            continue
+        with transaction.atomic():
+            locked = Compte.objects.select_for_update().get(id=compte_principal.id)
+            total_debit = mensualite * manquantes
+            locked.solde -= total_debit
+            locked.save(update_fields=['solde'])
+            for _ in range(manquantes):
+                Transaction.objects.create(
+                    compte=locked,
+                    montant=-mensualite,
+                    libelle="Mensualité crédit",
+                    type='DEBIT',
+                    categorie='CREDIT'
+                )
+            enforce_overdraft(locked)
+        credit.echeances_payees = deja_payees + manquantes
+        credit.dernier_prelevement = today
+        credit.save(update_fields=['echeances_payees', 'dernier_prelevement'])
+
+
 
 def custom_404(request, exception):
     return render(request, 'scoring/404.html', status=404)
@@ -680,29 +715,7 @@ def dashboard(request):
         c.marge_dispo = overdraft_margins.get(c.id)
 
     # Prélèvements mensuels automatiques sur crédits acceptés
-    if credits_actifs.exists():
-        today = timezone.now().date()
-        compte_principal = comptes.order_by('id').first()
-        if compte_principal:
-            for credit in credits_actifs:
-                total_months = max(1, (credit.duree_souhaitee_annees or 1) * 12)
-                deja_payees = credit.echeances_payees or 0
-                start_date = credit.date_demande.date()
-                due_months = min(total_months, months_diff(today, start_date) + 1)
-                manquantes = max(0, due_months - deja_payees)
-                mensualite = credit.mensualite_calculee or Decimal("0")
-                for _ in range(manquantes):
-                    Transaction.objects.create(
-                        compte=compte_principal,
-                        montant=-mensualite,
-                        libelle="Mensualité crédit",
-                        type='DEBIT',
-                        categorie='CREDIT'
-                    )
-                if manquantes > 0:
-                    credit.echeances_payees = deja_payees + manquantes
-                    credit.dernier_prelevement = today
-                    credit.save(update_fields=['echeances_payees', 'dernier_prelevement'])
+    process_credit_repayments_for_user(request.user)
 
     # Analyse dépenses (débits) sur les 6 derniers mois
     def month_shift(date_obj, shift):
@@ -1236,6 +1249,10 @@ def telecharger_rib_pdf(request, compte_id):
         ["Numéro de Compte / IBAN", compte.numero_compte],
         ["Titulaire du Compte", f"{request.user.first_name} {request.user.last_name}"],
     ]
+    if compte.type_compte == 'PRO':
+        rib_data.append(["Entreprise", compte.entreprise_nom or "Non renseignée"])
+        rib_data.append(["SIRET / ID", compte.entreprise_siret or "Non renseigné"])
+        rib_data.append(["Contact", compte.entreprise_contact or "Non renseigné"])
     
     table = Table(rib_data, colWidths=[2.5*inch, 4*inch])
     table.setStyle(TableStyle([
@@ -1400,11 +1417,20 @@ def cartes(request):
 def gestion_plafonds(request, carte_id):
     carte = get_object_or_404(Carte, id=carte_id, compte__user=request.user, compte__est_actif=True)
     if request.method == 'POST':
-        carte.plafond_paiement = request.POST.get('plafond_paiement')
-        carte.plafond_retrait = request.POST.get('plafond_retrait')
-        carte.save()
-        messages.success(request, "Plafonds mis à jour.")
-        return redirect('cartes')
+        try:
+            paiement_raw = request.POST.get('plafond_paiement')
+            retrait_raw = request.POST.get('plafond_retrait')
+            paiement = int(paiement_raw)
+            retrait = int(retrait_raw)
+            if paiement < 500 or paiement > 10000 or retrait < 100 or retrait > 3000:
+                raise ValueError("Plafonds hors bornes.")
+            carte.plafond_paiement = paiement
+            carte.plafond_retrait = retrait
+            carte.save(update_fields=['plafond_paiement', 'plafond_retrait'])
+            messages.success(request, "Plafonds mis à jour.")
+            return redirect('cartes')
+        except Exception:
+            messages.error(request, "Valeurs de plafond invalides (paiement 500-10000, retrait 100-3000).")
     return render(request, 'scoring/plafond.html', {'carte': carte})
 
 @login_required
@@ -1664,13 +1690,16 @@ def page_simulation(request):
                 }
 
             ml_result = None
-            if is_model_available():
+            ml_available = is_model_available()
+            if ml_available:
                 try:
                     ml_result = predict_credit(_build_ml_payload())
                 except ModelNotLoaded:
                     ml_result = None
                 except Exception:
                     ml_result = None
+            else:
+                messages.info(request, "Modèle IA de scoring indisponible : utilisation du calcul heuristique.")
 
             final_score = ml_result["score_0_100"] if ml_result else heur_score
             ia_decision = ml_result["label"] if ml_result else ('ACCEPTEE' if final_score >= 55 else 'REFUSEE')
@@ -1932,30 +1961,37 @@ def admin_validation_credits(request):
 
 @staff_member_required
 def admin_manage_credits(request):
-    demandes = DemandeCredit.objects.select_related('user', 'produit').order_by('-date_demande')
+    demandes = DemandeCredit.objects.select_related('user', 'produit').prefetch_related('user__comptes').order_by('-date_demande')
     unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
 
     if request.method == 'POST':
         demande_id = request.POST.get('demande_id')
         action = request.POST.get('action')
         demande = get_object_or_404(DemandeCredit, id=demande_id)
+        compte_id = request.POST.get('compte_id')
+        compte_versement = None
+        if compte_id:
+            try:
+                compte_versement = Compte.objects.get(id=compte_id, user=demande.user, est_actif=True)
+            except Compte.DoesNotExist:
+                compte_versement = None
 
         if action == 'ACCEPTEE':
             if demande.statut != 'ACCEPTEE':
-                compte_credit = Compte.objects.filter(user=demande.user, est_actif=True).order_by('id').first()
-                if compte_credit:
-                    montant = Decimal(demande.montant_souhaite or 0)
-                    compte_credit.solde = (compte_credit.solde or 0) + montant
-                    compte_credit.save(update_fields=['solde'])
-                    Transaction.objects.create(
-                        compte=compte_credit,
-                        montant=montant,
-                        libelle="Versement crédit accepté",
-                        type='CREDIT',
-                        categorie='CREDIT'
-                    )
-                else:
+                compte_credit = compte_versement or Compte.objects.filter(user=demande.user, est_actif=True).order_by('id').first()
+                if not compte_credit:
                     messages.warning(request, "Aucun compte actif pour créditer le montant.")
+                    return redirect('admin_manage_credits')
+                montant = Decimal(demande.montant_souhaite or 0)
+                compte_credit.solde = (compte_credit.solde or 0) + montant
+                compte_credit.save(update_fields=['solde'])
+                Transaction.objects.create(
+                    compte=compte_credit,
+                    montant=montant,
+                    libelle="Versement crédit accepté",
+                    type='CREDIT',
+                    categorie='CREDIT'
+                )
             demande.statut = 'ACCEPTEE'
             demande.save(update_fields=['statut'])
             notifier(demande.user, "Crédit accepté", "Votre demande de crédit a été acceptée par un conseillé.", "CREDIT", url=reverse('historique'))
@@ -1983,14 +2019,28 @@ def admin_edit_credit(request, demande_id):
         montant = request.POST.get('montant_souhaite')
         duree = request.POST.get('duree_souhaitee_annees')
         # mensualite non éditable ici
-
-        if montant:
-            demande.montant_souhaite = montant
-        if duree:
-            demande.duree_souhaitee_annees = duree
-        demande.save(update_fields=['montant_souhaite', 'duree_souhaitee_annees'])
-        messages.success(request, "Crédit mis à jour.")
-        return redirect('admin_manage_credits')
+        try:
+            if montant:
+                m_val = int(montant)
+                if m_val <= 0:
+                    raise ValueError("montant")
+                demande.montant_souhaite = m_val
+            if duree:
+                d_val = int(duree)
+                if d_val <= 0 or d_val > 50:
+                    raise ValueError("duree")
+                demande.duree_souhaitee_annees = d_val
+            # recalcul mensualité si taux dispo
+            taux_ref = demande.taux_calcule or (demande.produit.taux_ref if demande.produit else Decimal("3.50"))
+            n = max(1, int(demande.duree_souhaitee_annees) * 12)
+            r = Decimal(taux_ref) / Decimal("100") / Decimal("12")
+            mensualite_calc = Decimal(demande.montant_souhaite) * r / (1 - (1 + r) ** (-n)) if r > 0 else Decimal(demande.montant_souhaite) / n
+            demande.mensualite_calculee = mensualite_calc.quantize(Decimal("0.01"))
+            demande.save(update_fields=['montant_souhaite', 'duree_souhaitee_annees', 'mensualite_calculee'])
+            messages.success(request, "Crédit mis à jour (mensualité recalculée).")
+            return redirect('admin_manage_credits')
+        except Exception:
+            messages.error(request, "Valeurs invalides (montant > 0, durée 1-50 ans).")
 
     return render(request, 'scoring/admin_credit_edit.html', {
         'demande': demande,

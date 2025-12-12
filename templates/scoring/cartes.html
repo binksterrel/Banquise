@@ -39,6 +39,11 @@
                         {% endif %}
                         {{ carte.compte.get_type_compte_display }}
                     </h3>
+                    {% if carte.compte.type_compte == 'PRO' %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 text-[11px] font-bold border border-purple-100">
+                        Carte Pro
+                    </span>
+                    {% endif %}
 
                     {% if carte.est_bloquee %}
                     <span
@@ -114,6 +119,8 @@
                         class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] mix-blend-overlay">
                     </div>
                 </div>
+                <div class="px-2 text-[11px] text-slate-500 font-mono">{{ carte.compte.numero_compte }}</div>
+
                 <div class="grid grid-cols-2 gap-3 pt-2">
                     <form method="POST" class="contents">
                         {% csrf_token %}

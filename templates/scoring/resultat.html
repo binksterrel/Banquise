@@ -176,6 +176,14 @@
                     {% if demande.ia_decision %}
                     <span class="text-xs font-bold px-3 py-1 rounded-full {% if demande.ia_decision == 'ACCEPTEE' %}bg-green-50 text-green-700{% else %}bg-red-50 text-red-700{% endif %}">Avis automatique : {{ demande.get_ia_decision_display }}</span>
                     {% endif %}
+                    <div class="mt-2 flex gap-2">
+                        <a href="{% url 'simulation' %}?montant={{ demande.montant_souhaite }}&duree={{ demande.duree_souhaitee_annees }}&apport={{ demande.apport_personnel }}&revenus={{ demande.revenus_mensuels }}&loyer={{ demande.loyer_actuel }}&dettes={{ demande.dettes_mensuelles }}&enfants={{ demande.enfants_a_charge }}{% if demande.produit %}&produit={{ demande.produit.id }}{% endif %}"
+                            class="px-4 py-2 text-xs font-bold rounded-xl bg-white/70 border border-slate-200 text-slate-700 hover:bg-ice-50">Relancer avec ces valeurs</a>
+                        {% if demande.ia_decision == 'REFUSEE' %}
+                        <a href="{% url 'simulation' %}?from_suggestion=1"
+                            class="px-4 py-2 text-xs font-bold rounded-xl bg-red-50 border border-red-100 text-red-700 hover:bg-red-100">Nouvelle simulation</a>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
