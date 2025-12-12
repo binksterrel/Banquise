@@ -136,19 +136,22 @@
                 </div>
                 {% endif %}
 
+                {% if form.jour_prelevement %}
+                <div class="rounded-2xl border border-ice-100 bg-ice-50/60 p-4 text-center shadow-sm">
+                    <p class="text-xs font-bold text-ice-700 uppercase tracking-[0.15em] mb-1">Prélèvement mensuel</p>
+                    <p class="text-sm font-bold text-slate-900 mb-2">{{ form.jour_prelevement.label }}</p>
+                    <div class="w-full sm:w-48 mx-auto">
+                        {{ form.jour_prelevement }}
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-2">Le prélèvement démarrera le mois suivant, à ce jour (1 à 28).</p>
+                    {% if form.jour_prelevement.errors %}<p class="text-[11px] text-red-600 mt-1">{{ form.jour_prelevement.errors|join:', ' }}</p>{% endif %}
+                </div>
+                {% endif %}
+
                 <div class="grid md:grid-cols-2 gap-8">
                     {% for field in form %}
-                        {% if field.name != 'soumise' %}
-                            {% if field.name == 'jour_prelevement' %}
-                                <div class="md:col-span-2">
-                                    <label class="block text-sm font-bold text-slate-700 mb-2 text-center">{{ field.label }}</label>
-                                    <div class="w-full md:w-1/2 mx-auto">{{ field }}</div>
-                                    {% if field.help_text %}<p class="text-xs text-slate-500 text-center mt-1">{{ field.help_text }}</p>{% endif %}
-                                    {% if field.errors %}<p class="text-xs text-red-500 text-center mt-1">{{ field.errors|join:', ' }}</p>{% endif %}
-                                </div>
-                            {% else %}
-                                {{ field|as_crispy_field }}
-                            {% endif %}
+                        {% if field.name != 'soumise' and field.name != 'jour_prelevement' %}
+                            {{ field|as_crispy_field }}
                         {% endif %}
                     {% endfor %}
                 </div>
