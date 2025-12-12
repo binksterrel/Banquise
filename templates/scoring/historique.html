@@ -168,7 +168,7 @@
             <div class="rounded-2xl border border-slate-100 bg-white/70 overflow-hidden">
                 <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
                     <div>
-                        <p class="font-bold text-slate-800 text-sm">{{ d.produit.nom if d.produit else "Crédit" }} • {{ d.montant_souhaite }} €</p>
+                        <p class="font-bold text-slate-800 text-sm">{% if d.produit %}{{ d.produit.nom }}{% else %}Crédit{% endif %} • {{ d.montant_souhaite }} €</p>
                         <p class="text-xs text-slate-500">Mensualité {{ d.mensualite_calculee }} € — prochaine : {% if d.next_echeance %}{{ d.next_echeance|date:"d M Y" }}{% else %}—{% endif %}</p>
                     </div>
                     <span class="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full">{{ d.duree_souhaitee_annees }} ans</span>
