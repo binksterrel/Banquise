@@ -12,12 +12,6 @@
             </div>
             <div class="flex items-center gap-2">
                 <form method="post" class="inline">{% csrf_token %}
-                    <input type="hidden" name="action" value="mark_page">
-                    <input type="hidden" name="type" value="{{ filter_type }}">
-                    <input type="hidden" name="page" value="{{ page_obj.number }}">
-                    <button {% if not page_obj.object_list %}disabled class="px-4 py-2 rounded-xl border text-xs font-bold text-slate-400 cursor-not-allowed"{% else %}class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50"{% endif %}>Marquer cette page</button>
-                </form>
-                <form method="post" class="inline">{% csrf_token %}
                     <input type="hidden" name="action" value="mark_all">
                     <input type="hidden" name="type" value="{{ filter_type }}">
                     <input type="hidden" name="page" value="{{ page_obj.number }}">
