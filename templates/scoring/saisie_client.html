@@ -94,6 +94,19 @@
                 toast.classList.add('opacity-0');
             }, 3000);
         }
+
+        const jpSlider = document.getElementById('jp-slider');
+        const jpDisplay = document.getElementById('jp-display');
+        const quickBtns = document.querySelectorAll('.quick-jp');
+        const sync = (val) => {
+            if (!jpSlider || !jpDisplay) return;
+            jpSlider.value = val;
+            jpDisplay.textContent = val;
+        };
+        if (jpSlider && jpDisplay) {
+            jpSlider.addEventListener('input', (e) => sync(e.target.value));
+            quickBtns.forEach(btn => btn.addEventListener('click', () => sync(btn.dataset.val)));
+        }
     });
 </script>
 {% endblock %}
@@ -137,15 +150,26 @@
                 {% endif %}
 
                 {% if form.jour_prelevement %}
-                <div class="rounded-2xl border border-ice-100 bg-ice-50/60 p-4 text-center shadow-sm">
-                    <p class="text-xs font-bold text-ice-700 uppercase tracking-[0.15em] mb-1">Prélèvement mensuel</p>
-                    <p class="text-sm font-bold text-slate-900 mb-2">{{ form.jour_prelevement.label }}</p>
-                    <div class="w-full sm:w-48 mx-auto">
-                        {{ form.jour_prelevement }}
+                {% with jp_val=form.jour_prelevement.value|default_if_none:form.fields.jour_prelevement.initial|default:5 %}
+                <div class="rounded-2xl border border-ice-100 bg-ice-50/60 p-5 text-center shadow-sm space-y-3">
+                    <p class="text-xs font-bold text-ice-700 uppercase tracking-[0.15em]">Prélèvement mensuel</p>
+                    <p class="text-sm font-bold text-slate-900">Jour souhaité de prélèvement</p>
+                    <div class="flex flex-col items-center gap-2">
+                        <input type="range" name="jour_prelevement" min="1" max="28" value="{{ jp_val }}" class="w-full sm:w-72 accent-ice-600" id="jp-slider">
+                        <div class="flex items-center justify-center gap-2 text-sm font-bold text-slate-800">
+                            <span class="px-3 py-1 rounded-full bg-white border border-ice-200 text-ice-700 shadow-sm" id="jp-display">{{ jp_val }}</span>
+                            <span class="text-xs text-slate-500">entre 1 et 28</span>
+                        </div>
+                        <div class="flex flex-wrap justify-center gap-2 text-xs">
+                            {% for quick in "5,10,15,20,25".split(',') %}
+                            <button type="button" class="px-3 py-1 rounded-lg border border-slate-200 bg-white hover:border-ice-200 hover:text-ice-700 quick-jp" data-val="{{ quick }}">{{ quick }}</button>
+                            {% endfor %}
+                        </div>
                     </div>
-                    <p class="text-[11px] text-slate-500 mt-2">Le prélèvement démarrera le mois suivant, à ce jour (1 à 28).</p>
+                    <p class="text-[11px] text-slate-500">Le prélèvement démarre le mois suivant, au jour choisi (max 28).</p>
                     {% if form.jour_prelevement.errors %}<p class="text-[11px] text-red-600 mt-1">{{ form.jour_prelevement.errors|join:', ' }}</p>{% endif %}
                 </div>
+                {% endwith %}
                 {% endif %}
 
                 <div class="grid md:grid-cols-2 gap-8">
