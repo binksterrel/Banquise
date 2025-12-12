@@ -162,48 +162,47 @@
                     <h3 class="font-display font-bold text-xl text-slate-900">Calendrier des échéances</h3>
                     <p class="text-sm text-slate-500">Vue mensuelle et détaillée de vos crédits acceptés.</p>
                 </div>
+                <div class="flex items-center gap-3 text-sm font-bold text-slate-700">
+                    <a href="?month={{ calendar_prev }}" class="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-ice-200 hover:text-ice-700 transition"><i class="bi bi-chevron-left"></i></a>
+                    <span class="text-slate-900">{{ calendar_month_label|capfirst }}</span>
+                    <a href="?month={{ calendar_next }}" class="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-ice-200 hover:text-ice-700 transition"><i class="bi bi-chevron-right"></i></a>
+                </div>
             </div>
 
-            {% with credits=demandes|dictsortreversed:"date_demande" %}
-            {% if credits %}
-            <div class="grid gap-6">
-                {% for d in credits %}
-                {% if d.statut == 'ACCEPTEE' %}
-                <div class="rounded-2xl border border-slate-100 bg-gradient-to-br from-white to-ice-50 shadow-sm overflow-hidden">
-                    <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                        <div>
-                            <p class="font-bold text-slate-800 text-sm">{% if d.produit %}{{ d.produit.nom }}{% else %}Crédit{% endif %} • {{ d.montant_souhaite }} €</p>
-                            <p class="text-xs text-slate-500">Mensualité {{ d.mensualite_calculee }} € — prochaine : {% if d.next_echeance %}{{ d.next_echeance|date:"d M Y" }}{% else %}—{% endif %}</p>
-                        </div>
-                        <span class="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full">{{ d.duree_souhaitee_annees }} ans</span>
-                    </div>
-
-                    <div class="p-4 bg-white/70">
-                        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {% for e in d.echeancier %}
-                            <div class="p-3 rounded-xl border {% if e.status == 'PAYEE' %}border-emerald-100 bg-emerald-50/60{% else %}border-slate-100 bg-slate-50{% endif %} flex items-center justify-between">
-                                <div>
-                                    <p class="text-xs font-bold text-slate-500">Échéance {{ e.numero }}</p>
-                                    <p class="font-bold text-slate-800 text-sm">{{ e.date|date:"d M Y" }}</p>
-                                    <p class="text-[11px] text-slate-500">Montant {{ e.montant }} €</p>
+            <div class="rounded-3xl border border-slate-100 bg-white shadow-lg overflow-hidden">
+                <div class="grid grid-cols-7 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 bg-slate-50/60">
+                    {% for day in "L,M,M,J,V,S,D".split(',') %}
+                    <div class="py-3">{{ day }}</div>
+                    {% endfor %}
+                </div>
+                <div class="divide-y divide-slate-100">
+                    {% for week in calendar_weeks %}
+                    <div class="grid grid-cols-7">
+                        {% for day in week %}
+                        <div class="h-24 border-r last:border-r-0 border-slate-100 relative px-2 py-2 {% if not day.in_month %}bg-slate-50 text-slate-300{% endif %}">
+                            <span class="text-xs font-bold {% if day.in_month %}text-slate-800{% else %}text-slate-300{% endif %}">{{ day.date|date:"j" }}</span>
+                            {% if day.events %}
+                            <div class="mt-2 space-y-1">
+                                {% for ev in day.events|slice:":2" %}
+                                <div class="px-2 py-1 rounded-lg text-[11px] font-bold {% if ev.status == 'PAYEE' %}bg-emerald-50 text-emerald-700 border border-emerald-100{% else %}bg-ice-50 text-ice-700 border border-ice-100{% endif %}">
+                                    {{ ev.montant }} € · {{ ev.label|truncatechars:16 }}
                                 </div>
-                                {% if e.status == 'PAYEE' %}
-                                <span class="px-2 py-1 rounded-full text-[11px] font-bold bg-white text-emerald-600 border border-emerald-100">Payée</span>
-                                {% else %}
-                                <span class="px-2 py-1 rounded-full text-[11px] font-bold bg-white text-slate-600 border border-slate-200">À venir</span>
+                                {% endfor %}
+                                {% if day.events|length > 2 %}
+                                <div class="text-[10px] text-slate-500 font-bold">+ {{ day.events|length|add:"-2" }} autres</div>
                                 {% endif %}
                             </div>
-                            {% endfor %}
+                            {% endif %}
+                            {% if day.in_month and day.date == today %}
+                            <span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-ice-500 shadow"></span>
+                            {% endif %}
                         </div>
+                        {% endfor %}
                     </div>
+                    {% endfor %}
                 </div>
-                {% endif %}
-                {% endfor %}
             </div>
-            {% else %}
-            <p class="text-sm text-slate-500">Aucun échéancier disponible.</p>
-            {% endif %}
-            {% endwith %}
+            <p class="text-[11px] text-slate-500">Les échéances payées sont en vert, les échéances à venir en bleu.</p>
         </div>
     </div>
 </div>

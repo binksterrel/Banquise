@@ -23,6 +23,7 @@ import re
 import csv
 import uuid
 from datetime import date
+import calendar
 from urllib.parse import urlencode
 from django.core.paginator import Paginator
 
@@ -2093,8 +2094,52 @@ def page_historique(request):
     for d in demandes:
         d.next_echeance = next_installment_date(d) if d.statut == 'ACCEPTEE' else None
         d.echeancier = build_credit_schedule(d) if d.statut == 'ACCEPTEE' else []
+    # Calendrier mensuel des échéances (toutes demandes acceptées)
+    today = timezone.now().date()
+    month_param = request.GET.get('month')
+    try:
+        if month_param:
+            year, month = month_param.split('-')
+            month_ref = date(int(year), int(month), 1)
+        else:
+            month_ref = today.replace(day=1)
+    except Exception:
+        month_ref = today.replace(day=1)
+    events = []
+    for d in demandes:
+        if d.statut != 'ACCEPTEE':
+            continue
+        label = d.produit.nom if d.produit else "Crédit"
+        for e in d.echeancier:
+            events.append({
+                'date': e['date'],
+                'status': e['status'],
+                'montant': e['montant'],
+                'label': label,
+            })
+    cal = calendar.Calendar(firstweekday=0)
+    weeks = []
+    for w in cal.monthdatescalendar(month_ref.year, month_ref.month):
+        week = []
+        for day in w:
+            day_events = [ev for ev in events if ev['date'] == day]
+            week.append({
+                'date': day,
+                'in_month': day.month == month_ref.month,
+                'events': day_events
+            })
+        weeks.append(week)
+    prev_month = add_months(month_ref, -1)
+    next_month = add_months(month_ref, 1)
     unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
-    return render(request, 'scoring/historique.html', {'demandes': demandes, 'unread_notifs': unread_notifs})
+    return render(request, 'scoring/historique.html', {
+        'demandes': demandes,
+        'unread_notifs': unread_notifs,
+        'calendar_weeks': weeks,
+        'calendar_month_label': month_ref.strftime("%B %Y"),
+        'calendar_prev': prev_month.strftime("%Y-%m"),
+        'calendar_next': next_month.strftime("%Y-%m"),
+    })
 
 @login_required
 def api_calcul_pret_dynamique(request): 
