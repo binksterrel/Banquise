@@ -210,7 +210,8 @@ def process_credit_repayments_for_user(user):
     for credit in credits_actifs:
         total_months = max(1, (credit.duree_souhaitee_annees or 1) * 12)
         deja_payees = credit.echeances_payees or 0
-        start_date = credit.date_demande.date()
+        base_date = credit.date_acceptation or credit.date_demande.date()
+        start_date = first_day_next_month(base_date)
         due_months = min(total_months, months_diff(today, start_date) + 1)
         manquantes = max(0, due_months - deja_payees)
         mensualite = credit.mensualite_calculee or Decimal("0")
@@ -242,6 +243,15 @@ def custom_404(request, exception):
 
 def months_diff(d1, d2):
     return (d1.year - d2.year) * 12 + (d1.month - d2.month)
+
+
+def first_day_next_month(d):
+    month = d.month + 1
+    year = d.year
+    if month > 12:
+        month = 1
+        year += 1
+    return date(year, month, 1)
 
 
 def custom_200(request):
@@ -2077,7 +2087,10 @@ def admin_manage_credits(request):
                     categorie='CREDIT'
                 )
             demande.statut = 'ACCEPTEE'
-            demande.save(update_fields=['statut'])
+            demande.date_acceptation = timezone.now().date()
+            demande.echeances_payees = 0
+            demande.dernier_prelevement = None
+            demande.save(update_fields=['statut', 'date_acceptation', 'echeances_payees', 'dernier_prelevement'])
             notifier(demande.user, "Crédit accepté", "Votre demande de crédit a été acceptée par un conseillé.", "CREDIT", url=reverse('historique'))
             messages.success(request, "Demande acceptée et montant crédité.")
 
