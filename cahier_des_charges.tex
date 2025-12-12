@@ -2548,3 +2548,6 @@ Merci aux enseignants et encadrants pour la méthodologie transmise, ainsi qu'à
 \end{titlepage}
 
 \end{document}
+% Ajout note virements programmés
+\paragraph{Virements programmés et récurrents}
+Les virements peuvent être planifiés (date future) ou mensuels. Exécution opportuniste côté application (au chargement de la page Virements) et via commande de maintenance : 	exttt{python manage.py run\_scheduled\_virements} à planifier en cron pour garantir le déclenchement quotidien. Par défaut, un virement sans programmation est exécuté le jour même.

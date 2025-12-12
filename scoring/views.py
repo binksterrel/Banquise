@@ -1520,6 +1520,23 @@ def gestion_beneficiaires(request):
     beneficiaires_list = Beneficiaire.objects.filter(user=request.user).order_by('-date_ajout')
     return render(request, 'scoring/beneficiaires.html', {'beneficiaires': beneficiaires_list})
 
+
+@login_required
+def cancel_virement_programme(request, vp_id):
+    vp = get_object_or_404(VirementProgramme, id=vp_id, user=request.user)
+    vp.actif = False
+    vp.save(update_fields=['actif'])
+    messages.success(request, "Virement programmé mis en pause.")
+    return redirect('virement')
+
+
+@login_required
+def delete_virement_programme(request, vp_id):
+    vp = get_object_or_404(VirementProgramme, id=vp_id, user=request.user)
+    vp.delete()
+    messages.success(request, "Virement programmé supprimé.")
+    return redirect('virement')
+
 @login_required
 def ajouter_beneficiaire(request):
     if request.method == 'POST':

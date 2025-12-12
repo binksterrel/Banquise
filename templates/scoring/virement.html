@@ -457,6 +457,16 @@
                             </div>
                             <p class="text-xs text-slate-500 mt-1">{{ vp.motif|default:"(Sans motif)" }}</p>
                             <p class="text-xs text-slate-500">Prochaine exécution : {{ vp.prochaine_execution|date:"d M Y" }}</p>
+                            <div class="flex gap-2 mt-2">
+                                <form method="post" action="{% url 'cancel_virement_programme' vp.id %}">
+                                    {% csrf_token %}
+                                    <button class="px-3 py-1 text-xs font-bold rounded-lg bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-100" type="submit">Pause</button>
+                                </form>
+                                <form method="post" action="{% url 'delete_virement_programme' vp.id %}">
+                                    {% csrf_token %}
+                                    <button class="px-3 py-1 text-xs font-bold rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100" type="submit">Supprimer</button>
+                                </form>
+                            </div>
                         </div>
                         {% endfor %}
                     </div>

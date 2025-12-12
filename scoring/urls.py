@@ -26,6 +26,8 @@ urlpatterns = [
     
     # --- VIREMENTS & BENEFICIAIRES ---
     path('virement/', views.virement, name='virement'),
+    path('virements/programme/<int:vp_id>/cancel/', views.cancel_virement_programme, name='cancel_virement_programme'),
+    path('virements/programme/<int:vp_id>/delete/', views.delete_virement_programme, name='delete_virement_programme'),
     path('beneficiaires/', views.gestion_beneficiaires, name='beneficiaires'), # Nouvelle route
     path('beneficiaires/nouveau/', views.ajouter_beneficiaire, name='ajouter_beneficiaire'), # Nouvelle route
     path('beneficiaires/modifier/<int:beneficiaire_id>/', views.modifier_beneficiaire, name='modifier_beneficiaire'),
