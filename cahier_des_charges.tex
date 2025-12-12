@@ -450,6 +450,7 @@ Le système Banquise implique trois acteurs principaux :
     \item Transaction miroir pour virements internes Banquise
     \item Normalisation IBAN (insensible casse et espaces)
     \item Notifications émetteur et destinataire
+    \item Virements programmés et récurrents (date future ou mensuel) : exécution opportuniste lors du chargement de la page Virements et via commande de maintenance \texttt{python manage.py run\_scheduled\_virements} (à planifier en cron pour un déclenchement quotidien). Par défaut, un virement sans programmation est exécuté le jour même.
 \end{itemize}
 
 \subsection{Module Abonnements}
@@ -2548,6 +2549,3 @@ Merci aux enseignants et encadrants pour la méthodologie transmise, ainsi qu'à
 \end{titlepage}
 
 \end{document}
-% Ajout note virements programmés
-\paragraph{Virements programmés et récurrents}
-Les virements peuvent être planifiés (date future) ou mensuels. Exécution opportuniste côté application (au chargement de la page Virements) et via commande de maintenance : 	exttt{python manage.py run\_scheduled\_virements} à planifier en cron pour garantir le déclenchement quotidien. Par défaut, un virement sans programmation est exécuté le jour même.
