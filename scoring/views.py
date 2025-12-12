@@ -54,6 +54,7 @@ from .cities import search_cities
 # BIC Statique pour la démo
 BANQUISE_BIC = "BANQFR76"
 MAX_SUPPORT_UPLOAD = 2 * 1024 * 1024  # 2 Mo pour les pièces jointes support
+MAX_DECOUVERT_AMOUNT = Decimal("1000")  # Plafond de demande de découvert temporaire
 
 PLAN_CONFIG = {
     'ESSENTIEL': {'prix': Decimal("0.00"), 'label': 'Essentiel'},
@@ -791,6 +792,7 @@ def dashboard(request):
         'overdraft_limit': overdraft_limit,
         'overdraft_margins': overdraft_margins,
         'demandes_credit_recent': demandes_credit,
+        'max_decouvert': MAX_DECOUVERT_AMOUNT,
     })
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
@@ -900,12 +902,19 @@ def demande_decouvert(request):
     if montant <= 0:
         messages.error(request, "Le montant doit être supérieur à 0.")
         return redirect('dashboard')
+    if montant > MAX_DECOUVERT_AMOUNT:
+        messages.error(request, f"Le montant demandé dépasse le plafond autorisé ({MAX_DECOUVERT_AMOUNT} €).")
+        return redirect('dashboard')
 
     duree_jours = request.POST.get('duree_jours')
     expire_le = None
     if duree_jours:
         try:
-            expire_le = timezone.now().date() + timedelta(days=int(duree_jours))
+            duree_val = int(duree_jours)
+            if duree_val > 90:
+                messages.error(request, "La durée maximale est de 90 jours.")
+                return redirect('dashboard')
+            expire_le = timezone.now().date() + timedelta(days=duree_val)
         except Exception:
             expire_le = None
 

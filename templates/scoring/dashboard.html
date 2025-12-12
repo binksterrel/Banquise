@@ -580,15 +580,15 @@
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <label class="text-xs text-slate-500">Montant souhaité (€)</label>
-                                <input type="number" name="montant" min="50" step="10" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" required>
+                                <input type="number" name="montant" min="50" step="10" {% if max_decouvert %}max="{{ max_decouvert }}"{% endif %} class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" required>
                             </div>
                             <div>
                                 <label class="text-xs text-slate-500">Durée (jours)</label>
-                                <input type="number" name="duree_jours" min="7" step="1" value="30" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm">
+                                <input type="number" name="duree_jours" min="7" max="90" step="1" value="30" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm">
                             </div>
                         </div>
                         <button type="submit" class="w-full px-4 py-3 rounded-xl bg-ice-600 text-white font-bold text-sm hover:bg-ice-700 transition">Demander</button>
-                        <p class="text-[11px] text-slate-500">Notification envoyée aux admins pour validation.</p>
+                        <p class="text-[11px] text-slate-500">Notification envoyée aux admins pour validation. Durée max 90 jours, montant plafonné.</p>
                     </form>
                 </div>
 
