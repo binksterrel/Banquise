@@ -5,17 +5,41 @@
 {% block content %}
 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <div class="glass-panel p-6 md:p-8 rounded-3xl">
-        <div class="flex items-center justify-between mb-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
             <div>
                 <p class="text-xs font-bold uppercase text-ice-600 tracking-[0.2em]">Centre de notifications</p>
                 <h1 class="text-2xl font-display font-bold text-slate-900">Vos alertes</h1>
             </div>
-            <form method="post">{% csrf_token %}
-                <button class="text-sm font-bold text-ice-700 hover:text-ice-900">Tout marquer comme lu</button>
-            </form>
+            <div class="flex items-center gap-2">
+                <form method="post" class="inline">{% csrf_token %}
+                    <input type="hidden" name="action" value="mark_page">
+                    <input type="hidden" name="type" value="{{ filter_type }}">
+                    <input type="hidden" name="page" value="{{ page_obj.number }}">
+                    <button {% if not page_obj.object_list %}disabled class="px-4 py-2 rounded-xl border text-xs font-bold text-slate-400 cursor-not-allowed"{% else %}class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50"{% endif %}>Marquer cette page</button>
+                </form>
+                <form method="post" class="inline">{% csrf_token %}
+                    <input type="hidden" name="action" value="mark_all">
+                    <input type="hidden" name="type" value="{{ filter_type }}">
+                    <input type="hidden" name="page" value="{{ page_obj.number }}">
+                    <button class="px-4 py-2 rounded-xl bg-ice-600 text-white text-xs font-bold hover:bg-ice-700">Tout marquer comme lu</button>
+                </form>
+            </div>
         </div>
+
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <form method="get" class="flex items-center gap-2 text-sm">
+                <label class="text-slate-500 text-xs font-bold uppercase tracking-[0.15em]">Type</label>
+                <select name="type" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700" onchange="this.form.submit()">
+                    {% for code, label in type_choices %}
+                    <option value="{{ code }}" {% if filter_type == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            <span class="text-xs text-slate-500">Non lues : {{ unread_notifs }}</span>
+        </div>
+
         <div class="space-y-3">
-            {% for n in notifications %}
+            {% for n in page_obj %}
             <div class="p-4 rounded-2xl border {% if n.est_lu %}border-slate-100 bg-white{% else %}border-ice-200 bg-ice-50{% endif %} flex items-center justify-between">
                 <div>
                     <p class="text-xs text-slate-500">{{ n.date_creation|date:"d M Y H:i" }} · {{ n.get_type_display }}</p>
@@ -29,6 +53,18 @@
             {% empty %}
             <p class="text-slate-500 text-sm">Aucune notification.</p>
             {% endfor %}
+        </div>
+
+        <div class="flex items-center justify-between mt-6">
+            <div class="text-xs text-slate-500">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</div>
+            <div class="flex items-center gap-2">
+                {% if page_obj.has_previous %}
+                <a class="px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50" href="?{% if filter_type != 'ALL' %}type={{ filter_type }}&{% endif %}page={{ page_obj.previous_page_number }}">Précédent</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <a class="px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50" href="?{% if filter_type != 'ALL' %}type={{ filter_type }}&{% endif %}page={{ page_obj.next_page_number }}">Suivant</a>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>

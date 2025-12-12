@@ -68,11 +68,22 @@
             {% if user.is_authenticated %}
                 <form method="post" action="{% url 'changer_abonnement' %}" class="mt-8 subscription-form">{% csrf_token %}
                     <input type="hidden" name="plan" value="PLUS">
-                    <input type="hidden" name="password" value="">
+                    <input type="hidden" name="current_password" value="">
+                    <input type="hidden" name="compte_id" value="">
+                    {% if comptes %}
+                    <label class="block text-xs font-bold uppercase text-slate-200 mb-2">Compte à débiter</label>
+                    <select name="compte_id" class="w-full px-3 py-2 rounded-xl border border-white/20 bg-white/10 text-white text-sm mb-3">
+                        {% for c in comptes %}
+                        <option value="{{ c.id }}">Compte {{ c.numero_compte }} · {{ c.solde }} €</option>
+                        {% endfor %}
+                    </select>
+                    {% else %}
+                    <p class="text-xs text-red-200 mb-2">Aucun compte actif à débiter.</p>
+                    {% endif %}
                     {% if profil_client and profil_client.abonnement == 'PLUS' %}
                     <button type="button" disabled class="w-full px-5 py-3 rounded-xl font-bold text-sm border border-ice-200 bg-white/20 text-white/80 opacity-70 cursor-not-allowed shadow-lg">Plus (actuel)</button>
                     {% else %}
-                    <button type="submit" class="w-full px-5 py-3 rounded-xl bg-white text-slate-900 font-bold hover:-translate-y-0.5 transition-all duration-300 shadow-lg">
+                    <button type="submit" data-amount="9.90" class="w-full px-5 py-3 rounded-xl bg-white text-slate-900 font-bold hover:-translate-y-0.5 transition-all duration-300 shadow-lg">
                         Choisir Plus
                     </button>
                     {% endif %}
@@ -100,11 +111,22 @@
             {% if user.is_authenticated %}
                 <form method="post" action="{% url 'changer_abonnement' %}" class="mt-8 subscription-form">{% csrf_token %}
                     <input type="hidden" name="plan" value="INFINITE">
-                    <input type="hidden" name="password" value="">
+                    <input type="hidden" name="current_password" value="">
+                    <input type="hidden" name="compte_id" value="">
+                    {% if comptes %}
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-2">Compte à débiter</label>
+                    <select name="compte_id" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm mb-3">
+                        {% for c in comptes %}
+                        <option value="{{ c.id }}">Compte {{ c.numero_compte }} · {{ c.solde }} €</option>
+                        {% endfor %}
+                    </select>
+                    {% else %}
+                    <p class="text-xs text-red-600 mb-2">Aucun compte actif à débiter.</p>
+                    {% endif %}
                     {% if profil_client and profil_client.abonnement == 'INFINITE' %}
                     <button type="button" disabled class="w-full px-5 py-3 rounded-xl font-bold text-sm border border-ice-200 bg-slate-50 text-slate-600 opacity-70 cursor-not-allowed shadow-lg">Infinite (actuel)</button>
                     {% else %}
-                    <button type="submit" class="w-full inline-flex items-center justify-center px-5 py-3 rounded-xl bg-slate-900 text-white font-bold hover:-translate-y-0.5 transition-all duration-300 shadow-lg hover:shadow-slate-900/30">Choisir Infinite</button>
+                    <button type="submit" data-amount="19.90" class="w-full inline-flex items-center justify-center px-5 py-3 rounded-xl bg-slate-900 text-white font-bold hover:-translate-y-0.5 transition-all duration-300 shadow-lg hover:shadow-slate-900/30">Choisir Infinite</button>
                     {% endif %}
                 </form>
             {% else %}
@@ -195,7 +217,7 @@
       if (!pendingForm) return;
       const pwd = document.getElementById('subPwdInput').value.trim();
       if (!pwd) return;
-      const pwdInput = pendingForm.querySelector('input[name="password"]');
+      const pwdInput = pendingForm.querySelector('input[name="current_password"]') || pendingForm.querySelector('input[name="password"]');
       if (pwdInput) pwdInput.value = pwd;
       pendingForm.submit();
       closeModal();

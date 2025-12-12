@@ -117,6 +117,19 @@
         <button type="button" id="closeSubModal" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600"><i class="bi bi-x-lg"></i></button>
         <h3 class="text-xl font-display font-bold text-slate-900 mb-1">Confirmer le changement</h3>
         <p class="text-sm text-slate-500 mb-4">Saisis ton mot de passe pour valider la modification d'abonnement.</p>
+        <div id="subAccountBlock" class="space-y-2 hidden">
+          <label class="text-xs font-bold text-slate-500 uppercase tracking-[0.15em]">Compte à débiter</label>
+          {% if comptes %}
+          <select id="subCompteSelect" class="w-full px-3 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-ice-200 focus:border-ice-400 text-sm">
+            {% for c in comptes %}
+            <option value="{{ c.id }}">Compte {{ c.numero_compte }} · Solde {{ c.solde }} €</option>
+            {% endfor %}
+          </select>
+          <p class="text-[11px] text-slate-500">Requis pour les formules payantes.</p>
+          {% else %}
+          <p class="text-xs text-red-600">Aucun compte actif pour débiter l'abonnement.</p>
+          {% endif %}
+        </div>
         <div class="space-y-2">
           <label class="text-xs font-bold text-slate-500 uppercase tracking-[0.15em]">Mot de passe</label>
           <input type="password" id="subPwdInput" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-ice-200 focus:border-ice-400 outline-none" placeholder="••••••••">
@@ -130,8 +143,27 @@
     document.body.appendChild(modal);
 
     let pendingForm = null;
-    const openModal = (form) => {
+    let pendingAmount = 0;
+    const accountBlock = document.getElementById('subAccountBlock');
+    const accountSelect = document.getElementById('subCompteSelect');
+
+    const openModal = (form, amountValue) => {
       pendingForm = form;
+      pendingAmount = parseFloat(amountValue || '0');
+      if (accountBlock) {
+        if (pendingAmount > 0) {
+          accountBlock.classList.remove('hidden');
+          if (accountSelect) {
+            accountSelect.disabled = false;
+            accountSelect.selectedIndex = 0;
+          }
+        } else {
+          accountBlock.classList.add('hidden');
+          if (accountSelect) {
+            accountSelect.disabled = true;
+          }
+        }
+      }
       modal.classList.remove('hidden');
       modal.classList.add('flex');
       const input = document.getElementById('subPwdInput');
@@ -150,8 +182,19 @@
       if (!pendingForm) return;
       const pwd = document.getElementById('subPwdInput').value.trim();
       if (!pwd) return;
-      const pwdInput = pendingForm.querySelector('input[name="password"]');
+      const pwdInput = pendingForm.querySelector('input[name="current_password"]') || pendingForm.querySelector('input[name="password"]');
       if (pwdInput) pwdInput.value = pwd;
+      const compteField = pendingForm.querySelector('input[name="compte_id"]');
+      if (pendingAmount > 0) {
+        if (!accountSelect) return;
+        if (!accountSelect.value) {
+          accountSelect.focus();
+          return;
+        }
+        if (compteField) compteField.value = accountSelect.value;
+      } else if (compteField) {
+        compteField.value = '';
+      }
       pendingForm.submit();
       closeModal();
     };
@@ -161,7 +204,7 @@
         e.preventDefault();
         const form = btn.closest('form');
         if (!form) return;
-        openModal(form);
+        openModal(form, btn.dataset.amount || '0');
       });
     });
   })();
@@ -410,8 +453,10 @@
                         <div class="grid grid-cols-1 gap-2">
                             <form method="post" action="{% url 'changer_abonnement' %}" class="subscription-form">{% csrf_token %}
                                 <input type="hidden" name="plan" value="ESSENTIEL">
-                                <input type="hidden" name="password" value="">
+                                <input type="hidden" name="current_password" value="">
+                                <input type="hidden" name="compte_id" value="">
                                 <button type="submit"
+                                    data-amount="0"
                                     {% if profil_client.abonnement == 'ESSENTIEL' %}disabled{% endif %}
                                     class="w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors 
                                         {% if profil_client.abonnement == 'ESSENTIEL' %}
@@ -426,8 +471,10 @@
 
                             <form method="post" action="{% url 'changer_abonnement' %}" class="subscription-form">{% csrf_token %}
                                 <input type="hidden" name="plan" value="PLUS">
-                                <input type="hidden" name="password" value="">
+                                <input type="hidden" name="current_password" value="">
+                                <input type="hidden" name="compte_id" value="">
                                 <button type="submit"
+                                    data-amount="9.90"
                                     {% if profil_client.abonnement == 'PLUS' %}disabled{% endif %}
                                     class="w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors 
                                         {% if profil_client.abonnement == 'PLUS' %}
@@ -442,8 +489,10 @@
 
                             <form method="post" action="{% url 'changer_abonnement' %}" class="subscription-form">{% csrf_token %}
                                 <input type="hidden" name="plan" value="INFINITE">
-                                <input type="hidden" name="password" value="">
+                                <input type="hidden" name="current_password" value="">
+                                <input type="hidden" name="compte_id" value="">
                                 <button type="submit"
+                                    data-amount="19.90"
                                     {% if profil_client.abonnement == 'INFINITE' %}disabled{% endif %}
                                     class="w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors 
                                         {% if profil_client.abonnement == 'INFINITE' %}
@@ -461,8 +510,9 @@
                     {% if profil_client.abonnement != 'ESSENTIEL' %}
                     <form method="post" action="{% url 'changer_abonnement' %}" class="pt-2 subscription-form">{% csrf_token %}
                         <input type="hidden" name="plan" value="RESILIER">
-                        <input type="hidden" name="password" value="">
-                        <button type="submit" class="w-full px-4 py-3 text-xs font-bold rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-left">
+                        <input type="hidden" name="current_password" value="">
+                        <input type="hidden" name="compte_id" value="">
+                        <button type="submit" data-amount="0" class="w-full px-4 py-3 text-xs font-bold rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-left">
                             Résilier (fin de période)
                         </button>
                     </form>

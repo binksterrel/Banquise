@@ -65,7 +65,8 @@
                     class="w-full px-5 py-3 rounded-xl font-bold text-sm {% if code == 'PLUS' %}bg-white text-slate-900 hover:-translate-y-0.5 transition-all duration-300 shadow-lg{% else %}bg-slate-900 text-white hover:-translate-y-0.5 transition-all duration-300 shadow-lg hover:shadow-slate-900/30{% endif %} open-plan-modal"
                     data-plan="{{ code }}"
                     data-label="{{ plan.label }}"
-                    data-price="{% if plan.prix == 0 %}0 €{% else %}{{ plan.prix }} €{% endif %}/mois">
+                    data-price="{% if plan.prix == 0 %}0 €{% else %}{{ plan.prix }} €{% endif %}/mois"
+                    data-amount="{{ plan.prix }}">
                     Choisir {{ plan.label }}
                 </button>
                 {% endif %}
@@ -83,7 +84,7 @@
         <p class="mb-3 text-red-600">Résiliation programmée : retour à Essentiel à la fin de la période en cours.</p>
         <button type="button"
             class="px-4 py-2 rounded-lg bg-white text-red-700 font-bold border border-red-200 hover:bg-red-100 open-plan-modal"
-            data-plan="RESILIER" data-label="Résiliation" data-price="Retour Essentiel (fin de période)">
+            data-plan="RESILIER" data-label="Résiliation" data-price="Retour Essentiel (fin de période)" data-amount="0">
             Programmer la résiliation
         </button>
     </div>
@@ -101,6 +102,19 @@
         <form method="post" action="{% url 'changer_abonnement' %}" class="space-y-4" id="plan-modal-form">
             {% csrf_token %}
             <input type="hidden" name="plan" id="plan-input">
+            <div id="plan-account-row" class="space-y-2 hidden">
+                <label class="text-xs font-bold uppercase text-slate-500 block mb-2">Compte à débiter</label>
+                {% if comptes %}
+                <select name="compte_id" id="plan-compte-select" class="w-full px-3 py-3 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-ice-200 focus:border-ice-400">
+                    {% for c in comptes %}
+                    <option value="{{ c.id }}">Compte {{ c.numero_compte }} · Solde {{ c.solde }} €</option>
+                    {% endfor %}
+                </select>
+                <p class="text-xs text-slate-500">Requis uniquement pour les formules payantes.</p>
+                {% else %}
+                <p class="text-xs text-red-600">Aucun compte actif pour débiter l'abonnement.</p>
+                {% endif %}
+            </div>
             <div>
                 <label class="text-xs font-bold uppercase text-slate-500 block mb-2">Mot de passe</label>
                 <div class="relative">
@@ -127,11 +141,28 @@
         const planInput = document.getElementById('plan-input');
         const text = document.getElementById('plan-modal-text');
         const closeBtns = modal ? modal.querySelectorAll('.close-plan-modal') : [];
+        const accountRow = document.getElementById('plan-account-row');
+        const accountSelect = document.getElementById('plan-compte-select');
 
-        function openModal(plan, label, price) {
+        function openModal(plan, label, price, amount) {
             if (!modal) return;
             planInput.value = plan;
             const priceText = price ? ` (${price})` : '';
+            const needsAccount = parseFloat(amount || '0') > 0;
+            if (accountRow) {
+                if (needsAccount) {
+                    accountRow.classList.remove('hidden');
+                    if (accountSelect) {
+                        accountSelect.disabled = false;
+                        accountSelect.selectedIndex = 0;
+                    }
+                } else {
+                    accountRow.classList.add('hidden');
+                    if (accountSelect) {
+                        accountSelect.disabled = true;
+                    }
+                }
+            }
             text.textContent = plan === 'RESILIER'
                 ? 'Confirmez la résiliation : retour à Essentiel à la fin de la période en cours.'
                 : `Vous passez sur ${label}${priceText}. Votre mot de passe est requis pour confirmer.`;
@@ -152,7 +183,8 @@
                 openModal(
                     btn.dataset.plan,
                     btn.dataset.label || 'ce plan',
-                    btn.dataset.price || ''
+                    btn.dataset.price || '',
+                    btn.dataset.amount || '0'
                 );
             });
         });

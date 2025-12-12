@@ -11,7 +11,6 @@ from django.core.mail import send_mail
 from django.db import transaction, models
 from django.db.models import Sum, F, Q
 import csv
-from django.core.paginator import Paginator
 from django.utils import timezone
 from django.urls import reverse
 from datetime import timedelta, datetime
@@ -24,6 +23,8 @@ import re
 import csv
 import uuid
 from datetime import date
+from urllib.parse import urlencode
+from django.core.paginator import Paginator
 
 # Imports pour PDF (ReportLab)
 try:
@@ -52,6 +53,7 @@ from .cities import search_cities
 
 # BIC Statique pour la démo
 BANQUISE_BIC = "BANQFR76"
+MAX_SUPPORT_UPLOAD = 2 * 1024 * 1024  # 2 Mo pour les pièces jointes support
 
 PLAN_CONFIG = {
     'ESSENTIEL': {'prix': Decimal("0.00"), 'label': 'Essentiel'},
@@ -813,7 +815,8 @@ def changer_abonnement(request):
         return redirect('dashboard')
 
     plan = request.POST.get('plan')
-    pwd = request.POST.get('current_password') or ''
+    pwd = request.POST.get('current_password') or request.POST.get('password') or ''
+    compte_id = request.POST.get('compte_id')
     if not pwd:
         messages.error(request, "Veuillez saisir votre mot de passe pour changer d'abonnement.")
         return redirect('abonnements')
@@ -840,33 +843,45 @@ def changer_abonnement(request):
         messages.info(request, "Vous êtes déjà sur cette formule.")
         return redirect('dashboard')
 
-    compte = Compte.objects.filter(user=request.user, est_actif=True).order_by('id').first()
-    if not compte:
+    prix = PLAN_CONFIG[plan]['prix']
+    comptes_actifs = Compte.objects.filter(user=request.user, est_actif=True)
+    comptes_count = comptes_actifs.count()
+    if not comptes_count:
         messages.error(request, "Aucun compte actif pour débiter l'abonnement.")
         return redirect('dashboard')
 
-    prix = PLAN_CONFIG[plan]['prix']
-    if compte.solde < prix:
-        messages.error(request, "Solde insuffisant pour activer cette formule.")
-        return redirect('dashboard')
-
-    compte.solde = compte.solde - prix
-    compte.save(update_fields=['solde'])
-    Transaction.objects.create(
-        compte=compte,
-        montant=-prix,
-        libelle=f"Abonnement Banquise {PLAN_CONFIG[plan]['label']}",
-        type='DEBIT',
-        categorie='AUTRE'
-    )
-    notifier(request.user, "Abonnement modifié", f"Passage à {PLAN_CONFIG[plan]['label']} facturé {prix} €.", "TRANSACTION", url=reverse('dashboard'))
-    enforce_overdraft(compte)
+    compte = None
+    if prix > 0:
+        if compte_id:
+            compte = comptes_actifs.filter(id=compte_id).first()
+        else:
+            compte = comptes_actifs.order_by('id').first()
+        if not compte:
+            messages.error(request, "Compte sélectionné introuvable ou inactif.")
+            return redirect('abonnements')
+        compte = Compte.objects.select_for_update().get(id=compte.id)
+        if compte.solde < prix:
+            messages.error(request, "Solde insuffisant sur le compte choisi pour activer cette formule.")
+            return redirect('abonnements')
+        compte.solde = compte.solde - prix
+        compte.save(update_fields=['solde'])
+        Transaction.objects.create(
+            compte=compte,
+            montant=-prix,
+            libelle=f"Abonnement Banquise {PLAN_CONFIG[plan]['label']}",
+            type='DEBIT',
+            categorie='AUTRE'
+        )
+        notifier(request.user, "Abonnement modifié", f"Passage à {PLAN_CONFIG[plan]['label']} facturé {prix} €.", "TRANSACTION", url=reverse('dashboard'))
+        enforce_overdraft(compte)
 
     profil.abonnement = plan
     profil.prochain_abonnement = plan
     profil.prochaine_facturation = timezone.now().date() + timedelta(days=30)
     profil.save(update_fields=['abonnement', 'prochain_abonnement', 'prochaine_facturation'])
 
+    if prix <= 0:
+        notifier(request.user, "Abonnement modifié", f"Passage à {PLAN_CONFIG[plan]['label']}.", "INFO", url=reverse('dashboard'))
     messages.success(request, f"Formule {PLAN_CONFIG[plan]['label']} activée. Prochaine facturation dans 30 jours.")
     return redirect('dashboard')
 
@@ -909,7 +924,9 @@ def demande_decouvert(request):
 
 def page_abonnements(request):
     profil = None
+    comptes = Compte.objects.none()
     if request.user.is_authenticated:
+        comptes = Compte.objects.filter(user=request.user, est_actif=True)
         profil, _ = ProfilClient.objects.get_or_create(user=request.user, defaults={
             'abonnement': 'ESSENTIEL',
             'prochaine_facturation': timezone.now().date() + timedelta(days=30)
@@ -918,7 +935,8 @@ def page_abonnements(request):
     return render(request, 'scoring/abonnements.html', {
         'plans': PLAN_CONFIG,
         'profil_client': profil,
-        'unread_notifs': unread_notifs
+        'unread_notifs': unread_notifs,
+        'comptes': comptes,
     })
 
 
@@ -953,6 +971,9 @@ def chat_support(request):
         else:
             contenu = (request.POST.get('message') or "").strip()
             image = request.FILES.get('image')
+            if image and image.size > MAX_SUPPORT_UPLOAD:
+                messages.error(request, "Pièce jointe trop volumineuse (max 2 Mo).")
+                return redirect('chat_support')
             if not contenu and not image:
                 messages.error(request, "Le message doit contenir du texte ou une image.")
             else:
@@ -1047,6 +1068,9 @@ def chat_support_admin(request):
             target_user_id = request.POST.get('target_user')
             contenu = (request.POST.get('message') or "").strip()
             image = request.FILES.get('image')
+            if image and image.size > MAX_SUPPORT_UPLOAD:
+                messages.error(request, "Pièce jointe trop volumineuse (max 2 Mo).")
+                return redirect('chat_support_admin')
             if target_user_id and (contenu or image):
                 MessageSupport.objects.create(
                     user_id=target_user_id,
@@ -1070,13 +1094,50 @@ def chat_support_admin(request):
 
 @login_required
 def notifications_view(request):
+    filter_type = request.GET.get('type') if request.method == 'GET' else request.POST.get('type')
+    allowed_types = [code for code, _ in Notification.TYPE_CHOICES]
+    if filter_type not in allowed_types:
+        filter_type = 'ALL'
+
     notifs = Notification.objects.filter(user=request.user)
+    if filter_type != 'ALL':
+        notifs = notifs.filter(type=filter_type)
+    notifs = notifs.order_by('-date_creation')
+
+    page_number = request.GET.get('page') if request.method == 'GET' else request.POST.get('page')
+    paginator = Paginator(notifs, 12)
+    page_obj = paginator.get_page(page_number)
+    unread_count = Notification.objects.filter(user=request.user, est_lu=False).count()
+    type_choices = [('ALL', 'Toutes')] + Notification.TYPE_CHOICES
+
+    def _redirect_with_params():
+        params = {}
+        if filter_type != 'ALL':
+            params['type'] = filter_type
+        if page_number:
+            params['page'] = page_number
+        url = reverse('notifications')
+        if params:
+            url += '?' + urlencode(params)
+        return redirect(url)
+
     if request.method == 'POST':
-        notifs.update(est_lu=True)
-        messages.success(request, "Notifications marquées comme lues.")
-        return redirect('notifications')
-    unread_count = notifs.filter(est_lu=False).count()
-    return render(request, 'scoring/notifications.html', {'notifications': notifs, 'unread_notifs': unread_count})
+        action = request.POST.get('action')
+        if action == 'mark_all':
+            Notification.objects.filter(user=request.user, est_lu=False).update(est_lu=True)
+            messages.success(request, "Toutes les notifications ont été marquées comme lues.")
+        elif action == 'mark_page':
+            ids = [n.id for n in page_obj.object_list]
+            Notification.objects.filter(user=request.user, id__in=ids).update(est_lu=True)
+            messages.success(request, "Notifications de cette page marquées comme lues.")
+        return _redirect_with_params()
+
+    return render(request, 'scoring/notifications.html', {
+        'page_obj': page_obj,
+        'unread_notifs': unread_count,
+        'filter_type': filter_type,
+        'type_choices': type_choices,
+    })
 
 @login_required
 def statistiques(request):
@@ -2272,9 +2333,11 @@ def page_a_propos(request):
 
 def page_tarifs(request):
     profil_client = None
+    comptes = Compte.objects.none()
     if request.user.is_authenticated:
         profil_client = ProfilClient.objects.filter(user=request.user).first()
-    return render(request, 'scoring/tarifs.html', {'profil_client': profil_client})
+        comptes = Compte.objects.filter(user=request.user, est_actif=True)
+    return render(request, 'scoring/tarifs.html', {'profil_client': profil_client, 'comptes': comptes})
 
 def page_faq(request):
     return render(request, 'scoring/faq.html')
