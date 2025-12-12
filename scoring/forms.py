@@ -367,6 +367,12 @@ class SimulationPretForm(forms.ModelForm):
         if 'produit' in self.fields:
             self.fields['produit'].required = True
             self.fields['produit'].empty_label = "Sélectionnez un produit"
+        if 'emploi_snapshot' in self.fields:
+            self.fields['emploi_snapshot'].required = True
+            self.fields['emploi_snapshot'].empty_label = "Sélectionnez votre situation professionnelle"
+        if 'logement_snapshot' in self.fields:
+            self.fields['logement_snapshot'].required = True
+            self.fields['logement_snapshot'].empty_label = "Sélectionnez votre logement"
         if 'soumise' in self.fields:
             self.fields['soumise'].label = "Soumettre la simulation"
             self.fields['soumise'].help_text = "Si vous cochez cette case, la simulation sera transmise à un conseiller."
@@ -391,4 +397,8 @@ class SimulationPretForm(forms.ModelForm):
                 self.add_error(field, msg)
         if not cleaned.get('produit'):
             self.add_error('produit', "Sélectionnez un produit avant de lancer la simulation.")
+        if not cleaned.get('emploi_snapshot'):
+            self.add_error('emploi_snapshot', "Sélectionnez votre situation professionnelle.")
+        if not cleaned.get('logement_snapshot'):
+            self.add_error('logement_snapshot', "Sélectionnez votre situation de logement.")
         return cleaned
