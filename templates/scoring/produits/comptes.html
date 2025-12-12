@@ -14,9 +14,16 @@
                 engagement.
             </p>
             <div class="mt-10 flex items-center justify-center gap-x-6">
+                {% if user.is_authenticated %}
+                <a href="{% url 'dashboard' %}"
+                    class="rounded-xl bg-slate-900 px-8 py-3.5 text-sm font-bold text-white shadow-glow hover:bg-slate-800 transition-all">
+                    Accéder à mon espace
+                </a>
+                {% else %}
                 <a href="{% url 'register' %}"
                     class="rounded-xl bg-slate-900 px-8 py-3.5 text-sm font-bold text-white shadow-glow hover:bg-slate-800 transition-all">Ouvrir
                     un compte gratuit</a>
+                {% endif %}
             </div>
 
 

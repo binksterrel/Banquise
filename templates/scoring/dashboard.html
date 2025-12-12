@@ -229,6 +229,13 @@
                             <p class="text-xs mt-1 {% if compte.marge_dispo < 0 %}text-red-600{% else %}text-slate-500{% endif %}">
                                 Marge avant blocage : {{ compte.marge_dispo }} € (limite {{ overdraft_limit }} €)
                             </p>
+                            {% if compte.type_compte == 'PRO' %}
+                            <div class="mt-2 text-xs space-y-1">
+                                <p class="font-bold text-slate-700 flex items-center gap-2"><i class="bi bi-building"></i> {{ compte.entreprise_nom|default:"Entreprise à renseigner" }}</p>
+                                <p class="text-slate-500">SIRET / ID : {{ compte.entreprise_siret|default:"-" }}</p>
+                                <p class="text-slate-500">Contact : {{ compte.entreprise_contact|default:"-" }}</p>
+                            </div>
+                            {% endif %}
                         </div>
 
                         <div class="flex justify-between items-end">
@@ -267,7 +274,7 @@
                         <canvas id="spendingChart"></canvas>
                     </div>
 
-                    {% if credit_labels|length > 0 %}
+                    {% if has_credit_schedule %}
                     <div class="mt-8 border-t border-slate-100 pt-6">
                         <div class="flex items-center justify-between mb-3">
                             <h4 class="font-display font-bold text-slate-900 text-base">Echéancier crédits</h4>

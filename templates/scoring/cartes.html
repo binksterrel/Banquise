@@ -150,64 +150,54 @@
 
                     <div class="p-4 space-y-6 border-t border-slate-100 bg-white/30">
 
-                        <div class="space-y-3">
-                            <form method="POST">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="toggle_contactless">
-                                <input type="hidden" name="carte_id" value="{{ carte.id }}">
-                                <button type="submit" class="flex justify-between items-center w-full group/btn">
-                                    <span class="text-sm font-medium text-slate-600 flex items-center gap-2">
-                                        <i class="bi bi-wifi"></i> Sans contact
-                                    </span>
-                                    <div
-                                        class="w-10 h-6 rounded-full relative transition-colors {% if carte.sans_contact_actif %}bg-ice-500{% else %}bg-slate-200{% endif %}">
+                        <div class="space-y-4">
+                            <div class="space-y-2">
+                                <form method="POST">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="toggle_contactless">
+                                    <input type="hidden" name="carte_id" value="{{ carte.id }}">
+                                    <button type="submit" class="flex justify-between items-center w-full group/btn">
+                                        <span class="text-sm font-medium text-slate-600 flex items-center gap-2">
+                                            <i class="bi bi-wifi"></i> Sans contact
+                                        </span>
                                         <div
-                                            class="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all {% if carte.sans_contact_actif %}right-1{% else %}left-1{% endif %}">
+                                            class="w-10 h-6 rounded-full relative transition-colors {% if carte.sans_contact_actif %}bg-ice-500{% else %}bg-slate-200{% endif %}">
+                                            <div
+                                                class="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all {% if carte.sans_contact_actif %}right-1{% else %}left-1{% endif %}">
+                                            </div>
                                         </div>
-                                    </div>
-                                </button>
-                            </form>
+                                    </button>
+                                </form>
 
-                            <form method="POST">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="toggle_foreign">
-                                <input type="hidden" name="carte_id" value="{{ carte.id }}">
-                                <button type="submit" class="flex justify-between items-center w-full group/btn">
-                                    <span class="text-sm font-medium text-slate-600 flex items-center gap-2">
-                                        <i class="bi bi-globe"></i> Paiements étranger
-                                    </span>
-                                    <div
-                                        class="w-10 h-6 rounded-full relative transition-colors {% if carte.paiement_etranger_actif %}bg-ice-500{% else %}bg-slate-200{% endif %}">
+                                <form method="POST">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="toggle_foreign">
+                                    <input type="hidden" name="carte_id" value="{{ carte.id }}">
+                                    <button type="submit" class="flex justify-between items-center w-full group/btn">
+                                        <span class="text-sm font-medium text-slate-600 flex items-center gap-2">
+                                            <i class="bi bi-globe"></i> Paiements étranger
+                                        </span>
                                         <div
-                                            class="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all {% if carte.paiement_etranger_actif %}right-1{% else %}left-1{% endif %}">
+                                            class="w-10 h-6 rounded-full relative transition-colors {% if carte.paiement_etranger_actif %}bg-ice-500{% else %}bg-slate-200{% endif %}">
+                                            <div
+                                                class="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all {% if carte.paiement_etranger_actif %}right-1{% else %}left-1{% endif %}">
+                                            </div>
                                         </div>
-                                    </div>
-                                </button>
-                            </form>
-                        </div>
+                                    </button>
+                                </form>
+                            </div>
 
-                        <div class="pt-2 space-y-4">
-                            <div>
-                                <div class="flex justify-between text-xs mb-1">
-                                    <span class="font-bold text-slate-500">Retraits (7j)</span>
-                                    <span class="font-bold text-slate-900">{{ carte.plafond_retrait }} €</span>
+                            <div class="grid grid-cols-2 gap-3 text-sm">
+                                <div class="p-3 rounded-xl bg-white/70 border border-slate-200">
+                                    <p class="text-xs font-bold text-slate-500 uppercase mb-1">Retraits (7j)</p>
+                                    <p class="text-slate-900 font-bold">{{ carte.plafond_retrait }} €</p>
+                                    <a href="{% url 'gestion_plafonds' carte.id %}" class="text-[11px] text-ice-600 font-bold hover:underline">Ajuster</a>
                                 </div>
-                                <div class="w-full bg-slate-200 rounded-full h-2">
-                                    <div class="bg-purple-500 h-2 rounded-full" style="width: 35%"></div>
+                                <div class="p-3 rounded-xl bg-white/70 border border-slate-200">
+                                    <p class="text-xs font-bold text-slate-500 uppercase mb-1">Paiements (30j)</p>
+                                    <p class="text-slate-900 font-bold">{{ carte.plafond_paiement }} €</p>
+                                    <a href="{% url 'gestion_plafonds' carte.id %}" class="text-[11px] text-ice-600 font-bold hover:underline">Ajuster</a>
                                 </div>
-                            </div>
-                            <div>
-                                <div class="flex justify-between text-xs mb-1">
-                                    <span class="font-bold text-slate-500">Paiements (30j)</span>
-                                    <span class="font-bold text-slate-900">{{ carte.plafond_paiement }} €</span>
-                                </div>
-                                <div class="w-full bg-slate-200 rounded-full h-2">
-                                    <div class="bg-ice-500 h-2 rounded-full" style="width: 65%"></div>
-                                </div>
-                            </div>
-                            <div class="text-center pt-2">
-                                <a href="{% url 'gestion_plafonds' carte.id %}"
-                                    class="text-xs font-bold text-ice-600 hover:underline">Modifier les plafonds</a>
                             </div>
                         </div>
                     </div>

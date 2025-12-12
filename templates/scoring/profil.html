@@ -395,6 +395,20 @@
                                     class="w-full px-4 py-3 rounded-xl input-field font-medium text-slate-700">
                             </div>
                         </div>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="input-label">Mot de passe (confirmation)</label>
+                                <div class="relative">
+                                    <i
+                                        class="bi bi-lock-fill absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                    <input type="password" name="current_password" autocomplete="current-password"
+                                        placeholder="Saisissez votre mot de passe"
+                                        class="w-full pl-12 pr-4 py-3 rounded-xl input-field font-medium text-slate-700"
+                                        required>
+                                </div>
+                                <p class="text-xs text-slate-500 mt-2">Requis pour confirmer toute modification des informations personnelles.</p>
+                            </div>
+                        </div>
                         <div class="pt-4 flex justify-end">
                             <button type="submit"
                                 class="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold shadow-lg hover:bg-ice-600 hover:shadow-ice-500/30 transition-all transform hover:-translate-y-0.5">

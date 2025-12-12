@@ -59,12 +59,12 @@ class BeneficiaireAdmin(admin.ModelAdmin):
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
     # Affiche la catégorie pour plus de clarté
-    list_display = ('compte', 'montant', 'libelle', 'type', 'categorie', 'date_execution')
+    list_display = ('compte', 'montant', 'libelle', 'type', 'categorie', 'date_execution', 'operation_id')
     list_filter = ('type', 'categorie', 'date_execution')
-    search_fields = ('libelle', 'compte__numero_compte')
+    search_fields = ('libelle', 'compte__numero_compte', 'operation_id')
     raw_id_fields = ('compte',)
     # Permet de modifier la catégorie à posteriori pour corriger les erreurs de l'utilisateur
-    fields = ('compte', 'montant', 'libelle', 'type', 'categorie', 'date_execution')
+    fields = ('compte', 'montant', 'libelle', 'type', 'categorie', 'date_execution', 'operation_id')
 
 
 # ===============================================

@@ -22,6 +22,8 @@ import io
 import json
 import re
 import csv
+import uuid
+from datetime import date
 
 # Imports pour PDF (ReportLab)
 try:
@@ -42,7 +44,7 @@ from .forms import (
 )
 from .models import (
     Compte, Carte, Transaction, DemandeCredit, ProfilClient, ProduitPret,
-    Beneficiaire, MessageSupport, Notification, DemandeDecouvert
+    Beneficiaire, MessageSupport, Notification, DemandeDecouvert, VirementProgramme
 )
 from .utils import overdraft_limit_for_user
 from .ml import predict_credit, is_model_available, ModelNotLoaded
@@ -85,8 +87,110 @@ def normalize_phone(value: str) -> str:
 def find_account_by_phone(phone_norm: str):
     profil = ProfilClient.objects.filter(telephone=phone_norm).select_related('user').first()
     if not profil:
+        for p in ProfilClient.objects.exclude(telephone='').select_related('user'):
+            if normalize_phone(p.telephone) == phone_norm:
+                profil = p
+                break
+    if not profil:
         return None
     return Compte.objects.filter(user=profil.user, est_actif=True).order_by('id').first()
+
+
+def _execute_virement(compte, montant, motif, target_iban, target_phone, beneficiaire, request_user, operation_id):
+    target_iban = target_iban or ''
+    target_phone = target_phone or ''
+    destinataire_str = ""
+    if beneficiaire:
+        info_parts = [beneficiaire.nom]
+        if target_phone:
+            info_parts.append(f"tel {target_phone}")
+        if target_iban:
+            info_parts.append(f"IBAN {target_iban}")
+        destinataire_str = " - ".join(info_parts)
+    elif target_iban:
+        destinataire_str = f"IBAN {target_iban}"
+    elif target_phone:
+        destinataire_str = f"Téléphone {target_phone}"
+
+    compte_destinataire = None
+    if target_iban:
+        compte_destinataire = find_account_by_iban(normalize_iban(target_iban))
+    if not compte_destinataire and target_phone:
+        compte_destinataire = find_account_by_phone(target_phone)
+
+    if target_phone and not compte_destinataire:
+        raise ValueError("Aucun compte Banquise trouvé pour ce numéro.")
+
+    with transaction.atomic():
+        emetteur = Compte.objects.select_for_update().get(id=compte.id, user=request_user, est_actif=True)
+        destinataire_locked = None
+        if compte_destinataire:
+            if compte_destinataire.id == emetteur.id:
+                destinataire_locked = emetteur
+            else:
+                destinataire_locked = Compte.objects.select_for_update().get(id=compte_destinataire.id, est_actif=True)
+
+        if Transaction.objects.filter(operation_id=operation_id, compte=emetteur, type='DEBIT').exists():
+            return "duplicate"
+
+        if emetteur.solde < montant:
+            raise ValueError("Solde insuffisant pour effectuer ce virement.")
+
+        emetteur.solde -= montant
+        emetteur.save(update_fields=['solde'])
+        Transaction.objects.create(
+            compte=emetteur,
+            montant=-montant,
+            libelle=f"Virement vers {destinataire_str} - {motif}",
+            type='DEBIT',
+            categorie='VIREMENT',
+            operation_id=operation_id
+        )
+        notifier(request_user, "Virement envoyé", f"Virement vers {destinataire_str} de {montant} €", "VIREMENT", url=reverse('dashboard'))
+        enforce_overdraft(emetteur)
+
+        if destinataire_locked:
+            destinataire_locked.solde += montant
+            destinataire_locked.save(update_fields=['solde'])
+            Transaction.objects.create(
+                compte=destinataire_locked,
+                montant=montant,
+                libelle=f"Virement reçu de {request_user.first_name} {request_user.last_name} - {motif}",
+                type='CREDIT',
+                categorie='VIREMENT',
+                operation_id=operation_id
+            )
+            notifier(destinataire_locked.user, "Virement reçu", f"Vous avez reçu {montant} € de {request_user.get_full_name()}", "VIREMENT", url=reverse('dashboard'))
+            enforce_overdraft(destinataire_locked)
+    return "ok"
+
+
+def _run_scheduled_virements(user):
+    today = timezone.now().date()
+    scheduled = VirementProgramme.objects.filter(user=user, actif=True, prochaine_execution__lte=today)
+    for v in scheduled:
+        try:
+            status = _execute_virement(
+                compte=v.compte_emetteur,
+                montant=v.montant,
+                motif=v.motif,
+                target_iban=v.cible_iban,
+                target_phone=v.cible_phone,
+                beneficiaire=v.beneficiaire,
+                request_user=user,
+                operation_id=uuid.uuid4().hex,
+            )
+            v.derniere_execution = timezone.now()
+            if v.recurrence == 'MENSUEL':
+                # Prochaine échéance dans ~30 jours
+                v.prochaine_execution = v.prochaine_execution + timedelta(days=30)
+            else:
+                v.actif = False
+            v.save(update_fields=['derniere_execution', 'prochaine_execution', 'actif'])
+        except Exception as e:
+            # On loggue simplement l'erreur pour éviter de bloquer la page.
+            # Les virements programmés restants seront réessayés au prochain passage.
+            print(f"[VirementProgramme] Echec virement id={v.id} user={user.username} : {e}")
 
 
 
@@ -427,6 +531,7 @@ def _create_default_accounts(user, form):
 def confirm_email(request):
     user_id = request.session.get('pending_user_id')
     code_session = request.session.get('pending_email_code')
+    pending_phone = request.session.get('pending_phone')
     code_sent_at_raw = request.session.get('pending_code_sent_at')
     try:
         code_sent_at = timezone.datetime.fromisoformat(code_sent_at_raw) if code_sent_at_raw else None
@@ -626,6 +731,7 @@ def dashboard(request):
 
     credit_labels = []
     credit_datasets = []
+    has_credit_schedule = False
     if credits_actifs.exists():
         today = timezone.now().date()
         max_remaining = 0
@@ -651,6 +757,7 @@ def dashboard(request):
                 "data": data,
                 "color": palette[idx % len(palette)]
             })
+        has_credit_schedule = bool(credit_datasets)
 
     response = render(request, 'scoring/dashboard.html', {
         'comptes': comptes,
@@ -665,6 +772,7 @@ def dashboard(request):
         'spending_values_12': json.dumps(values_12),
         'credit_labels': json.dumps(credit_labels),
         'credit_datasets': json.dumps(credit_datasets),
+        'has_credit_schedule': has_credit_schedule,
         'overdraft_limit': overdraft_limit,
         'overdraft_margins': overdraft_margins,
         'demandes_credit_recent': demandes_credit,
@@ -692,6 +800,14 @@ def changer_abonnement(request):
         return redirect('dashboard')
 
     plan = request.POST.get('plan')
+    pwd = request.POST.get('current_password') or ''
+    if not pwd:
+        messages.error(request, "Veuillez saisir votre mot de passe pour changer d'abonnement.")
+        return redirect('abonnements')
+    if not request.user.check_password(pwd):
+        messages.error(request, "Mot de passe incorrect.")
+        return redirect('abonnements')
+
     profil, _ = ProfilClient.objects.get_or_create(user=request.user, defaults={
         'abonnement': 'ESSENTIEL',
         'prochaine_facturation': timezone.now().date() + timedelta(days=30)
@@ -1167,13 +1283,21 @@ def ouvrir_compte(request):
             # --- C'est cette ligne qui manquait ou était incorrecte ---
             # Génération de l'IBAN (sans espaces pour compatibilité virements)
             numero = f"FR76{random.randint(1000,9999)}{random.randint(1000,9999)}{random.randint(1000,9999)}"
-            
+            extra_kwargs = {}
+            if type_choisi == 'PRO':
+                extra_kwargs.update({
+                    'entreprise_nom': form.cleaned_data.get('entreprise_nom') or '',
+                    'entreprise_siret': form.cleaned_data.get('entreprise_siret') or '',
+                    'entreprise_contact': form.cleaned_data.get('entreprise_contact') or '',
+                })
+
             nouveau_compte = Compte.objects.create(
                 user=request.user,
                 type_compte=type_choisi,
                 solde=0.00,
                 numero_compte=numero, # Utilisation de la variable définie juste au-dessus
-                est_actif=True
+                est_actif=True,
+                **extra_kwargs
             )
             
             Carte.objects.create(
@@ -1285,15 +1409,21 @@ def gestion_plafonds(request, carte_id):
 
 @login_required
 def virement(request):
+    _run_scheduled_virements(request.user)
     comptes = Compte.objects.filter(user=request.user, est_actif=True)
     carte_plafond = Carte.objects.filter(compte__in=comptes).order_by('id').first()
+    operation_id = uuid.uuid4().hex
+    virements_programmes = VirementProgramme.objects.filter(user=request.user, actif=True).order_by('prochaine_execution')
     
     if request.method == 'POST':
         form = VirementForm(request.user, request.POST)
+        operation_id = (request.POST.get('operation_id') or "").strip() or uuid.uuid4().hex
         if form.is_valid():
             compte = form.cleaned_data['compte_emetteur']
             montant = form.cleaned_data['montant']
             motif = form.cleaned_data['motif']
+            exec_date = form.cleaned_data.get('execution_date') or timezone.now().date()
+            recurrence = form.cleaned_data.get('recurrence') or 'NONE'
             
             beneficiaire = form.cleaned_data['beneficiaire_enregistre']
             nouvel_iban = form.cleaned_data['nouveau_beneficiaire_iban']
@@ -1325,43 +1455,51 @@ def virement(request):
                 compte_destinataire = find_account_by_phone(target_phone)
             if target_phone and not compte_destinataire:
                 messages.error(request, "Aucun compte Banquise trouvé pour ce numéro.")
-                return render(request, 'scoring/virement.html', {'form': form, 'comptes': comptes})
+                return render(request, 'scoring/virement.html', {
+                    'form': form,
+                    'comptes': comptes,
+                    'carte_plafond': carte_plafond,
+                    'operation_id': operation_id,
+                    'virements_programmes': virements_programmes
+                })
+            try:
+                today = timezone.now().date()
+                should_execute_now = exec_date <= today
 
-            if compte.solde >= montant:
-                with transaction.atomic():
-                    # 1. Débiter l'émetteur
-                    compte.solde -= montant
-                    compte.save()
-                    Transaction.objects.create(
-                        compte=compte,
-                        montant=-montant,
-                        libelle=f"Virement vers {destinataire_str} - {motif}",
-                        type='DEBIT',
-                        categorie='VIREMENT' 
+                # Si virement planifié ou récurrent
+                if exec_date > today or recurrence == 'MENSUEL':
+                    vp = VirementProgramme.objects.create(
+                        user=request.user,
+                        compte_emetteur=compte,
+                        beneficiaire=beneficiaire,
+                        cible_iban=target_iban,
+                        cible_phone=target_phone,
+                        montant=montant,
+                        motif=motif,
+                        prochaine_execution=exec_date if exec_date > today else today,
+                        recurrence=recurrence or 'NONE',
+                        actif=True
                     )
-                    notifier(request.user, "Virement envoyé", f"Virement vers {destinataire_str} de {montant} €", "VIREMENT", url=reverse('dashboard'))
-                    enforce_overdraft(compte)
+                    messages.success(request, f"Virement programmé pour le {exec_date} ({'mensuel' if recurrence == 'MENSUEL' else 'ponctuel'}).")
+                    # Si récurrent ou date du jour, exécute immédiatement une première fois
+                    if should_execute_now:
+                        _execute_virement(compte, montant, motif, target_iban, target_phone, beneficiaire, request.user, operation_id)
+                        vp.derniere_execution = timezone.now()
+                        if vp.recurrence == 'MENSUEL':
+                            vp.prochaine_execution = vp.prochaine_execution + timedelta(days=30)
+                        else:
+                            vp.actif = False
+                        vp.save(update_fields=['derniere_execution', 'prochaine_execution', 'actif'])
+                else:
+                    # Exécution immédiate
+                    _execute_virement(compte, montant, motif, target_iban, target_phone, beneficiaire, request.user, operation_id)
 
-                    # 2. Créditer le destinataire (si c'est un compte interne)
-                    if compte_destinataire:
-                        compte_destinataire.solde += montant
-                        compte_destinataire.save()
-
-                        Transaction.objects.create(
-                            compte=compte_destinataire,
-                            montant=montant,
-                            libelle=f"Virement reçu de {request.user.first_name} {request.user.last_name} - {motif}",
-                            type='CREDIT',
-                            categorie='VIREMENT'
-                        )
-                        notifier(compte_destinataire.user, "Virement reçu", f"Vous avez reçu {montant} € de {request.user.get_full_name()}", "VIREMENT", url=reverse('dashboard'))
-                        enforce_overdraft(compte_destinataire)
-
-                messages.success(request, "Virement envoyé avec succès !")
                 return redirect('dashboard')
-            else:
-                messages.error(request, "Solde insuffisant pour effectuer ce virement.")
-        return render(request, 'scoring/virement.html', {'form': form, 'comptes': comptes, 'carte_plafond': carte_plafond})
+            except ValueError as e:
+                messages.error(request, str(e))
+            except Exception as e:
+                messages.error(request, f"Erreur lors du virement : {e}")
+        return render(request, 'scoring/virement.html', {'form': form, 'comptes': comptes, 'carte_plafond': carte_plafond, 'operation_id': operation_id, 'virements_programmes': virements_programmes})
     
     else:
         initial_data = {}
@@ -1375,7 +1513,7 @@ def virement(request):
                 
         form = VirementForm(request.user, initial=initial_data)
         
-    return render(request, 'scoring/virement.html', {'form': form, 'comptes': comptes, 'carte_plafond': carte_plafond})
+    return render(request, 'scoring/virement.html', {'form': form, 'comptes': comptes, 'carte_plafond': carte_plafond, 'operation_id': operation_id, 'virements_programmes': virements_programmes})
 
 @login_required
 def gestion_beneficiaires(request):
@@ -2136,16 +2274,37 @@ def profil(request):
                 ln = request.POST.get('last_name')
                 request.user.last_name = ln.upper() if ln else ''
                 request.user.email = request.POST.get('email')
-                request.user.save()
+                tel_raw = request.POST.get('telephone')
+                if tel_raw and not re.match(r"^[0-9\s()+.-]+$", tel_raw):
+                    messages.error(request, "Le numéro doit contenir uniquement des chiffres (espaces/+/()- acceptés).")
+                    raise ValueError("invalid_phone_chars")
+                tel_norm = normalize_phone(tel_raw)
+                if tel_norm and (len(tel_norm) < 8 or len(tel_norm) > 15):
+                    messages.error(request, "Numéro de téléphone invalide (8 à 15 chiffres).")
+                    raise ValueError("invalid_phone")
+                # Empêche les doublons sur d'autres comptes
+                if tel_norm and ProfilClient.objects.exclude(user=request.user).filter(telephone=tel_norm).exists():
+                    messages.error(request, "Ce numéro est déjà utilisé par un autre compte.")
+                    raise ValueError("duplicate_phone")
 
-                client_profil.telephone = request.POST.get('telephone')
+                current_pwd = request.POST.get('current_password') or ''
+                if not current_pwd:
+                    messages.error(request, "Veuillez saisir votre mot de passe pour confirmer.")
+                    raise ValueError("missing_password")
+                if not request.user.check_password(current_pwd):
+                    messages.error(request, "Mot de passe incorrect. Aucune modification enregistrée.")
+                    raise ValueError("wrong_password")
+
+                request.user.save()
+                client_profil.telephone = tel_norm
                 client_profil.ville_naissance = request.POST.get('ville') 
                 client_profil.save()
 
                 messages.success(request, "Vos informations ont été mises à jour.")
                 return redirect('profil')
             except Exception as e:
-                messages.error(request, f"Une erreur est survenue lors de la mise à jour : {e}")
+                if str(e) not in ["invalid_phone", "duplicate_phone", "invalid_phone_chars", "missing_password", "wrong_password"]:
+                    messages.error(request, f"Une erreur est survenue lors de la mise à jour : {e}")
 
     return render(request, 'scoring/profil.html', {
         'profil': client_profil,

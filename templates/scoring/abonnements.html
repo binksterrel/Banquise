@@ -56,18 +56,19 @@
                 {% endif %}
             </ul>
             <div class="mt-6 {% if code == 'PLUS' %}relative z-10{% endif %}">
-                <form method="post" action="{% url 'changer_abonnement' %}">{% csrf_token %}
-                    <input type="hidden" name="plan" value="{{ code }}">
-                    {% if profil_client and profil_client.abonnement == code %}
-                    <button type="button" disabled class="w-full px-5 py-3 rounded-xl font-bold text-sm border border-ice-200 bg-ice-50 text-ice-700 opacity-70 cursor-not-allowed">
-                        {{ plan.label }} (actuel)
-                    </button>
-                    {% else %}
-                    <button type="submit" onclick="return confirm('Confirmer le passage à {{ plan.label }} ({% if plan.prix == 0 %}0 €{% else %}{{ plan.prix }} €{% endif %} facturés maintenant) ?');" class="w-full px-5 py-3 rounded-xl font-bold text-sm {% if code == 'PLUS' %}bg-white text-slate-900 hover:-translate-y-0.5 transition-all duration-300 shadow-lg{% else %}bg-slate-900 text-white hover:-translate-y-0.5 transition-all duration-300 shadow-lg hover:shadow-slate-900/30{% endif %}">
-                        Choisir {{ plan.label }}
-                    </button>
-                    {% endif %}
-                </form>
+                {% if profil_client and profil_client.abonnement == code %}
+                <button type="button" disabled class="w-full px-5 py-3 rounded-xl font-bold text-sm border border-ice-200 bg-ice-50 text-ice-700 opacity-70 cursor-not-allowed">
+                    {{ plan.label }} (actuel)
+                </button>
+                {% else %}
+                <button type="button"
+                    class="w-full px-5 py-3 rounded-xl font-bold text-sm {% if code == 'PLUS' %}bg-white text-slate-900 hover:-translate-y-0.5 transition-all duration-300 shadow-lg{% else %}bg-slate-900 text-white hover:-translate-y-0.5 transition-all duration-300 shadow-lg hover:shadow-slate-900/30{% endif %} open-plan-modal"
+                    data-plan="{{ code }}"
+                    data-label="{{ plan.label }}"
+                    data-price="{% if plan.prix == 0 %}0 €{% else %}{{ plan.prix }} €{% endif %}/mois">
+                    Choisir {{ plan.label }}
+                </button>
+                {% endif %}
                 {% if profil_client and profil_client.abonnement == code %}
                 <p class="text-xs text-slate-500 mt-2 {% if code == 'PLUS' %}text-slate-200{% endif %}">Plan actuel.</p>
                 {% endif %}
@@ -78,13 +79,90 @@
 
     {% if profil_client and profil_client.abonnement != 'ESSENTIEL' %}
     <div class="mt-8 p-6 rounded-2xl bg-red-50 border border-red-100 text-red-700 text-sm">
-        <form method="post" action="{% url 'changer_abonnement' %}">{% csrf_token %}
-            <input type="hidden" name="plan" value="RESILIER">
-            <p class="font-bold mb-2">Résilier</p>
-            <p class="mb-3 text-red-600">Résiliation programmée : retour à Essentiel à la fin de la période en cours.</p>
-            <button type="submit" onclick="return confirm('Confirmer la résiliation et le retour à Essentiel à la fin de la période en cours ?');" class="px-4 py-2 rounded-lg bg-white text-red-700 font-bold border border-red-200 hover:bg-red-100">Programmer la résiliation</button>
-        </form>
+        <p class="font-bold mb-2">Résilier</p>
+        <p class="mb-3 text-red-600">Résiliation programmée : retour à Essentiel à la fin de la période en cours.</p>
+        <button type="button"
+            class="px-4 py-2 rounded-lg bg-white text-red-700 font-bold border border-red-200 hover:bg-red-100 open-plan-modal"
+            data-plan="RESILIER" data-label="Résiliation" data-price="Retour Essentiel (fin de période)">
+            Programmer la résiliation
+        </button>
     </div>
     {% endif %}
 </section>
+
+<!-- Modal confirmation abonnement -->
+<div id="plan-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm hidden items-center justify-center z-50 px-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 relative">
+        <button type="button" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600 close-plan-modal">
+            <i class="bi bi-x-lg"></i>
+        </button>
+        <h3 class="text-xl font-display font-bold text-slate-900 mb-2">Confirmation</h3>
+        <p class="text-sm text-slate-600 mb-4" id="plan-modal-text"></p>
+        <form method="post" action="{% url 'changer_abonnement' %}" class="space-y-4" id="plan-modal-form">
+            {% csrf_token %}
+            <input type="hidden" name="plan" id="plan-input">
+            <div>
+                <label class="text-xs font-bold uppercase text-slate-500 block mb-2">Mot de passe</label>
+                <div class="relative">
+                    <i class="bi bi-lock-fill absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="password" name="current_password" required autocomplete="current-password"
+                        class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-800"
+                        placeholder="Saisissez votre mot de passe">
+                </div>
+                <p class="text-xs text-slate-500 mt-2">Requis pour confirmer le changement d'abonnement.</p>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 close-plan-modal">Annuler</button>
+                <button type="submit" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold hover:bg-ice-700 transition-colors">Confirmer</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (() => {
+        const modal = document.getElementById('plan-modal');
+        const planInput = document.getElementById('plan-input');
+        const text = document.getElementById('plan-modal-text');
+        const closeBtns = modal ? modal.querySelectorAll('.close-plan-modal') : [];
+
+        function openModal(plan, label, price) {
+            if (!modal) return;
+            planInput.value = plan;
+            const priceText = price ? ` (${price})` : '';
+            text.textContent = plan === 'RESILIER'
+                ? 'Confirmez la résiliation : retour à Essentiel à la fin de la période en cours.'
+                : `Vous passez sur ${label}${priceText}. Votre mot de passe est requis pour confirmer.`;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal() {
+            if (!modal) return;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            const pwdInput = modal.querySelector('input[name="current_password"]');
+            if (pwdInput) pwdInput.value = '';
+        }
+
+        document.querySelectorAll('.open-plan-modal').forEach(btn => {
+            btn.addEventListener('click', () => {
+                openModal(
+                    btn.dataset.plan,
+                    btn.dataset.label || 'ce plan',
+                    btn.dataset.price || ''
+                );
+            });
+        });
+
+        closeBtns.forEach(btn => btn.addEventListener('click', closeModal));
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+        }
+    })();
+</script>
 {% endblock %}

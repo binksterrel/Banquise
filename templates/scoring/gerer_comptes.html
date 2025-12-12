@@ -52,6 +52,13 @@
                         </div>
                         <h3 class="text-2xl font-display font-bold text-slate-900">{{ compte.solde }} €</h3>
                         <p class="text-sm text-slate-500">Marge avant blocage : {{ compte.marge_dispo|default:"-" }} € (limite {{ overdraft_limit }} €)</p>
+                        {% if compte.type_compte == 'PRO' %}
+                        <div class="text-xs text-slate-600 space-y-1">
+                            <p class="font-bold flex items-center gap-2"><i class="bi bi-building"></i> {{ compte.entreprise_nom|default:"Entreprise à renseigner" }}</p>
+                            <p>SIRET / ID : {{ compte.entreprise_siret|default:"-" }}</p>
+                            <p>Contact : {{ compte.entreprise_contact|default:"-" }}</p>
+                        </div>
+                        {% endif %}
                     </div>
                     <div class="flex flex-wrap items-center gap-3">
                         <a href="{% url 'releve_compte' compte.id %}"

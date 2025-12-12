@@ -80,6 +80,9 @@
                     <div>
                         <p class="font-bold text-slate-900">{{ c.user.username }} · {{ c.get_type_compte_display }}</p>
                         <p class="text-xs text-slate-500">IBAN {{ c.numero_compte }} · Solde {{ c.solde }} €</p>
+                        {% if c.type_compte == 'PRO' %}
+                        <p class="text-xs text-slate-600 mt-1">Entreprise : {{ c.entreprise_nom|default:"(à renseigner)" }} · SIRET {{ c.entreprise_siret|default:"-" }} · Contact {{ c.entreprise_contact|default:"-" }}</p>
+                        {% endif %}
                     </div>
                     <div class="flex items-center gap-2">
                         <a href="/admin/scoring/compte/{{ c.id }}/change/" class="px-3 py-1 text-xs font-bold rounded-lg bg-ice-50 text-ice-700 border border-ice-100 hover:bg-ice-100">Modifier</a>

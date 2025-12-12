@@ -170,6 +170,12 @@ class BeneficiaireForm(forms.ModelForm):
 
 class VirementForm(forms.Form):
     compte_emetteur = forms.ModelChoiceField(queryset=None, label="Compte à débiter")
+    execution_date = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}), label="Date d'exécution")
+    recurrence = forms.ChoiceField(
+        choices=[('NONE', 'Ponctuel'), ('MENSUEL', 'Mensuel')],
+        required=False,
+        label="Récurrence"
+    )
     
     # Sélectionner un bénéficiaire existant
     beneficiaire_enregistre = forms.ModelChoiceField(
@@ -209,8 +215,14 @@ class VirementForm(forms.Form):
         normalized = self._normalize_phone(raw)
         if len(normalized) < 8 or len(normalized) > 15:
             raise ValidationError("Numéro de téléphone invalide (8 à 15 chiffres).")
-        # Vérifie qu'un profil existe avec ce numéro
-        if not ProfilClient.objects.filter(telephone=normalized).exists():
+        exists = ProfilClient.objects.filter(telephone=normalized).exists()
+        # Fallback si le téléphone est stocké avec des espaces/formatage
+        if not exists:
+            for profil in ProfilClient.objects.exclude(telephone='').only('telephone'):
+                if self._normalize_phone(profil.telephone) == normalized:
+                    exists = True
+                    break
+        if not exists:
             raise ValidationError("Aucun client Banquise trouvé avec ce numéro.")
         return normalized
 
@@ -225,6 +237,8 @@ class VirementForm(forms.Form):
         bene = cleaned_data.get("beneficiaire_enregistre")
         iban = cleaned_data.get("nouveau_beneficiaire_iban")
         phone = cleaned_data.get("nouveau_beneficiaire_phone")
+        exec_date = cleaned_data.get("execution_date")
+        recurrence = cleaned_data.get("recurrence") or 'NONE'
 
         options = [bool(bene), bool(iban), bool(phone)]
         if not any(options):
@@ -235,16 +249,54 @@ class VirementForm(forms.Form):
         if bene:
             cleaned_data['nouveau_beneficiaire_iban'] = None
             cleaned_data['nouveau_beneficiaire_phone'] = ''
+
+        # Validation planification
+        if exec_date and exec_date < timezone.now().date():
+            raise forms.ValidationError("La date d'exécution doit être aujourd'hui ou plus tard.")
+        if recurrence not in ['NONE', 'MENSUEL']:
+            cleaned_data['recurrence'] = 'NONE'
         return cleaned_data
 
 class OuvrirCompteForm(forms.Form):
     type_compte = forms.ChoiceField(choices=[], label="Type de compte")
+    entreprise_nom = forms.CharField(label="Nom de l'entreprise", max_length=150, required=False)
+    entreprise_siret = forms.CharField(label="SIRET / Identifiant fiscal", max_length=20, required=False)
+    entreprise_contact = forms.CharField(label="Contact entreprise (email ou téléphone)", max_length=100, required=False)
 
     def __init__(self, user, *args, **kwargs):
         super().__init__(*args, **kwargs)
         comptes_existants = Compte.objects.filter(user=user, est_actif=True).values_list('type_compte', flat=True)
         choix_possibles = [c for c in Compte.TYPE_CHOICES if c[0] not in comptes_existants]
         self.fields['type_compte'].choices = choix_possibles
+        # UI hints
+        self.fields['type_compte'].widget.attrs.update({'class': 'w-full rounded-xl border border-slate-200 bg-white/80 py-3 px-4 text-sm font-medium text-slate-800'})
+        self.fields['entreprise_nom'].widget.attrs.update({'class': 'w-full rounded-xl border border-slate-200 bg-white/80 py-3 px-4 text-sm font-medium text-slate-800', 'placeholder': "Acme SAS"})
+        self.fields['entreprise_siret'].widget.attrs.update({'class': 'w-full rounded-xl border border-slate-200 bg-white/80 py-3 px-4 text-sm font-medium text-slate-800', 'placeholder': "SIRET / TVA / N° fiscal"})
+        self.fields['entreprise_contact'].widget.attrs.update({'class': 'w-full rounded-xl border border-slate-200 bg-white/80 py-3 px-4 text-sm font-medium text-slate-800', 'placeholder': "contact@entreprise.fr ou +33..."})
+
+    def clean(self):
+        cleaned = super().clean()
+        type_compte = cleaned.get('type_compte')
+        if type_compte == 'PRO':
+            nom = (cleaned.get('entreprise_nom') or '').strip()
+            siret = (cleaned.get('entreprise_siret') or '').replace(' ', '')
+            contact = (cleaned.get('entreprise_contact') or '').strip()
+            if not nom:
+                self.add_error('entreprise_nom', "Obligatoire pour un compte pro.")
+            if not siret or not siret.isdigit() or len(siret) < 9 or len(siret) > 14:
+                self.add_error('entreprise_siret', "SIRET/identifiant doit contenir 9 à 14 chiffres.")
+            if not contact:
+                self.add_error('entreprise_contact', "Contact (email ou téléphone) requis.")
+            else:
+                # Email simple ou numéro
+                if '@' in contact:
+                    if not re.match(r"^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$", contact):
+                        self.add_error('entreprise_contact', "Email de contact invalide.")
+                else:
+                    digits = re.sub(r"[^0-9]", "", contact)
+                    if len(digits) < 8 or len(digits) > 15:
+                        self.add_error('entreprise_contact', "Téléphone de contact invalide (8 à 15 chiffres).")
+        return cleaned
 
 class CloturerCompteForm(forms.Form):
     compte_destination = forms.ModelChoiceField(queryset=None, label="Virer le solde restant vers", required=False)
@@ -253,6 +305,13 @@ class CloturerCompteForm(forms.Form):
     def __init__(self, user, compte_a_fermer, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['compte_destination'].queryset = Compte.objects.filter(user=user, est_actif=True).exclude(id=compte_a_fermer.id)
+        self.fields['compte_destination'].widget.attrs.update({
+            'class': 'w-full rounded-xl border border-amber-200 bg-white/80 py-3 px-4 pr-10 text-sm font-medium text-slate-800'
+        })
+        self.fields['password'].widget.attrs.update({
+            'class': 'w-full rounded-xl border border-slate-200 bg-white/80 py-3 px-4 pr-10 text-sm font-medium text-slate-800',
+            'placeholder': 'Votre mot de passe'
+        })
 
 # --- FILTRES & STATS ---
 

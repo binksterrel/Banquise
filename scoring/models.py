@@ -53,6 +53,13 @@ class Compte(models.Model):
     numero_compte = models.CharField(max_length=30, unique=True)
     date_creation = models.DateTimeField(auto_now_add=True)
     est_actif = models.BooleanField(default=True)
+    entreprise_nom = models.CharField(max_length=150, blank=True)
+    entreprise_siret = models.CharField(max_length=20, blank=True)
+    entreprise_contact = models.CharField(max_length=100, blank=True)
+    # Infos entreprise (pour les comptes pro)
+    entreprise_nom = models.CharField(max_length=150, blank=True)
+    entreprise_siret = models.CharField(max_length=20, blank=True)
+    entreprise_contact = models.CharField(max_length=100, blank=True)
     
     def __str__(self):
         return f"{self.get_type_compte_display()} ({self.numero_compte})"
@@ -109,6 +116,7 @@ class Transaction(models.Model):
     date_execution = models.DateTimeField(default=timezone.now)
     type = models.CharField(max_length=10, choices=TYPE_CHOICES)
     categorie = models.CharField(max_length=20, choices=CATEGORIE_CHOICES, default='AUTRE')
+    operation_id = models.CharField(max_length=64, blank=True, null=True, db_index=True)
 
 # --- SIMULATION & CRÉDIT ---
 class ProduitPret(models.Model):
@@ -212,3 +220,28 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.titre}"
+
+
+class VirementProgramme(models.Model):
+    RECURRENCE_CHOICES = [
+        ('NONE', 'Unique'),
+        ('MENSUEL', 'Mensuel'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='virements_programmes')
+    compte_emetteur = models.ForeignKey(Compte, on_delete=models.CASCADE, related_name='virements_programmes')
+    beneficiaire = models.ForeignKey(Beneficiaire, on_delete=models.SET_NULL, null=True, blank=True)
+    cible_iban = models.CharField(max_length=34, blank=True)
+    cible_phone = models.CharField(max_length=20, blank=True)
+    montant = models.DecimalField(max_digits=10, decimal_places=2)
+    motif = models.CharField(max_length=100, blank=True)
+    prochaine_execution = models.DateField()
+    recurrence = models.CharField(max_length=10, choices=RECURRENCE_CHOICES, default='NONE')
+    actif = models.BooleanField(default=True)
+    derniere_execution = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['prochaine_execution']
+
+    def __str__(self):
+        return f"Virement programmé {self.user.username} -> {self.montant}€ ({self.recurrence})"

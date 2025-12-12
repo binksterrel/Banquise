@@ -59,6 +59,7 @@
 {% endblock %}
 
 {% block content %}
+{% now "Y-m-d" as today_str %}
 <div class="relative min-h-screen overflow-hidden">
     <div class="absolute top-0 left-0 w-full h-full z-0 pointer-events-none">
         <div class="absolute top-20 left-20 w-96 h-96 bg-ice-200 rounded-full blur-3xl opacity-50"></div>
@@ -98,6 +99,8 @@
 
                     <form method="POST" class="space-y-8 relative z-10">
                         {% csrf_token %}
+                        <input type="hidden" name="operation_id" value="{{ operation_id }}">
+                        {% with form.data.nouveau_beneficiaire_iban|default_if_none:'' as iban_full %}
 
                         <div>
                             <label class="flex items-center gap-2 mb-3">
@@ -106,7 +109,7 @@
                             <div class="relative">
                                 <select name="compte_emetteur" class="form-select appearance-none" required>
                                     {% for compte in comptes %}
-                                    <option value="{{ compte.id }}">
+                                    <option value="{{ compte.id }}" {% if form.data.compte_emetteur == compte.id|stringformat:'s' %}selected{% endif %}>
                                         {{ compte.get_type_compte_display }} - Solde: {{ compte.solde }} €
                                     </option>
                                     {% empty %}
@@ -124,18 +127,23 @@
                         <hr class="border-slate-200">
 
                         <div>
-                            <label class="flex items-center gap-2 mb-3">
+                            <label class="flex items-center gap-2">
                                 <i class="bi bi-person-badge text-ice-600"></i> Destinataire
                             </label>
 
-                            <div class="mb-4">
-                                <p class="text-xs font-bold text-slate-400 uppercase mb-2">Option 1 : Bénéficiaire
-                                    enregistré</p>
+                            <div class="flex gap-2 flex-wrap mt-2">
+                                <button type="button" class="dest-tab px-4 py-2 rounded-xl text-sm font-bold border border-slate-200 text-slate-700 bg-white active" data-target="dest-bene">Bénéficiaire</button>
+                                <button type="button" class="dest-tab px-4 py-2 rounded-xl text-sm font-bold border border-slate-200 text-slate-700 bg-white" data-target="dest-iban">IBAN</button>
+                                <button type="button" class="dest-tab px-4 py-2 rounded-xl text-sm font-bold border border-slate-200 text-slate-700 bg-white" data-target="dest-phone">Téléphone</button>
+                            </div>
+
+                            <div id="dest-bene" class="dest-pane space-y-2 mt-2">
+                                <div class="text-xs font-bold text-slate-400 uppercase">Bénéficiaire enregistré</div>
                                 <div class="relative">
                                     <select name="beneficiaire_enregistre" class="form-select appearance-none">
                                         <option value="" selected>-- Choisir un bénéficiaire --</option>
                                         {% for bene in form.beneficiaire_enregistre.field.queryset %}
-                                        <option value="{{ bene.id }}">{{ bene.nom }}{% if bene.telephone %} - {{ bene.telephone }}{% endif %}{% if bene.iban %} ({{ bene.iban }}){% endif %}</option>
+                                        <option value="{{ bene.id }}" {% if form.data.beneficiaire_enregistre == bene.id|stringformat:'s' %}selected{% endif %}>{{ bene.nom }}{% if bene.telephone %} - {{ bene.telephone }}{% endif %}{% if bene.iban %} ({{ bene.iban }}){% endif %}</option>
                                         {% endfor %}
                                     </select>
                                     <i
@@ -143,14 +151,8 @@
                                 </div>
                             </div>
 
-                            <div class="flex items-center justify-center my-4">
-                                <span
-                                    class="bg-slate-100 text-slate-400 px-3 py-1 rounded-full text-xs font-bold">OU</span>
-                            </div>
-
-                            <div>
-                                <p class="text-xs font-bold text-slate-400 uppercase mb-2">Option 2 : Saisir un IBAN
-                                </p>
+                            <div id="dest-iban" class="dest-pane space-y-2 mt-2 hidden">
+                                <div class="text-xs font-bold text-slate-400 uppercase">IBAN</div>
 
                                 <div
                                     class="flex shadow-sm rounded-xl overflow-hidden border border-slate-200 focus-within:border-ice-500 focus-within:ring-4 focus-within:ring-ice-500/10 transition-all bg-white/80">
@@ -262,33 +264,34 @@
                                 </div>
 
                                 <input type="hidden" name="nouveau_beneficiaire_iban" id="real_iban_input">
+                                {% with iban_full|slice:":4" as iban_prefix_val %}
+                                {% with iban_full|slice:"4:" as iban_body_val %}
+                                <input type="hidden" id="iban-prefix-value" value="{{ iban_prefix_val }}">
+                                <input type="hidden" id="iban-body-value" value="{{ iban_body_val|default_if_none:'' }}">
+                                {% endwith %}
+                                {% endwith %}
 
                                 {% if form.nouveau_beneficiaire_iban.errors %}
                                 <p class="text-red-500 text-sm mt-1">{{ form.nouveau_beneficiaire_iban.errors.0 }}</p>
                                 {% endif %}
                             </div>
 
+                            <div id="dest-phone" class="dest-pane space-y-2 mt-2 hidden">
+                                <div class="text-xs font-bold text-slate-400 uppercase">Téléphone (client Banquise)</div>
+                                <div class="relative">
+                                    <input type="tel" name="nouveau_beneficiaire_phone" placeholder="06 12 34 56 78"
+                                    class="form-control pl-10" inputmode="tel" value="{{ form.data.nouveau_beneficiaire_phone|default_if_none:'' }}">
+                                    <i class="bi bi-telephone absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                </div>
+                                {% if form.nouveau_beneficiaire_phone.errors %}
+                                <p class="text-red-500 text-sm mt-1">{{ form.nouveau_beneficiaire_phone.errors.0 }}</p>
+                                {% endif %}
+                                <p class="text-xs text-slate-500">Pour envoyer vers un autre client Banquise sans IBAN.</p>
+                            </div>
+
                             {% if form.errors.beneficiaire_enregistre or form.errors.nouveau_beneficiaire_iban or form.errors.nouveau_beneficiaire_phone %}
                             <p class="text-red-500 text-sm mt-2">Veuillez choisir un bénéficiaire, un IBAN ou un numéro de téléphone.</p>
                             {% endif %}
-                        </div>
-
-                        <div class="flex items-center justify-center my-4">
-                            <span
-                                class="bg-slate-100 text-slate-400 px-3 py-1 rounded-full text-xs font-bold">OU</span>
-                        </div>
-
-                        <div>
-                            <p class="text-xs font-bold text-slate-400 uppercase mb-2">Option 3 : Numéro de téléphone (client Banquise)</p>
-                            <div class="relative">
-                                <input type="tel" name="nouveau_beneficiaire_phone" placeholder="06 12 34 56 78"
-                                    class="form-control pl-10" inputmode="tel">
-                                <i class="bi bi-telephone absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                            </div>
-                            {% if form.nouveau_beneficiaire_phone.errors %}
-                            <p class="text-red-500 text-sm mt-1">{{ form.nouveau_beneficiaire_phone.errors.0 }}</p>
-                            {% endif %}
-                            <p class="text-xs text-slate-500 mt-2">Pour envoyer vers un autre client Banquise sans IBAN. Si le numéro n'existe pas, ajoutez plutôt un IBAN.</p>
                         </div>
 
                         <hr class="border-slate-200">
@@ -301,7 +304,8 @@
                                 <div class="relative">
                                     <input type="number" step="0.01" min="0.01" name="montant" placeholder="0.00" required
                                         class="form-control pl-4 pr-16 text-2xl font-bold text-slate-900 placeholder:text-slate-300"
-                                        oninput="if (this.value < 0) this.value = ''; this.value = this.value.replace(/[^0-9.,-]/g, '').replace(',', '.');">
+                                        oninput="if (this.value < 0) this.value = ''; this.value = this.value.replace(/[^0-9.,-]/g, '').replace(',', '.');"
+                                        value="{{ form.data.montant|default_if_none:'' }}">
                                     <span
                                         class="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 font-bold">EUR</span>
                                 </div>
@@ -313,7 +317,37 @@
                                 <label class="flex items-center gap-2 mb-3">
                                     <i class="bi bi-chat-text text-ice-600"></i> Motif
                                 </label>
-                                <input type="text" name="motif" placeholder="Ex: Loyer" class="form-control h-[3.6rem]">
+                                <input type="text" name="motif" placeholder="Ex: Loyer" class="form-control h-[3.6rem]" value="{{ form.data.motif|default_if_none:'' }}">
+                            </div>
+                        </div>
+
+                        <div class="glass-panel p-4 rounded-xl bg-white/80 border border-slate-200">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <i class="bi bi-calendar3 text-ice-600"></i>
+                                    <p class="font-bold text-slate-800 text-sm">Programmation (optionnel)</p>
+                                </div>
+                                <button type="button" id="plan-toggle"
+                                    class="text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 bg-white hover:border-ice-200 hover:text-ice-700 transition-colors">
+                                    Programmer
+                                </button>
+                            </div>
+                            <div id="plan-box" class="mt-3 space-y-3 hidden">
+                                <div class="grid md:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Date d'exécution</label>
+                                        <input type="date" name="execution_date" class="form-control"
+                                            value="{{ form.data.execution_date|default:today_str }}">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Récurrence</label>
+                                        <select name="recurrence" class="form-select">
+                                            <option value="NONE" {% if form.data.recurrence == 'NONE' or not form.data.recurrence %}selected{% endif %}>Ponctuel</option>
+                                            <option value="MENSUEL" {% if form.data.recurrence == 'MENSUEL' %}selected{% endif %}>Mensuel</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-slate-500">Laisse par défaut pour exécuter aujourd'hui. Active uniquement si tu veux planifier ou répéter.</p>
                             </div>
                         </div>
 
@@ -381,32 +415,54 @@
                     </div>
                 </div>
 
-                <div class="bg-gradient-to-br from-slate-900 to-slate-800 p-6 rounded-[2rem] text-white shadow-xl">
-                    <h3 class="font-display font-bold text-lg mb-6 flex items-center gap-2">
+                <div class="bg-gradient-to-br from-slate-900 to-slate-800 p-6 rounded-[2rem] text-white shadow-xl space-y-4">
+                    <h3 class="font-display font-bold text-lg flex items-center gap-2">
                         <i class="bi bi-speedometer"></i> Vos plafonds
                     </h3>
-                    <div class="space-y-6">
-                        <div>
-                            <div class="flex justify-between text-xs mb-2 text-slate-300 font-bold">
-                                <span>Virements (Hebdo)</span><span>250 / 3000 €</span>
-                            </div>
-                            <div class="w-full bg-slate-700 rounded-full h-1.5">
-                                <div class="bg-ice-500 h-1.5 rounded-full" style="width: 8%"></div>
-                            </div>
+                    {% if carte_plafond %}
+                    <div class="text-sm text-slate-200">
+                        <p class="font-bold text-white">Carte principale : **** {{ carte_plafond.numero_visible }}</p>
+                        <div class="flex justify-between mt-3">
+                            <span class="text-slate-300">Paiement</span>
+                            <span class="font-bold">{{ carte_plafond.plafond_paiement }} € / mois</span>
                         </div>
-                        <div>
-                            <div class="flex justify-between text-xs mb-2 text-slate-300 font-bold">
-                                <span>Paiements (Mensuel)</span><span>1200 / 5000 €</span>
-                            </div>
-                            <div class="w-full bg-slate-700 rounded-full h-1.5">
-                                <div class="bg-purple-500 h-1.5 rounded-full" style="width: 24%"></div>
-                            </div>
+                        <div class="flex justify-between mt-2">
+                            <span class="text-slate-300">Retrait</span>
+                            <span class="font-bold">{{ carte_plafond.plafond_retrait }} € / semaine</span>
                         </div>
                     </div>
+                    {% else %}
+                    <p class="text-sm text-slate-200">Aucune carte active trouvée. Ajoutez ou activez une carte pour gérer vos plafonds.</p>
+                    {% endif %}
                     <a href="{% if carte_plafond %}{% url 'gestion_plafonds' carte_id=carte_plafond.id %}{% else %}{% url 'cartes' %}{% endif %}"
-                        class="mt-8 w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 text-sm font-bold transition-colors border border-white/10 flex items-center justify-center gap-2">
+                        class="w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 text-sm font-bold transition-colors border border-white/10 flex items-center justify-center gap-2">
                         Modifier les plafonds
                     </a>
+                </div>
+
+                <div class="glass-premium p-6 rounded-[2rem] space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-display font-bold text-slate-900 text-lg">Virements programmés</h3>
+                        <span class="text-xs text-slate-500 font-bold">{{ virements_programmes|length }} actif(s)</span>
+                    </div>
+                    {% if virements_programmes %}
+                    <div class="space-y-3 max-h-72 overflow-y-auto no-scrollbar">
+                        {% for vp in virements_programmes %}
+                        <div class="p-3 rounded-xl border border-slate-200 bg-white/70">
+                            <div class="flex justify-between items-center">
+                                <p class="font-bold text-slate-900">{{ vp.montant }} €</p>
+                                <span class="text-xs font-bold px-2 py-1 rounded-full bg-ice-50 text-ice-700 border border-ice-100">
+                                    {% if vp.recurrence == 'MENSUEL' %}Mensuel{% else %}Ponctuel{% endif %}
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">{{ vp.motif|default:"(Sans motif)" }}</p>
+                            <p class="text-xs text-slate-500">Prochaine exécution : {{ vp.prochaine_execution|date:"d M Y" }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-sm text-slate-500">Aucun virement programmé.</p>
+                    {% endif %}
                 </div>
             </div>
 
@@ -419,6 +475,8 @@
     const ibanPrefix = document.getElementById('iban-prefix');
     const ibanBody = document.getElementById('iban-body');
     const realIbanInput = document.getElementById('real_iban_input');
+    const ibanPrefixValue = document.getElementById('iban-prefix-value');
+    const ibanBodyValue = document.getElementById('iban-body-value');
 
     // Fonction pour mettre à jour l'input caché envoyé à Django
     function updateRealIban() {
@@ -459,5 +517,83 @@
             selectBene.value = '';
         }
     });
+
+    // État initial si des valeurs étaient déjà saisies
+    if (ibanPrefixValue && ibanPrefixValue.value) {
+        ibanPrefix.value = ibanPrefixValue.value;
+    }
+    if (ibanBodyValue && ibanBodyValue.value) {
+        // réinjecte avec espaces pour l'affichage
+        const chunks = ibanBodyValue.value.replace(/\s/g, '').match(/.{1,4}/g) || [];
+        ibanBody.value = chunks.join(' ');
+        updateRealIban();
+        selectBene.value = '';
+    }
+    if (selectBene && selectBene.value) {
+        ibanBody.disabled = true;
+        ibanPrefix.disabled = true;
+        ibanBody.parentElement.classList.add('opacity-50', 'bg-slate-100');
+    }
+    {% endwith %}
+
+    // Tabs destinataire
+    const tabs = document.querySelectorAll('.dest-tab');
+    const panes = document.querySelectorAll('.dest-pane');
+    function setTab(targetId) {
+        panes.forEach(p => {
+            const isActive = p.id === targetId;
+            p.classList.toggle('hidden', !isActive);
+            p.querySelectorAll('input, select').forEach(inp => {
+                inp.disabled = !isActive;
+            });
+        });
+        tabs.forEach(btn => {
+            const active = btn.dataset.target === targetId;
+            btn.classList.toggle('active', active);
+            btn.classList.toggle('bg-slate-900', active);
+            btn.classList.toggle('text-white', active);
+            btn.classList.toggle('border-slate-200', !active);
+            btn.classList.toggle('bg-white', !active);
+            btn.classList.toggle('text-slate-700', !active);
+        });
+    }
+
+    // Choix initial en fonction des données saisies
+    if (document.querySelector('input[name=nouveau_beneficiaire_phone]').value) {
+        setTab('dest-phone');
+    } else if (document.getElementById('iban-body-value') && document.getElementById('iban-body-value').value) {
+        setTab('dest-iban');
+    } else if (selectBene && selectBene.value) {
+        setTab('dest-bene');
+    } else {
+        setTab('dest-bene');
+    }
+
+    tabs.forEach(btn => btn.addEventListener('click', () => setTab(btn.dataset.target)));
+
+    // Planification toggle
+    const planBox = document.getElementById('plan-box');
+    const planToggle = document.getElementById('plan-toggle');
+    const execInput = document.querySelector('input[name=execution_date]');
+    const recurSelect = document.querySelector('select[name=recurrence]');
+    const todayVal = "{{ today_str }}";
+
+    function setPlanVisible(on) {
+        planBox.classList.toggle('hidden', !on);
+        if (!on) {
+            execInput.value = todayVal;
+            recurSelect.value = 'NONE';
+        }
+    }
+
+    if (planToggle) {
+        planToggle.addEventListener('click', () => {
+            const isOpen = !planBox.classList.contains('hidden');
+            setPlanVisible(!isOpen);
+        });
+    }
+    // Auto-open if user filled date future or recurrence
+    const hasPlan = (execInput && execInput.value && execInput.value !== todayVal) || (recurSelect && recurSelect.value === 'MENSUEL');
+    setPlanVisible(hasPlan);
 </script>
 {% endblock %}
