@@ -345,7 +345,7 @@ class SimulationPretForm(forms.ModelForm):
             ('montant_souhaite', 1, 1),
             ('duree_souhaitee_annees', 1, 1),
             ('apport_personnel', 0, 1),
-            ('revenus_mensuels', 0, 1),
+            ('revenus_mensuels', 1, 1),
             ('loyer_actuel', 0, 1),
             ('dettes_mensuelles', 0, 1),
             ('enfants_a_charge', 0, 1),
@@ -364,6 +364,9 @@ class SimulationPretForm(forms.ModelForm):
                 # Assure la validation côté serveur
                 if hasattr(field, 'min_value') and field.min_value is None:
                     field.min_value = min_val
+        if 'produit' in self.fields:
+            self.fields['produit'].required = True
+            self.fields['produit'].empty_label = "Sélectionnez un produit"
         if 'soumise' in self.fields:
             self.fields['soumise'].label = "Soumettre la simulation"
             self.fields['soumise'].help_text = "Si vous cochez cette case, la simulation sera transmise à un conseiller."
@@ -377,7 +380,7 @@ class SimulationPretForm(forms.ModelForm):
             ('montant_souhaite', 1, "Le montant souhaité doit être positif."),
             ('duree_souhaitee_annees', 1, "La durée doit être au moins de 1 an."),
             ('apport_personnel', 0, "L'apport ne peut pas être négatif."),
-            ('revenus_mensuels', 0, "Les revenus doivent être positifs."),
+            ('revenus_mensuels', 1, "Les revenus doivent être positifs."),
             ('loyer_actuel', 0, "Le loyer/charges ne peut pas être négatif."),
             ('dettes_mensuelles', 0, "Les dettes mensuelles ne peuvent pas être négatives."),
             ('enfants_a_charge', 0, "Le nombre d'enfants doit être positif."),
@@ -386,4 +389,6 @@ class SimulationPretForm(forms.ModelForm):
             val = cleaned.get(field)
             if val is not None and val < min_val:
                 self.add_error(field, msg)
+        if not cleaned.get('produit'):
+            self.add_error('produit', "Sélectionnez un produit avant de lancer la simulation.")
         return cleaned

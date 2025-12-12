@@ -130,6 +130,11 @@
         <div class="glass-premium p-8 md:p-12 rounded-[2rem]">
             <form method="POST" class="space-y-8">
                 {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="p-4 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm">
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
 
                 <div class="grid md:grid-cols-2 gap-8">
                     {% for field in form %}

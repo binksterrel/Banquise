@@ -1795,6 +1795,8 @@ def page_simulation(request):
                 for admin in User.objects.filter(is_staff=True):
                     notifier(admin, "Nouvelle demande de crédit", f"{request.user.username} a validé sa simulation ({demande.montant_souhaite} €).", "CREDIT", url=reverse('admin_manage_credits'))
             return redirect('resultat_simulation', demande_id=demande.id)
+        else:
+            messages.error(request, "Veuillez remplir les champs requis avant de lancer la simulation.")
     else:
         initial = {}
         # Pré-remplissage depuis la simulation précédente
