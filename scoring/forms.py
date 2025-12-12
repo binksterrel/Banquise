@@ -331,6 +331,7 @@ class SimulationPretForm(forms.ModelForm):
     loyer_actuel = forms.IntegerField(label="Loyer actuel / Charges (€)", required=False, min_value=0)
     dettes_mensuelles = forms.IntegerField(label="Autres crédits en cours (€)", required=False, min_value=0)
     jour_prelevement = forms.IntegerField(label="Jour souhaité de prélèvement", min_value=1, max_value=28, initial=5)
+    compte_versement = forms.ModelChoiceField(queryset=Compte.objects.none(), label="Compte à créditer", required=True)
     
     class Meta:
         model = DemandeCredit
@@ -342,7 +343,17 @@ class SimulationPretForm(forms.ModelForm):
         ]
 
     def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        if self.user:
+            self.fields['compte_versement'].queryset = Compte.objects.filter(user=self.user, est_actif=True)
+            self.fields['compte_versement'].empty_label = "Sélectionnez un compte"
+            if not self.fields['compte_versement'].queryset.exists():
+                self.fields['compte_versement'].help_text = "Aucun compte actif détecté. Ouvrez un compte pour recevoir les fonds."
+        if 'compte_versement' in self.fields:
+            self.fields['compte_versement'].widget.attrs.update({
+                'required': 'required'
+            })
         numeric_fields = [
             ('montant_souhaite', 1, 1),
             ('duree_souhaitee_annees', 1, 1),
@@ -405,4 +416,7 @@ class SimulationPretForm(forms.ModelForm):
             self.add_error('emploi_snapshot', "Sélectionnez votre situation professionnelle.")
         if not cleaned.get('logement_snapshot'):
             self.add_error('logement_snapshot', "Sélectionnez votre situation de logement.")
+        compte_choice = cleaned.get('compte_versement')
+        if not compte_choice:
+            self.add_error('compte_versement', "Choisissez le compte sur lequel verser les fonds.")
         return cleaned

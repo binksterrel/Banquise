@@ -1788,7 +1788,7 @@ def supprimer_beneficiaire(request, beneficiaire_id):
 def page_simulation(request):
     accepted_count = DemandeCredit.objects.filter(user=request.user, statut='ACCEPTEE').count()
     if request.method == 'POST':
-        form = SimulationPretForm(request.POST)
+        form = SimulationPretForm(request.POST, user=request.user)
         # forcer un minimum sur "Autres crédits en cours"
         if 'dettes_mensuelles' in form.fields:
             form.fields['dettes_mensuelles'].min_value = accepted_count
@@ -1947,7 +1947,11 @@ def page_simulation(request):
                         initial[field] = int(float(val))
                     except Exception:
                         pass
-        form = SimulationPretForm(initial=initial)
+        # suggère le premier compte actif comme défaut
+        first_account = Compte.objects.filter(user=request.user, est_actif=True).order_by('id').first()
+        if first_account:
+            initial['compte_versement'] = first_account.id
+        form = SimulationPretForm(initial=initial, user=request.user)
         if 'dettes_mensuelles' in form.fields:
             form.fields['dettes_mensuelles'].min_value = accepted_count
             form.fields['dettes_mensuelles'].widget.attrs['min'] = accepted_count
@@ -2158,6 +2162,7 @@ def page_historique(request):
         'unread_notifs': unread_notifs,
         'calendar_weeks': weeks,
         'calendar_month_label': month_ref.strftime("%B %Y"),
+        'calendar_month_value': month_ref.strftime("%Y-%m"),
         'calendar_prev': prev_month.strftime("%Y-%m"),
         'calendar_next': next_month.strftime("%Y-%m"),
         'calendar_headers': ['L', 'M', 'M', 'J', 'V', 'S', 'D'],
@@ -2171,6 +2176,7 @@ def page_historique(request):
                 'next': d.next_echeance,
             } for d in accepted
         ],
+        'today': today,
     })
 
 @login_required
@@ -2221,20 +2227,14 @@ def admin_manage_credits(request):
         demande_id = request.POST.get('demande_id')
         action = request.POST.get('action')
         demande = get_object_or_404(DemandeCredit, id=demande_id)
-        compte_id = request.POST.get('compte_id')
-        compte_versement = None
-        if compte_id:
-            try:
-                compte_versement = Compte.objects.get(id=compte_id, user=demande.user, est_actif=True)
-            except Compte.DoesNotExist:
-                compte_versement = None
+        compte_versement = demande.compte_versement
 
         if action == 'ACCEPTEE':
             if demande.statut != 'ACCEPTEE':
-                compte_credit = compte_versement or Compte.objects.filter(user=demande.user, est_actif=True).order_by('id').first()
-                if not compte_credit:
-                    messages.warning(request, "Aucun compte actif pour créditer le montant.")
+                if not compte_versement:
+                    messages.warning(request, "Le client doit d'abord choisir le compte à créditer dans sa simulation.")
                     return redirect('admin_manage_credits')
+                compte_credit = compte_versement
                 montant = Decimal(demande.montant_souhaite or 0)
                 compte_credit.solde = (compte_credit.solde or 0) + montant
                 compte_credit.save(update_fields=['solde'])
@@ -2249,7 +2249,8 @@ def admin_manage_credits(request):
             demande.date_acceptation = timezone.now().date()
             demande.echeances_payees = 0
             demande.dernier_prelevement = None
-            demande.save(update_fields=['statut', 'date_acceptation', 'echeances_payees', 'dernier_prelevement'])
+            demande.compte_versement = compte_versement
+            demande.save(update_fields=['statut', 'date_acceptation', 'echeances_payees', 'dernier_prelevement', 'compte_versement'])
             notifier(demande.user, "Crédit accepté", "Votre demande de crédit a été acceptée par un conseillé.", "CREDIT", url=reverse('historique'))
             messages.success(request, "Demande acceptée et montant crédité.")
 
@@ -2274,6 +2275,7 @@ def admin_edit_credit(request, demande_id):
     if request.method == 'POST':
         montant = request.POST.get('montant_souhaite')
         duree = request.POST.get('duree_souhaitee_annees')
+        jour = request.POST.get('jour_prelevement')
         # mensualite non éditable ici
         try:
             if montant:
@@ -2286,17 +2288,22 @@ def admin_edit_credit(request, demande_id):
                 if d_val <= 0 or d_val > 50:
                     raise ValueError("duree")
                 demande.duree_souhaitee_annees = d_val
+            if jour:
+                j_val = int(jour)
+                if j_val < 1 or j_val > 28:
+                    raise ValueError("jour")
+                demande.jour_prelevement = j_val
             # recalcul mensualité si taux dispo
             taux_ref = demande.taux_calcule or (demande.produit.taux_ref if demande.produit else Decimal("3.50"))
             n = max(1, int(demande.duree_souhaitee_annees) * 12)
             r = Decimal(taux_ref) / Decimal("100") / Decimal("12")
             mensualite_calc = Decimal(demande.montant_souhaite) * r / (1 - (1 + r) ** (-n)) if r > 0 else Decimal(demande.montant_souhaite) / n
             demande.mensualite_calculee = mensualite_calc.quantize(Decimal("0.01"))
-            demande.save(update_fields=['montant_souhaite', 'duree_souhaitee_annees', 'mensualite_calculee'])
-            messages.success(request, "Crédit mis à jour (mensualité recalculée).")
+            demande.save(update_fields=['montant_souhaite', 'duree_souhaitee_annees', 'mensualite_calculee', 'jour_prelevement'])
+            messages.success(request, "Crédit mis à jour (mensualité et jour de prélèvement).")
             return redirect('admin_manage_credits')
         except Exception:
-            messages.error(request, "Valeurs invalides (montant > 0, durée 1-50 ans).")
+            messages.error(request, "Valeurs invalides (montant > 0, durée 1-50 ans, jour 1-28).")
 
     return render(request, 'scoring/admin_credit_edit.html', {
         'demande': demande,

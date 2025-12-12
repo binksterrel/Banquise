@@ -33,6 +33,40 @@
         display: block;
     }
 
+    .stepper {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    .step-pill {
+        position: relative;
+        padding: 0.9rem 1rem;
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        background: linear-gradient(135deg, rgba(14,165,233,0.08), rgba(14,165,233,0.02));
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        transition: all 0.2s ease;
+    }
+    .step-pill.active {
+        border-color: #0ea5e9;
+        box-shadow: 0 10px 30px rgba(14,165,233,0.12);
+        background: linear-gradient(135deg, rgba(14,165,233,0.12), rgba(34,197,94,0.08));
+    }
+    .step-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        font-weight: 700;
+        color: #0ea5e9;
+    }
+
     /* Animation Blob héritée de base.html */
     .toggle-input {
         position: absolute;
@@ -107,6 +141,80 @@
             jpSlider.addEventListener('input', (e) => sync(e.target.value));
             quickBtns.forEach(btn => btn.addEventListener('click', () => sync(btn.dataset.val)));
         }
+
+        // Gestion des étapes
+        const step1 = document.getElementById('step-1');
+        const step2 = document.getElementById('step-2');
+        const stepDots = document.querySelectorAll('.step-dot');
+        const stepPills = document.querySelectorAll('[data-step-pill]');
+        const nextBtn = document.getElementById('go-step-2');
+        const backBtn = document.getElementById('back-step-1');
+        const compteField = document.querySelector('select[name="compte_versement"]');
+        const stepError = document.getElementById('step-error');
+
+        const setStep = (step) => {
+            if (!step1 || !step2) return;
+            if (step === 1) {
+                step1.classList.remove('hidden');
+                step2.classList.add('hidden');
+            } else {
+                step1.classList.add('hidden');
+                step2.classList.remove('hidden');
+            }
+            stepDots.forEach(dot => {
+                const target = parseInt(dot.dataset.step, 10);
+                if (target === step) {
+                    dot.classList.add('bg-ice-600', 'text-white', 'border-ice-600');
+                    dot.classList.remove('bg-white', 'text-slate-600');
+                } else {
+                    dot.classList.remove('bg-ice-600', 'text-white', 'border-ice-600');
+                    dot.classList.add('bg-white', 'text-slate-600');
+                }
+            });
+            stepPills.forEach(pill => {
+                const target = parseInt(pill.dataset.stepPill, 10);
+                if (target === step) {
+                    pill.classList.add('active');
+                } else {
+                    pill.classList.remove('active');
+                }
+            });
+        };
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                if (compteField && !compteField.value) {
+                    stepError.textContent = "Choisissez le compte à créditer avant de continuer.";
+                    stepError.classList.remove('hidden');
+                    return;
+                }
+                stepError.classList.add('hidden');
+                setStep(2);
+            });
+        }
+        if (backBtn) {
+            backBtn.addEventListener('click', () => {
+                setStep(1);
+            });
+        }
+        // navigation via les pastilles du stepper
+        stepPills.forEach(pill => {
+            pill.addEventListener('click', () => {
+                const target = parseInt(pill.dataset.stepPill, 10);
+                if (target === 1) {
+                    setStep(1);
+                } else {
+                    if (compteField && !compteField.value) {
+                        stepError.textContent = "Choisissez le compte à créditer avant de continuer.";
+                        stepError.classList.remove('hidden');
+                        return;
+                    }
+                    stepError.classList.add('hidden');
+                    setStep(2);
+                }
+            });
+        });
+        setStep(1);
     });
 </script>
 {% endblock %}
@@ -149,57 +257,104 @@
                 </div>
                 {% endif %}
 
-                {% if form.jour_prelevement %}
-                {% with jp_val=form.jour_prelevement.value|default_if_none:form.fields.jour_prelevement.initial|default:5 %}
-                <div class="rounded-2xl border border-ice-100 bg-ice-50/60 p-5 text-center shadow-sm space-y-3">
-                    <p class="text-xs font-bold text-ice-700 uppercase tracking-[0.15em]">Prélèvement mensuel</p>
-                    <p class="text-sm font-bold text-slate-900">Jour souhaité de prélèvement</p>
-                    <div class="flex flex-col items-center gap-2">
-                        <input type="range" name="jour_prelevement" min="1" max="28" value="{{ jp_val }}" class="w-full sm:w-72 accent-ice-600" id="jp-slider">
-                        <div class="flex items-center justify-center gap-2 text-sm font-bold text-slate-800">
-                            <span class="px-3 py-1 rounded-full bg-white border border-ice-200 text-ice-700 shadow-sm" id="jp-display">{{ jp_val }}</span>
-                            <span class="text-xs text-slate-500">entre 1 et 28</span>
-                        </div>
-                        <div class="flex flex-wrap justify-center gap-2 text-xs">
-                            {% for quick in "5,10,15,20,25".split(',') %}
-                            <button type="button" class="px-3 py-1 rounded-lg border border-slate-200 bg-white hover:border-ice-200 hover:text-ice-700 quick-jp" data-val="{{ quick }}">{{ quick }}</button>
-                            {% endfor %}
+                <div class="stepper">
+                    <div class="step-pill" data-step-pill="1">
+                        <div class="step-icon step-dot" data-step="1">1</div>
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-[0.15em] text-slate-500">Étape 1</p>
+                            <p class="text-sm font-bold text-slate-800">Prélèvement & versement</p>
                         </div>
                     </div>
-                    <p class="text-[11px] text-slate-500">Le prélèvement démarre le mois suivant, au jour choisi (max 28).</p>
-                    {% if form.jour_prelevement.errors %}<p class="text-[11px] text-red-600 mt-1">{{ form.jour_prelevement.errors|join:', ' }}</p>{% endif %}
-                </div>
-                {% endwith %}
-                {% endif %}
-
-                <div class="grid md:grid-cols-2 gap-8">
-                    {% for field in form %}
-                        {% if field.name != 'soumise' and field.name != 'jour_prelevement' %}
-                            {{ field|as_crispy_field }}
-                        {% endif %}
-                    {% endfor %}
+                    <div class="step-pill" data-step-pill="2">
+                        <div class="step-icon step-dot" data-step="2">2</div>
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-[0.15em] text-slate-500">Étape 2</p>
+                            <p class="text-sm font-bold text-slate-800">Infos financières</p>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="rounded-2xl border border-slate-200/80 bg-white/70 p-5 md:p-6 shadow-sm">
-                    <label for="{{ form.soumise.id_for_label }}" class="flex items-start gap-4 cursor-pointer">
-                        {{ form.soumise }}
-                        <span class="toggle-pill mt-0.5"></span>
-                        <span class="flex flex-col gap-1">
-                            <span class="text-sm font-bold text-slate-800">Soumettre la simulation</span>
-                            <span class="text-xs text-slate-500 leading-relaxed">Si vous cochez cette case, la simulation sera transmise à un conseiller.</span>
-                        </span>
-                    </label>
-                    {% if form.soumise.errors %}
-                        <p class="text-sm text-red-500 mt-3">{{ form.soumise.errors|join:", " }}</p>
+                <div id="step-1" class="space-y-6">
+                    {% if form.jour_prelevement %}
+                    {% with jp_val=form.jour_prelevement.value|default_if_none:form.fields.jour_prelevement.initial|default:5 %}
+                    <div class="rounded-2xl border border-ice-100 bg-ice-50/60 p-5 md:p-6 shadow-sm space-y-3">
+                        <p class="text-xs font-bold text-ice-700 uppercase tracking-[0.15em]">Prélèvement mensuel</p>
+                        <p class="text-sm font-bold text-slate-900">Jour souhaité de prélèvement</p>
+                        <div class="flex flex-col items-center gap-2">
+                            <input type="range" name="jour_prelevement" min="1" max="28" value="{{ jp_val }}" class="w-full sm:w-72 accent-ice-600" id="jp-slider">
+                            <div class="flex items-center justify-center gap-2 text-sm font-bold text-slate-800">
+                                <span class="px-3 py-1 rounded-full bg-white border border-ice-200 text-ice-700 shadow-sm" id="jp-display">{{ jp_val }}</span>
+                                <span class="text-xs text-slate-500">entre 1 et 28</span>
+                            </div>
+                            <div class="flex flex-wrap justify-center gap-2 text-xs">
+                                <button type="button" class="px-3 py-1 rounded-lg border border-slate-200 bg-white hover:border-ice-200 hover:text-ice-700 quick-jp" data-val="5">5</button>
+                                <button type="button" class="px-3 py-1 rounded-lg border border-slate-200 bg-white hover:border-ice-200 hover:text-ice-700 quick-jp" data-val="10">10</button>
+                                <button type="button" class="px-3 py-1 rounded-lg border border-slate-200 bg-white hover:border-ice-200 hover:text-ice-700 quick-jp" data-val="15">15</button>
+                                <button type="button" class="px-3 py-1 rounded-lg border border-slate-200 bg-white hover:border-ice-200 hover:text-ice-700 quick-jp" data-val="20">20</button>
+                                <button type="button" class="px-3 py-1 rounded-lg border border-slate-200 bg-white hover:border-ice-200 hover:text-ice-700 quick-jp" data-val="25">25</button>
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-slate-500">Le prélèvement démarre le mois suivant, au jour choisi (max 28).</p>
+                        {% if form.jour_prelevement.errors %}<p class="text-[11px] text-red-600 mt-1">{{ form.jour_prelevement.errors|join:', ' }}</p>{% endif %}
+                    </div>
+                    {% endwith %}
                     {% endif %}
+
+                    {% if form.compte_versement %}
+                    <div class="rounded-2xl border border-slate-200 bg-white/80 p-5 md:p-6 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-[0.15em] text-slate-500 mb-1">Versement du crédit</p>
+                                <p class="text-sm font-bold text-slate-900">Choisissez le compte à créditer</p>
+                            </div>
+                            <span class="text-[11px] px-2 py-1 rounded-full bg-ice-50 text-ice-700 border border-ice-100 font-bold">Obligatoire</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mb-3">Le capital sera versé sur ce compte lors de l'acceptation.</p>
+                        {{ form.compte_versement|as_crispy_field }}
+                    </div>
+                    {% endif %}
+
+                    <p id="step-error" class="hidden text-sm text-red-600">Choisissez le compte à créditer avant de continuer.</p>
+                    <div class="flex justify-end">
+                        <button type="button" id="go-step-2" class="px-5 py-3 rounded-xl bg-ice-600 text-white font-bold hover:bg-ice-700 transition">
+                            Continuer
+                        </button>
+                    </div>
                 </div>
 
-                <div class="pt-8 border-t border-slate-200/50">
-                    <button type="submit"
-                        class="w-full py-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white font-bold rounded-xl text-lg shadow-lg hover:shadow-ice-500/25 transition-all duration-300 transform hover:-translate-y-1 flex items-center justify-center gap-3 group">
-                        <span>Lancer la simulation</span>
-                        <i class="bi bi-arrow-right group-hover:translate-x-1 transition-transform"></i>
-                    </button>
+                <div id="step-2" class="space-y-8 hidden">
+                    <div class="grid md:grid-cols-2 gap-8">
+                        {% for field in form %}
+                            {% if field.name != 'soumise' and field.name != 'jour_prelevement' and field.name != 'compte_versement' %}
+                                {{ field|as_crispy_field }}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <div class="rounded-2xl border border-slate-200/80 bg-white/70 p-5 md:p-6 shadow-sm">
+                        <label for="{{ form.soumise.id_for_label }}" class="flex items-start gap-4 cursor-pointer">
+                            {{ form.soumise }}
+                            <span class="toggle-pill mt-0.5"></span>
+                            <span class="flex flex-col gap-1">
+                                <span class="text-sm font-bold text-slate-800">Soumettre la simulation</span>
+                                <span class="text-xs text-slate-500 leading-relaxed">Si vous cochez cette case, la simulation sera transmise à un conseiller.</span>
+                            </span>
+                        </label>
+                        {% if form.soumise.errors %}
+                            <p class="text-sm text-red-500 mt-3">{{ form.soumise.errors|join:", " }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <button type="button" id="back-step-1" class="px-4 py-3 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition">
+                            Retour
+                        </button>
+                        <button type="submit"
+                            class="px-6 py-3 bg-gradient-to-r from-slate-900 to-slate-800 text-white font-bold rounded-xl text-lg shadow-lg hover:shadow-ice-500/25 transition-all duration-300 transform hover:-translate-y-1 flex items-center justify-center gap-3 group">
+                            <span>Lancer la simulation</span>
+                            <i class="bi bi-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                        </button>
+                    </div>
                     <p
                         class="text-center text-slate-400 text-xs font-medium mt-4 flex items-center justify-center gap-2">
                         <i class="bi bi-lock-fill text-ice-500"></i> Vos données sont cryptées et analysées anonymement.

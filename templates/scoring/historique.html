@@ -168,7 +168,7 @@
                     <a href="?month={{ calendar_next }}{% if credit_filter %}&credit={{ credit_filter }}{% endif %}" class="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-ice-200 hover:text-ice-700 transition"><i class="bi bi-chevron-right"></i></a>
                     <a href="?{% if credit_filter %}credit={{ credit_filter }}&{% endif %}" class="px-3 py-2 rounded-xl bg-ice-50 text-ice-700 border border-ice-100 hover:bg-ice-100 transition">Aujourd'hui</a>
                     <form method="get" class="flex items-center gap-2">
-                        <input type="hidden" name="month" value="{{ calendar_month_label|date:'Y-m' }}">
+                        <input type="hidden" name="month" value="{{ calendar_month_value }}">
                         <select name="credit" class="px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 bg-white">
                             <option value="">Tous les crédits</option>
                             {% for c in credit_legend %}
@@ -190,26 +190,22 @@
                     {% for week in calendar_weeks %}
                     <div class="grid grid-cols-7">
                         {% for day in week %}
-                        <div class="h-24 border-r last:border-r-0 border-slate-100 relative px-2 py-2 {% if not day.in_month %}bg-slate-50 text-slate-300{% endif %}">
+                        <div class="min-h-[7rem] border-r last:border-r-0 border-slate-100 relative px-2 py-2 {% if not day.in_month %}bg-slate-50 text-slate-300{% endif %}">
                             <span class="text-xs font-bold {% if day.in_month %}text-slate-800{% else %}text-slate-300{% endif %}">{{ day.date|date:"j" }}</span>
                             {% if day.events %}
-                            <button type="button" class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-2 py-2 text-left hover:border-ice-200 shadow-sm transition peer">
-                                <div class="text-[11px] font-bold text-slate-700 flex items-center gap-2">
-                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full {% if day.events.0.status == 'PAYEE' %}bg-emerald-500{% else %}bg-ice-500{% endif %} text-white text-[10px] font-bold">{{ day.events|length }}</span>
-                                    <span>{{ day.events.0.label|truncatechars:14 }}</span>
-                                </div>
-                                <p class="text-[10px] text-slate-500 mt-1">Total {{ day.events|length }} échéance(s)</p>
-                            </button>
-                            <div class="absolute z-20 hidden peer-hover:block hover:block bg-white border border-slate-200 shadow-xl rounded-xl p-3 w-56 top-12 left-0">
-                                <p class="text-xs font-bold text-slate-800 mb-2">Détails du {{ day.date|date:"d M Y" }}</p>
-                                <div class="space-y-2 max-h-48 overflow-y-auto">
-                                    {% for ev in day.events %}
-                                    <div class="p-2 rounded-lg border {% if ev.status == 'PAYEE' %}border-emerald-100 bg-emerald-50/70 text-emerald-700{% else %}border-ice-100 bg-ice-50/70 text-ice-700{% endif %}">
-                                        <p class="text-[11px] font-bold">{{ ev.label }}</p>
-                                        <p class="text-[11px]">{{ ev.montant }} € • {% if ev.status == 'PAYEE' %}Payée{% else %}À venir{% endif %}</p>
+                            <div class="mt-2 space-y-1">
+                                {% for ev in day.events|slice:":3" %}
+                                <div class="flex items-start gap-2 text-[11px] leading-tight">
+                                    <span class="mt-0.5 inline-flex w-2.5 h-2.5 rounded-full ring-2 ring-white" style="background: {{ ev.color }}"></span>
+                                    <div class="flex-1">
+                                        <p class="font-bold text-slate-800 truncate">{{ ev.label }}</p>
+                                        <p class="text-[10px] text-slate-500">{{ ev.montant }} € • {% if ev.status == 'PAYEE' %}Payée{% else %}À venir{% endif %}</p>
                                     </div>
-                                    {% endfor %}
                                 </div>
+                                {% endfor %}
+                                {% if day.events|length > 3 %}
+                                <p class="text-[10px] text-slate-400">+ {{ day.events|length|add:"-3" }} autre(s)</p>
+                                {% endif %}
                             </div>
                             {% endif %}
                             {% if day.in_month and day.date == today %}
@@ -220,11 +216,6 @@
                     </div>
                     {% endfor %}
                 </div>
-            </div>
-            <div class="flex flex-wrap items-center gap-3 text-xs text-slate-600">
-                <span>Échéances :</span>
-                <span class="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 font-bold">Payée</span>
-                <span class="px-2 py-1 rounded-full bg-ice-50 text-ice-700 border border-ice-100 font-bold">À venir</span>
             </div>
             {% if credit_legend %}
             <div class="flex flex-wrap gap-3 text-xs font-bold text-slate-700">

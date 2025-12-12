@@ -38,6 +38,8 @@
                 <p class="text-sm text-slate-700"><strong>Apport :</strong> {{ demande.apport_personnel }} €</p>
                 <p class="text-sm text-slate-700"><strong>Taux IA :</strong> {{ demande.taux_calcule|default:"—" }}%</p>
                 <p class="text-sm text-slate-700"><strong>Mensualité ciblée :</strong> {{ demande.mensualite_calculee }} €</p>
+                <p class="text-sm text-slate-700"><strong>Jour de prélèvement :</strong> {{ demande.jour_prelevement }}</p>
+                <p class="text-sm text-slate-700"><strong>Compte de versement :</strong> {% if demande.compte_versement %}{{ demande.compte_versement.numero_compte }}{% else %}—{% endif %}</p>
                 <p class="text-sm text-slate-700"><strong>Recommandation :</strong> {{ demande.recommendation }}</p>
             </div>
         </div>
