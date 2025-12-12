@@ -254,6 +254,15 @@ def first_day_next_month(d):
     return date(year, month, 1)
 
 
+def add_months(d, n):
+    year = d.year + (d.month - 1 + n) // 12
+    month = (d.month - 1 + n) % 12 + 1
+    day = min(d.day, [31,
+                      29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28,
+                      31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1])
+    return date(year, month, day)
+
+
 def custom_200(request):
     return render(request, 'scoring/200.html', status=200)
 
@@ -300,6 +309,16 @@ def enforce_overdraft(compte):
         updated = cartes.filter(est_bloquee=True).update(est_bloquee=False)
         if updated:
             notifier(compte.user, "Cartes débloquées", "Votre solde est revenu au-dessus du découvert autorisé.", "TRANSACTION", url=reverse('cartes'))
+
+
+def next_installment_date(credit: DemandeCredit):
+    total_months = max(1, (credit.duree_souhaitee_annees or 1) * 12)
+    already_paid = credit.echeances_payees or 0
+    if already_paid >= total_months:
+        return None
+    base_date = credit.date_acceptation or credit.date_demande.date()
+    start = first_day_next_month(base_date)
+    return add_months(start, already_paid)
 
 # ==============================================================================
 # 1. AUTHENTIFICATION
@@ -734,6 +753,10 @@ def dashboard(request):
 
     # Prélèvements mensuels automatiques sur crédits acceptés
     process_credit_repayments_for_user(request.user)
+    for cr in credits_actifs:
+        cr.next_echeance = next_installment_date(cr)
+    for cr in demandes_credit:
+        cr.next_echeance = next_installment_date(cr) if cr.statut == 'ACCEPTEE' else None
 
     # Analyse dépenses (débits) sur les 6 derniers mois
     def month_shift(date_obj, shift):
@@ -2011,6 +2034,8 @@ def demande_credit_detail(request, demande_id):
 @login_required
 def page_historique(request):
     demandes = DemandeCredit.objects.filter(user=request.user).order_by('-date_demande')
+    for d in demandes:
+        d.next_echeance = next_installment_date(d) if d.statut == 'ACCEPTEE' else None
     unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
     return render(request, 'scoring/historique.html', {'demandes': demandes, 'unread_notifs': unread_notifs})
 

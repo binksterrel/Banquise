@@ -55,6 +55,7 @@
                             <th class="px-6 py-5">Produit</th>
                             <th class="px-6 py-5">Montant</th>
                             <th class="px-6 py-5">Score IA</th>
+                            <th class="px-6 py-5">Prochaine échéance</th>
                             <th class="px-6 py-5">Statut</th>
                             <th class="px-8 py-5 text-right">Action</th>
                         </tr>
@@ -95,6 +96,15 @@
                                     </div>
                                     <span class="text-xs font-bold text-slate-500">{% if d.score_calcule < 45 %}Risqué{% elif d.score_calcule < 75 %}Moyen{% else %}Top{% endif %}</span>
                                 </div>
+                            </td>
+                            <td class="px-6 py-5">
+                                {% if d.next_echeance %}
+                                <span class="text-xs font-bold text-emerald-600">{{ d.next_echeance|date:"d M Y" }}</span>
+                                {% elif d.statut == 'ACCEPTEE' %}
+                                <span class="text-xs text-slate-500">Aucune échéance restante</span>
+                                {% else %}
+                                <span class="text-xs text-slate-400">N/A</span>
+                                {% endif %}
                             </td>
                             <td class="px-6 py-5">
                                 {% if not d.soumise and d.statut == 'EN_ATTENTE' %}

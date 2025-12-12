@@ -376,6 +376,9 @@
                             <div>
                                 <p class="font-bold text-slate-800 text-sm">{% if d.produit %}{{ d.produit.nom }}{% else %}Crédit{% endif %}</p>
                                 <p class="text-xs text-slate-500">{{ d.date_demande|date:"d M Y" }} • {{ d.get_statut_display }}</p>
+                                {% if d.next_echeance %}
+                                <p class="text-[11px] text-emerald-600 font-bold mt-0.5">Prochaine échéance : {{ d.next_echeance|date:"d M Y" }}</p>
+                                {% endif %}
                             </div>
                             <span class="text-sm font-mono font-bold text-slate-700">{{ d.montant_souhaite }} €</span>
                         </div>
