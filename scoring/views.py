@@ -2139,6 +2139,7 @@ def page_historique(request):
         'calendar_month_label': month_ref.strftime("%B %Y"),
         'calendar_prev': prev_month.strftime("%Y-%m"),
         'calendar_next': next_month.strftime("%Y-%m"),
+        'calendar_headers': ['L', 'M', 'M', 'J', 'V', 'S', 'D'],
     })
 
 @login_required
