@@ -300,7 +300,7 @@
                         <div class="input-group-ice">
                             <div class="input-icon"><i class="bi bi-telephone"></i></div>
                             <input type="tel" name="telephone" class="form-control-ice"
-                                placeholder="06 12 34 56 78" required pattern="[0-9 +()-]{8,20}"
+                                placeholder="06 12 34 56 78" required pattern="06[0-9]{8}"
                                 inputmode="tel" value="{{ form.telephone.value|default:'' }}">
                         </div>
                         <p class="text-xs text-slate-500 mt-2">Utilisé pour les virements instantanés entre clients Banquise.</p>
@@ -545,9 +545,9 @@
             }
             const telInput = document.querySelector('input[name="telephone"]');
             const telDigits = telInput.value.replace(/[^0-9]/g, '');
-            if (telDigits.length < 8 || telDigits.length > 15) {
+            if (telDigits.length !== 10 || !telDigits.startsWith('06')) {
                 isValid = false;
-                errors.push("Merci de saisir un numéro de téléphone valide (8 à 15 chiffres).");
+                errors.push("Merci de saisir un mobile français valide commençant par 06 (10 chiffres).");
             }
         }
 
