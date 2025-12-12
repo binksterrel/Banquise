@@ -219,7 +219,10 @@ def process_credit_repayments_for_user(user):
         total_months = max(1, (credit.duree_souhaitee_annees or 1) * 12)
         deja_payees = credit.echeances_payees or 0
         base_date = credit.date_acceptation or credit.date_demande.date()
-        start_date = first_day_next_month(base_date)
+        jour = min(max(1, credit.jour_prelevement or 1), 28)
+        # point de départ : mois suivant, même jour (borne à 28)
+        next_month = add_months(base_date.replace(day=1), 1)
+        start_date = date(next_month.year, next_month.month, jour)
         due_months = min(total_months, months_diff(today, start_date) + 1)
         manquantes = max(0, due_months - deja_payees)
         mensualite = credit.mensualite_calculee or Decimal("0")
@@ -326,14 +329,18 @@ def next_installment_date(credit: DemandeCredit):
     if already_paid >= total_months:
         return None
     base_date = credit.date_acceptation or credit.date_demande.date()
-    start = first_day_next_month(base_date)
+    jour = min(max(1, credit.jour_prelevement or 1), 28)
+    next_month = add_months(base_date.replace(day=1), 1)
+    start = date(next_month.year, next_month.month, jour)
     return add_months(start, already_paid)
 
 
 def build_credit_schedule(credit: DemandeCredit):
     total_months = max(1, (credit.duree_souhaitee_annees or 1) * 12)
     base_date = credit.date_acceptation or credit.date_demande.date()
-    start = first_day_next_month(base_date)
+    jour = min(max(1, credit.jour_prelevement or 1), 28)
+    next_month = add_months(base_date.replace(day=1), 1)
+    start = date(next_month.year, next_month.month, jour)
     schedule = []
     for i in range(total_months):
         due_date = add_months(start, i)

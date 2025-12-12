@@ -174,6 +174,7 @@ class DemandeCredit(models.Model):
     echeances_payees = models.IntegerField(default=0)
     dernier_prelevement = models.DateField(null=True, blank=True)
     date_acceptation = models.DateField(null=True, blank=True)
+    jour_prelevement = models.PositiveSmallIntegerField(default=1)
 
     def __str__(self):
         return f"{self.user.username} - {self.produit.nom if self.produit else 'Produit inconnu'} ({self.statut})"

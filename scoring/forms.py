@@ -330,6 +330,7 @@ class SimulationPretForm(forms.ModelForm):
     revenus_mensuels = forms.IntegerField(label="Vos revenus mensuels nets (€)", min_value=0)
     loyer_actuel = forms.IntegerField(label="Loyer actuel / Charges (€)", required=False, min_value=0)
     dettes_mensuelles = forms.IntegerField(label="Autres crédits en cours (€)", required=False, min_value=0)
+    jour_prelevement = forms.IntegerField(label="Jour souhaité de prélèvement", min_value=1, max_value=28, initial=5)
     
     class Meta:
         model = DemandeCredit
@@ -350,6 +351,7 @@ class SimulationPretForm(forms.ModelForm):
             ('loyer_actuel', 0, 1),
             ('dettes_mensuelles', 0, 1),
             ('enfants_a_charge', 0, 1),
+            ('jour_prelevement', 1, 1),
         ]
         for field_name, min_val, step in numeric_fields:
             if field_name in self.fields:
@@ -391,6 +393,7 @@ class SimulationPretForm(forms.ModelForm):
             ('loyer_actuel', 0, "Le loyer/charges ne peut pas être négatif."),
             ('dettes_mensuelles', 0, "Les dettes mensuelles ne peuvent pas être négatives."),
             ('enfants_a_charge', 0, "Le nombre d'enfants doit être positif."),
+            ('jour_prelevement', 1, "Le jour de prélèvement doit être entre 1 et 28."),
         ]
         for field, min_val, msg in checks:
             val = cleaned.get(field)
