@@ -333,7 +333,7 @@
                                 </button>
                             </div>
                             <div id="plan-box" class="mt-3 space-y-3 hidden">
-                                <div class="grid md:grid-cols-2 gap-3">
+                                <div class="grid md:grid-cols-3 gap-3">
                                     <div>
                                         <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Date d'exécution</label>
                                         <input type="date" name="execution_date" class="form-control"
@@ -345,6 +345,11 @@
                                             <option value="NONE" {% if form.data.recurrence == 'NONE' or not form.data.recurrence %}selected{% endif %}>Ponctuel</option>
                                             <option value="MENSUEL" {% if form.data.recurrence == 'MENSUEL' %}selected{% endif %}>Mensuel</option>
                                         </select>
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Seuil solde minimum (€)</label>
+                                        <input type="number" name="solde_minimum" step="0.01" min="0" class="form-control" placeholder="0" value="{{ form.data.solde_minimum|default_if_none:'0' }}">
+                                        <p class="text-[11px] text-slate-500 mt-1">Le virement ne part que si le solde du compte dépasse ce seuil.</p>
                                     </div>
                                 </div>
                                 <p class="text-xs text-slate-500">Laisse par défaut pour exécuter aujourd'hui. Active uniquement si tu veux planifier ou répéter.</p>
@@ -443,7 +448,12 @@
                 <div class="glass-premium p-6 rounded-[2rem] space-y-4">
                     <div class="flex items-center justify-between">
                         <h3 class="font-display font-bold text-slate-900 text-lg">Virements programmés</h3>
-                        <span class="text-xs text-slate-500 font-bold">{{ virements_programmes|length }} actif(s)</span>
+                        <div class="text-right">
+                            <span class="block text-xs text-slate-500 font-bold">{{ virements_programmes|length }} au total</span>
+                            {% if prochain_vp %}
+                            <span class="block text-[11px] text-emerald-600 font-bold">Prochain : {{ prochain_vp.prochaine_execution|date:"d M Y" }}</span>
+                            {% endif %}
+                        </div>
                     </div>
                     {% if virements_programmes %}
                     <div class="space-y-3 max-h-72 overflow-y-auto no-scrollbar">
@@ -457,11 +467,19 @@
                             </div>
                             <p class="text-xs text-slate-500 mt-1">{{ vp.motif|default:"(Sans motif)" }}</p>
                             <p class="text-xs text-slate-500">Prochaine exécution : {{ vp.prochaine_execution|date:"d M Y" }}</p>
+                            <p class="text-xs text-slate-500">Seuil solde : {{ vp.solde_minimum }} €</p>
                             <div class="flex gap-2 mt-2">
+                                {% if vp.actif %}
                                 <form method="post" action="{% url 'cancel_virement_programme' vp.id %}">
                                     {% csrf_token %}
                                     <button class="px-3 py-1 text-xs font-bold rounded-lg bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-100" type="submit">Pause</button>
                                 </form>
+                                {% else %}
+                                <form method="post" action="{% url 'resume_virement_programme' vp.id %}">
+                                    {% csrf_token %}
+                                    <button class="px-3 py-1 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100" type="submit">Reprendre</button>
+                                </form>
+                                {% endif %}
                                 <form method="post" action="{% url 'delete_virement_programme' vp.id %}">
                                     {% csrf_token %}
                                     <button class="px-3 py-1 text-xs font-bold rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100" type="submit">Supprimer</button>

@@ -176,6 +176,7 @@ class VirementForm(forms.Form):
         required=False,
         label="Récurrence"
     )
+    solde_minimum = forms.DecimalField(required=False, min_value=0, decimal_places=2, max_digits=10, label="Seuil solde minimum")
     
     # Sélectionner un bénéficiaire existant
     beneficiaire_enregistre = forms.ModelChoiceField(

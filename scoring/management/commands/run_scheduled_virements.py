@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from scoring.models import VirementProgramme
-from scoring.views import _execute_virement
+from scoring.views import _execute_virement, notifier
 
 
 class Command(BaseCommand):
@@ -17,6 +17,11 @@ class Command(BaseCommand):
         count = 0
         for vp in qs:
             try:
+                if vp.compte_emetteur.solde < (vp.solde_minimum or 0):
+                    notifier(vp.user, "Virement programmé reporté", f"Solde insuffisant pour le virement de {vp.montant} € (seuil {vp.solde_minimum} €).", "VIREMENT")
+                    vp.prochaine_execution = today + timedelta(days=1)
+                    vp.save(update_fields=['prochaine_execution'])
+                    continue
                 _execute_virement(
                     compte=vp.compte_emetteur,
                     montant=vp.montant,

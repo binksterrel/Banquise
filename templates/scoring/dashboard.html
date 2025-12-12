@@ -379,6 +379,9 @@
                                 {% if d.next_echeance %}
                                 <p class="text-[11px] text-emerald-600 font-bold mt-0.5">Prochaine échéance : {{ d.next_echeance|date:"d M Y" }}</p>
                                 {% endif %}
+                                {% if d.mensualite_calculee %}
+                                <p class="text-[11px] text-slate-600">Mensualité : {{ d.mensualite_calculee }} €</p>
+                                {% endif %}
                             </div>
                             <span class="text-sm font-mono font-bold text-slate-700">{{ d.montant_souhaite }} €</span>
                         </div>

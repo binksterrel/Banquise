@@ -236,6 +236,7 @@ class VirementProgramme(models.Model):
     cible_phone = models.CharField(max_length=20, blank=True)
     montant = models.DecimalField(max_digits=10, decimal_places=2)
     motif = models.CharField(max_length=100, blank=True)
+    solde_minimum = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     prochaine_execution = models.DateField()
     recurrence = models.CharField(max_length=10, choices=RECURRENCE_CHOICES, default='NONE')
     actif = models.BooleanField(default=True)

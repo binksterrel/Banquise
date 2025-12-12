@@ -177,6 +177,13 @@ def _run_scheduled_virements(user):
     scheduled = VirementProgramme.objects.filter(user=user, actif=True, prochaine_execution__lte=today)
     for v in scheduled:
         try:
+            emetteur = v.compte_emetteur
+            if emetteur.solde < (v.solde_minimum or 0):
+                notifier(user, "Virement programmé reporté", f"Solde insuffisant pour le virement de {v.montant} € (seuil {v.solde_minimum} €).", "VIREMENT", url=reverse('virement'))
+                # Replanifie au lendemain pour retenter
+                v.prochaine_execution = today + timedelta(days=1)
+                v.save(update_fields=['prochaine_execution'])
+                continue
             status = _execute_virement(
                 compte=v.compte_emetteur,
                 montant=v.montant,
@@ -1575,7 +1582,8 @@ def virement(request):
     comptes = Compte.objects.filter(user=request.user, est_actif=True)
     carte_plafond = Carte.objects.filter(compte__in=comptes).order_by('id').first()
     operation_id = uuid.uuid4().hex
-    virements_programmes = VirementProgramme.objects.filter(user=request.user, actif=True).order_by('prochaine_execution')
+    virements_programmes = VirementProgramme.objects.filter(user=request.user).order_by('-actif', 'prochaine_execution')
+    prochain_vp = VirementProgramme.objects.filter(user=request.user, actif=True).order_by('prochaine_execution').first()
     
     if request.method == 'POST':
         form = VirementForm(request.user, request.POST)
@@ -1586,6 +1594,7 @@ def virement(request):
             motif = form.cleaned_data['motif']
             exec_date = form.cleaned_data.get('execution_date') or timezone.now().date()
             recurrence = form.cleaned_data.get('recurrence') or 'NONE'
+            solde_minimum = form.cleaned_data.get('solde_minimum') or Decimal("0")
             
             beneficiaire = form.cleaned_data['beneficiaire_enregistre']
             nouvel_iban = form.cleaned_data['nouveau_beneficiaire_iban']
@@ -1622,7 +1631,8 @@ def virement(request):
                     'comptes': comptes,
                     'carte_plafond': carte_plafond,
                     'operation_id': operation_id,
-                    'virements_programmes': virements_programmes
+                    'virements_programmes': virements_programmes,
+                    'prochain_vp': prochain_vp,
                 })
             try:
                 today = timezone.now().date()
@@ -1640,9 +1650,11 @@ def virement(request):
                         motif=motif,
                         prochaine_execution=exec_date if exec_date > today else today,
                         recurrence=recurrence or 'NONE',
-                        actif=True
+                        actif=True,
+                        solde_minimum=solde_minimum
                     )
                     messages.success(request, f"Virement programmé pour le {exec_date} ({'mensuel' if recurrence == 'MENSUEL' else 'ponctuel'}).")
+                    notifier(request.user, "Virement programmé", f"{montant} € le {vp.prochaine_execution.strftime('%d/%m/%Y')} (seuil {vp.solde_minimum} €).", "VIREMENT", url=reverse('virement'))
                     # Si récurrent ou date du jour, exécute immédiatement une première fois
                     if should_execute_now:
                         _execute_virement(compte, montant, motif, target_iban, target_phone, beneficiaire, request.user, operation_id)
@@ -1661,7 +1673,7 @@ def virement(request):
                 messages.error(request, str(e))
             except Exception as e:
                 messages.error(request, f"Erreur lors du virement : {e}")
-        return render(request, 'scoring/virement.html', {'form': form, 'comptes': comptes, 'carte_plafond': carte_plafond, 'operation_id': operation_id, 'virements_programmes': virements_programmes})
+        return render(request, 'scoring/virement.html', {'form': form, 'comptes': comptes, 'carte_plafond': carte_plafond, 'operation_id': operation_id, 'virements_programmes': virements_programmes, 'prochain_vp': prochain_vp})
     
     else:
         initial_data = {}
@@ -1675,7 +1687,15 @@ def virement(request):
                 
         form = VirementForm(request.user, initial=initial_data)
         
-    return render(request, 'scoring/virement.html', {'form': form, 'comptes': comptes, 'carte_plafond': carte_plafond, 'operation_id': operation_id, 'virements_programmes': virements_programmes})
+    prochain_vp = VirementProgramme.objects.filter(user=request.user, actif=True).order_by('prochaine_execution').first()
+    return render(request, 'scoring/virement.html', {
+        'form': form,
+        'comptes': comptes,
+        'carte_plafond': carte_plafond,
+        'operation_id': operation_id,
+        'virements_programmes': virements_programmes,
+        'prochain_vp': prochain_vp,
+    })
 
 @login_required
 def gestion_beneficiaires(request):
@@ -1689,6 +1709,7 @@ def cancel_virement_programme(request, vp_id):
     vp.actif = False
     vp.save(update_fields=['actif'])
     messages.success(request, "Virement programmé mis en pause.")
+    notifier(request.user, "Virement programmé en pause", f"Le virement de {vp.montant} € est en pause jusqu'à réactivation.", "VIREMENT", url=reverse('virement'))
     return redirect('virement')
 
 
@@ -1697,6 +1718,20 @@ def delete_virement_programme(request, vp_id):
     vp = get_object_or_404(VirementProgramme, id=vp_id, user=request.user)
     vp.delete()
     messages.success(request, "Virement programmé supprimé.")
+    notifier(request.user, "Virement programmé supprimé", f"Le virement de {vp.montant} € a été supprimé.", "VIREMENT", url=reverse('virement'))
+    return redirect('virement')
+
+
+@login_required
+def resume_virement_programme(request, vp_id):
+    vp = get_object_or_404(VirementProgramme, id=vp_id, user=request.user)
+    vp.actif = True
+    # Replanifie à aujourd'hui si la date est passée
+    if vp.prochaine_execution < timezone.now().date():
+        vp.prochaine_execution = timezone.now().date()
+    vp.save(update_fields=['actif', 'prochaine_execution'])
+    messages.success(request, "Virement programmé réactivé.")
+    notifier(request.user, "Virement programmé réactivé", f"Le virement de {vp.montant} € reprendra à partir du {vp.prochaine_execution.strftime('%d/%m/%Y')}.", "VIREMENT", url=reverse('virement'))
     return redirect('virement')
 
 @login_required
