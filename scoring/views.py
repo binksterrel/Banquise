@@ -54,7 +54,11 @@ from .cities import search_cities
 # BIC Statique pour la démo
 BANQUISE_BIC = "BANQFR76"
 MAX_SUPPORT_UPLOAD = 2 * 1024 * 1024  # 2 Mo pour les pièces jointes support
-MAX_DECOUVERT_AMOUNT = Decimal("1000")  # Plafond de demande de découvert temporaire
+DECOUVERT_PLAFOND_BY_PLAN = {
+    'ESSENTIEL': Decimal("150"),
+    'PLUS': Decimal("500"),
+    'INFINITE': Decimal("1000"),
+}
 
 PLAN_CONFIG = {
     'ESSENTIEL': {'prix': Decimal("0.00"), 'label': 'Essentiel'},
@@ -711,6 +715,7 @@ def dashboard(request):
         'abonnement': 'ESSENTIEL',
         'prochaine_facturation': timezone.now().date() + timedelta(days=30)
     })
+    max_decouvert = plafond_decouvert_for_user(request.user)
     unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
     overdraft_limit = overdraft_limit_for_user(request.user)
     overdraft_margins = {c.id: overdraft_limit + c.solde for c in comptes}
@@ -792,12 +797,18 @@ def dashboard(request):
         'overdraft_limit': overdraft_limit,
         'overdraft_margins': overdraft_margins,
         'demandes_credit_recent': demandes_credit,
-        'max_decouvert': MAX_DECOUVERT_AMOUNT,
+        'max_decouvert': max_decouvert,
     })
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
+
+
+def plafond_decouvert_for_user(user):
+    profil = ProfilClient.objects.filter(user=user).first()
+    plan = profil.abonnement if profil else 'ESSENTIEL'
+    return DECOUVERT_PLAFOND_BY_PLAN.get(plan, DECOUVERT_PLAFOND_BY_PLAN['ESSENTIEL'])
 
 
 @login_required
@@ -893,6 +904,7 @@ def demande_decouvert(request):
     if request.method != 'POST':
         return redirect('dashboard')
 
+    max_plafond = plafond_decouvert_for_user(request.user)
     try:
         montant = Decimal(request.POST.get('montant', '0'))
     except Exception:
@@ -902,8 +914,8 @@ def demande_decouvert(request):
     if montant <= 0:
         messages.error(request, "Le montant doit être supérieur à 0.")
         return redirect('dashboard')
-    if montant > MAX_DECOUVERT_AMOUNT:
-        messages.error(request, f"Le montant demandé dépasse le plafond autorisé ({MAX_DECOUVERT_AMOUNT} €).")
+    if montant > max_plafond:
+        messages.error(request, f"Le montant demandé dépasse le plafond autorisé pour votre formule ({max_plafond} €).")
         return redirect('dashboard')
 
     duree_jours = request.POST.get('duree_jours')
