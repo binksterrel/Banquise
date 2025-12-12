@@ -160,52 +160,50 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h3 class="font-display font-bold text-xl text-slate-900">Calendrier des échéances</h3>
-                    <p class="text-sm text-slate-500">Vue détaillée des mensualités pour vos crédits acceptés.</p>
+                    <p class="text-sm text-slate-500">Vue mensuelle et détaillée de vos crédits acceptés.</p>
                 </div>
             </div>
-            {% for d in demandes %}
-            {% if d.statut == 'ACCEPTEE' %}
-            <div class="rounded-2xl border border-slate-100 bg-white/70 overflow-hidden">
-                <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                    <div>
-                        <p class="font-bold text-slate-800 text-sm">{% if d.produit %}{{ d.produit.nom }}{% else %}Crédit{% endif %} • {{ d.montant_souhaite }} €</p>
-                        <p class="text-xs text-slate-500">Mensualité {{ d.mensualite_calculee }} € — prochaine : {% if d.next_echeance %}{{ d.next_echeance|date:"d M Y" }}{% else %}—{% endif %}</p>
+
+            {% with credits=demandes|dictsortreversed:"date_demande" %}
+            {% if credits %}
+            <div class="grid gap-6">
+                {% for d in credits %}
+                {% if d.statut == 'ACCEPTEE' %}
+                <div class="rounded-2xl border border-slate-100 bg-gradient-to-br from-white to-ice-50 shadow-sm overflow-hidden">
+                    <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                        <div>
+                            <p class="font-bold text-slate-800 text-sm">{% if d.produit %}{{ d.produit.nom }}{% else %}Crédit{% endif %} • {{ d.montant_souhaite }} €</p>
+                            <p class="text-xs text-slate-500">Mensualité {{ d.mensualite_calculee }} € — prochaine : {% if d.next_echeance %}{{ d.next_echeance|date:"d M Y" }}{% else %}—{% endif %}</p>
+                        </div>
+                        <span class="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full">{{ d.duree_souhaitee_annees }} ans</span>
                     </div>
-                    <span class="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full">{{ d.duree_souhaitee_annees }} ans</span>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead class="text-slate-500 uppercase text-[11px] border-b border-slate-100">
-                            <tr>
-                                <th class="px-3 py-2 text-left">#</th>
-                                <th class="px-3 py-2 text-left">Date</th>
-                                <th class="px-3 py-2 text-left">Montant</th>
-                                <th class="px-3 py-2 text-left">Statut</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+
+                    <div class="p-4 bg-white/70">
+                        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             {% for e in d.echeancier %}
-                            <tr class="border-b border-slate-50">
-                                <td class="px-3 py-2">{{ e.numero }}</td>
-                                <td class="px-3 py-2">{{ e.date|date:"d M Y" }}</td>
-                                <td class="px-3 py-2">{{ e.montant }} €</td>
-                                <td class="px-3 py-2">
-                                    {% if e.status == 'PAYEE' %}
-                                    <span class="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-full">Payée</span>
-                                    {% else %}
-                                    <span class="text-xs font-bold text-slate-600 bg-slate-50 border border-slate-100 px-2 py-1 rounded-full">À venir</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
+                            <div class="p-3 rounded-xl border {% if e.status == 'PAYEE' %}border-emerald-100 bg-emerald-50/60{% else %}border-slate-100 bg-slate-50{% endif %} flex items-center justify-between">
+                                <div>
+                                    <p class="text-xs font-bold text-slate-500">Échéance {{ e.numero }}</p>
+                                    <p class="font-bold text-slate-800 text-sm">{{ e.date|date:"d M Y" }}</p>
+                                    <p class="text-[11px] text-slate-500">Montant {{ e.montant }} €</p>
+                                </div>
+                                {% if e.status == 'PAYEE' %}
+                                <span class="px-2 py-1 rounded-full text-[11px] font-bold bg-white text-emerald-600 border border-emerald-100">Payée</span>
+                                {% else %}
+                                <span class="px-2 py-1 rounded-full text-[11px] font-bold bg-white text-slate-600 border border-slate-200">À venir</span>
+                                {% endif %}
+                            </div>
                             {% endfor %}
-                        </tbody>
-                    </table>
+                        </div>
+                    </div>
                 </div>
+                {% endif %}
+                {% endfor %}
             </div>
-            {% endif %}
-            {% empty %}
+            {% else %}
             <p class="text-sm text-slate-500">Aucun échéancier disponible.</p>
-            {% endfor %}
+            {% endif %}
+            {% endwith %}
         </div>
     </div>
 </div>
