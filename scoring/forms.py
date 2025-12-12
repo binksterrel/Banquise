@@ -76,8 +76,8 @@ class InscriptionForm(forms.ModelForm):
     def clean_telephone(self):
         raw = (self.cleaned_data.get("telephone") or "").strip()
         normalized = self._normalize_phone(raw)
-        if len(normalized) < 8 or len(normalized) > 15:
-            raise ValidationError("Numéro de téléphone invalide (8 à 15 chiffres).")
+        if len(normalized) != 10 or not normalized.startswith("06"):
+            raise ValidationError("Numéro invalide : uniquement des mobiles français commençant par 06.")
         exists = ProfilClient.objects.filter(telephone=normalized).exists()
         if exists:
             raise ValidationError("Un compte utilise déjà ce numéro de téléphone.")
