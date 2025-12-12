@@ -435,6 +435,8 @@ Le système Banquise implique trois acteurs principaux :
     \item Activation/désactivation paiements étrangers
     \item Gestion des plafonds de paiement
     \item Gestion des plafonds de retrait
+    \item Validation serveurs sur les plafonds (paiement 500--10\,000 €, retrait 100--3\,000 €) avec message d'erreur en cas de valeur hors bornes
+    \item Cartes PRO : badge visuel et IBAN du compte affiché ; RIB PDF inclut entreprise / SIRET / contact pour les comptes PRO
     \item Alerte préventive à 80\% du découvert autorisé (limite ajustée si un découvert temporaire est accepté)
     \item Blocage automatique en cas de dépassement du découvert autorisé (y compris découvert temporaire)
     \item Déblocage automatique lorsque le solde repasse au-dessus du seuil
@@ -478,16 +480,17 @@ Le système Banquise implique trois acteurs principaux :
 \paragraph{}Un simulateur de crédit calcule score/DTI/LTV, affiche un avis automatique, l’historique et permet à l’admin de valider/refuser. La page résultat propose une suggestion de durée/mensualité si le DTI est trop élevé et les mensualités acceptées sont prélevées automatiquement chaque mois.
 \begin{itemize}[leftmargin=1.5cm]
     \item Simulation de crédit avec formulaire détaillé
-    \item Calcul automatique du score de solvabilité : heuristique embarquée + modèle ML entraîné hors-ligne (pipeline scikit-learn sérialisé)
+    \item Calcul automatique du score de solvabilité : heuristique embarquée + modèle ML entraîné hors-ligne (pipeline scikit-learn sérialisé) ; fallback explicite si le modèle n'est pas disponible
     \item Avis IA basé sur DTI, LTV et tolérance au risque (score final $\geq$ 55 $\Rightarrow$ avis auto accepté)
     \item Statut initial « En attente de validation humaine »
-    \item Versement automatique sur le premier compte actif si l'admin accepte
-    \item Prélèvements mensuels automatiques sur les crédits acceptés (rattrapage des mensualités manquantes)
+    \item Versement automatique sur un compte choisi par l'administrateur (par défaut premier compte actif)
+    \item Prélèvements mensuels automatiques sur les crédits acceptés (rattrapage des mensualités manquantes) ; commande cron dédiée : \texttt{python manage.py run\_credit\_repayments}
     \item Historique des demandes de crédit
     \item Page résultat dédiée avec détails
     \item Suggestion de mensualité/durée si DTI dépasse 35\%
     \item Possibilité de soumettre ou de conserver la simulation sans soumission
     \item Modification de la simulation impossible une fois le crédit accepté
+    \item Interface admin : modification montant/durée avec recalcul de mensualité et bornes de validation
     \item Validation/refus par administrateur
     \item Notifications à chaque étape
 \end{itemize}
