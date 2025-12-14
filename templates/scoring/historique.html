@@ -58,17 +58,18 @@
                 <div class="glass-panel p-2 rounded-2xl flex justify-between items-center">
                     <div class="relative flex-1">
                         <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                        <input type="text" placeholder="Rechercher..." class="w-full bg-transparent border-none pl-10 pr-4 py-2 text-sm font-bold text-slate-600 placeholder-slate-400 focus:ring-0">
+                        <input type="text" id="search-input" placeholder="Rechercher (produit, montant, statut...)" class="w-full bg-transparent border-none pl-10 pr-4 py-2 text-sm font-bold text-slate-600 placeholder-slate-400 focus:ring-0">
                     </div>
                     <div class="flex gap-2 pr-2">
-                        <button class="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-400 transition-colors"><i class="bi bi-filter"></i></button>
+                        <button id="clear-search" class="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-400 transition-colors hidden"><i class="bi bi-x-lg"></i></button>
                     </div>
                 </div>
 
                 <!-- Cards -->
-                <div class="space-y-4">
+                <div class="space-y-4" id="demandes-list">
                     {% for d in demandes %}
-                    <div class="glass-panel p-6 rounded-3xl glass-card-hover transition-all duration-300 group">
+                    <div class="glass-panel p-6 rounded-3xl glass-card-hover transition-all duration-300 group demande-card" 
+                         data-search="{% if d.produit %}{{ d.produit.nom }}{% else %}Crédit Personnel{% endif %} {{ d.montant_souhaite }} {{ d.get_statut_display }} {{ d.date_demande|date:'d F Y' }} {{ d.score_calcule }}">
                         <div class="flex justify-between items-start mb-4">
                             <div class="flex items-center gap-4">
                                 <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-sm
@@ -206,4 +207,59 @@
         </div>
     </div>
 </div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-input');
+    const clearBtn = document.getElementById('clear-search');
+    const cards = document.querySelectorAll('.demande-card');
+    let noResultsEl = null;
+    
+    function filterCards() {
+        const query = searchInput.value.toLowerCase().trim();
+        let visibleCount = 0;
+        
+        // Show/hide clear button
+        if (query) {
+            clearBtn.classList.remove('hidden');
+        } else {
+            clearBtn.classList.add('hidden');
+        }
+        
+        cards.forEach(card => {
+            const searchData = (card.dataset.search || '').toLowerCase();
+            if (!query || searchData.includes(query)) {
+                card.style.display = '';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        // Show "no results" message
+        if (noResultsEl) noResultsEl.remove();
+        if (visibleCount === 0 && query) {
+            noResultsEl = document.createElement('div');
+            noResultsEl.className = 'glass-panel p-8 rounded-3xl text-center';
+            noResultsEl.innerHTML = `
+                <div class="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-300">
+                    <i class="bi bi-search text-xl"></i>
+                </div>
+                <p class="text-slate-500 font-medium">Aucun résultat pour "<span class="text-slate-700">${query}</span>"</p>
+            `;
+            document.getElementById('demandes-list').appendChild(noResultsEl);
+        }
+    }
+    
+    searchInput.addEventListener('input', filterCards);
+    
+    clearBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        filterCards();
+        searchInput.focus();
+    });
+});
+</script>
+{% endblock %}
 {% endblock %}

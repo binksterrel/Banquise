@@ -342,10 +342,60 @@
                 <div id="step-2" class="space-y-8 hidden">
                     <div class="grid md:grid-cols-2 gap-8">
                         {% for field in form %}
-                            {% if field.name != 'soumise' and field.name != 'jour_prelevement' and field.name != 'compte_versement' %}
+                            {% if field.name != 'soumise' and field.name != 'jour_prelevement' and field.name != 'compte_versement' and field.name != 'marie' and field.name != 'diplome' %}
                                 {{ field|as_crispy_field }}
                             {% endif %}
                         {% endfor %}
+                    </div>
+
+                    <!-- Profil personnel (marie + diplome) -->
+                    <div class="rounded-2xl border border-ice-100 bg-gradient-to-br from-ice-50/60 to-ice-50/30 p-5 md:p-6 shadow-sm">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-ice-500 to-ice-600 text-white flex items-center justify-center">
+                                <i class="bi bi-person-vcard-fill text-lg"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold text-ice-700 uppercase tracking-[0.15em]">Profil personnel</p>
+                                <p class="text-sm font-bold text-slate-800">Informations complémentaires</p>
+                            </div>
+                        </div>
+                        
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <!-- Marié -->
+                            <label for="{{ form.marie.id_for_label }}" class="flex items-center gap-4 p-4 rounded-xl border border-slate-200 bg-white/80 cursor-pointer hover:border-ice-200 hover:bg-ice-50/30 transition-all group">
+                                <input type="checkbox" name="marie" id="{{ form.marie.id_for_label }}" class="toggle-input" {% if form.marie.value %}checked{% endif %}>
+                                <span class="toggle-pill"></span>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-lg bg-pink-100 text-pink-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <i class="bi bi-heart-fill"></i>
+                                    </div>
+                                    <span class="flex flex-col">
+                                        <span class="text-sm font-bold text-slate-800">Marié(e) / Pacsé(e)</span>
+                                        <span class="text-[11px] text-slate-500">Situation matrimoniale</span>
+                                    </span>
+                                </div>
+                            </label>
+
+                            <!-- Diplômé -->
+                            <label for="{{ form.diplome.id_for_label }}" class="flex items-center gap-4 p-4 rounded-xl border border-slate-200 bg-white/80 cursor-pointer hover:border-ice-200 hover:bg-ice-50/30 transition-all group">
+                                <input type="checkbox" name="diplome" id="{{ form.diplome.id_for_label }}" class="toggle-input" {% if form.diplome.value %}checked{% endif %}>
+                                <span class="toggle-pill"></span>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <i class="bi bi-mortarboard-fill"></i>
+                                    </div>
+                                    <span class="flex flex-col">
+                                        <span class="text-sm font-bold text-slate-800">Diplômé(e)</span>
+                                        <span class="text-[11px] text-slate-500">Bac ou niveau supérieur</span>
+                                    </span>
+                                </div>
+                            </label>
+                        </div>
+                        
+                        <p class="text-[11px] text-slate-500 mt-3 flex items-center gap-1.5">
+                            <i class="bi bi-info-circle"></i>
+                            Ces informations améliorent la précision de l'analyse IA.
+                        </p>
                     </div>
 
                     <div class="rounded-2xl border border-slate-200/80 bg-white/70 p-5 md:p-6 shadow-sm">

@@ -2475,7 +2475,13 @@ def admin_validation_credits(request):
 
 @staff_member_required
 def admin_manage_credits(request):
-    demandes = DemandeCredit.objects.select_related('user', 'produit').prefetch_related('user__comptes').order_by('-date_demande')
+    demandes = DemandeCredit.objects.select_related('user', 'produit', 'emploi_snapshot', 'logement_snapshot').prefetch_related('user__comptes').order_by('-date_demande')
+    
+    # Filtre par statut
+    statut_filter = request.GET.get('statut')
+    if statut_filter in ['EN_ATTENTE', 'ACCEPTEE', 'REFUSEE']:
+        demandes = demandes.filter(statut=statut_filter)
+    
     unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
 
     if request.method == 'POST':
