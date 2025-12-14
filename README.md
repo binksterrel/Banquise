@@ -166,6 +166,9 @@ Banquise/
 ├── data/                         # Dataset d'entraînement
 │   └── loan_prediction_dataset.csv
 │
+├── ml/                           # Scripts d'entraînement ML
+│   └── train_credit_model.py     # python ml/train_credit_model.py
+│
 └── scripts/                      # Scripts utilitaires
 ```
 
