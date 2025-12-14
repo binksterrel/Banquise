@@ -1,139 +1,316 @@
-# Banquise 
+# Banquise 🏔️
 
-Banquise est une néobanque web (Django 4.2) : comptes, cartes, virements, abonnements, crédit avec avis automatique, notifications, support chat et console admin dédiée.
+**Banquise** est une néobanque web complète développée avec Django 4.2. Elle propose : gestion de comptes, cartes bancaires, virements SEPA, abonnements, crédit avec scoring IA, notifications temps réel, support chat et console d'administration dédiée.
 
-## Sommaire
-1. Fonctionnalités
-2. Stack technique
-3. Installation
-4. Arborescence
-5. URLs utiles
-6. Règles métiers
-7. Automatisation
-8. Données / Migrations
-9. Tests manuels
-10. Sécurité
-11. Support / Contact
-12. Licence
-13. Contributeurs
+---
+
+## 📋 Sommaire
+1. [Fonctionnalités](#1-fonctionnalités)
+2. [Stack technique](#2-stack-technique)
+3. [Installation](#3-installation)
+4. [Arborescence](#4-arborescence)
+5. [URLs utiles](#5-urls-utiles)
+6. [Règles métiers](#6-règles-métiers)
+7. [Système de Crédit & IA](#7-système-de-crédit--ia)
+8. [Automatisation](#8-automatisation)
+9. [Données / Migrations](#9-données--migrations)
+10. [Tests manuels](#10-tests-manuels)
+11. [Sécurité](#11-sécurité)
+12. [Support / Contact](#12-support--contact)
+13. [Licence](#13-licence)
+
+---
 
 ## 1. Fonctionnalités
-- Authentification, profil, tableau de bord.
-- Comptes courant/épargne/pro, clôture/ouverture, relevés paginés, export PDF (si reportlab).
-- Cartes : blocage/déblocage, sans-contact, paiement étranger, plafonds ; blocage auto si dépassement du découvert (Essentiel 100 €, Plus 500 €, Infinite 1000 €) et déblocage dès retour au-dessus.
-- Virements SEPA, bénéficiaires enregistrés, miroir interne (IBAN normalisé : espaces/traits ignorés, insensible à la casse), notifications émetteur/destinataire.
-- Abonnements Essentiel / Plus / Infinite : débit immédiat, transaction associée, notification, prochaine facturation.
-- Crédit : avis automatique (score/DTI/LTV), statut en attente jusqu’à validation admin, historique.
-- Notifications : centre dédié + badge avatar (virements, abonnements, crédit, support, découvert).
-- Support : chat client ↔ admin avec notifications.
-- Admin : dashboard custom, validation crédits, console de gestion (comptes/cartes/bénéficiaires/transactions) sans passer par l’admin Django.
-- Admin Reports : heatmap dépenses, comptes à surveiller, exports + commande hebdo email.
+
+### 🏦 Banque au quotidien
+- **Authentification** : Inscription, connexion, profil, changement de mot de passe.
+- **Comptes** : Courant / Épargne / Pro, ouverture/clôture, relevés paginés, export PDF.
+- **Cartes** : Blocage/déblocage, sans-contact, paiement étranger, plafonds personnalisés.
+- **Virements SEPA** : Bénéficiaires enregistrés, miroir interne (IBAN normalisé), virements programmés.
+
+### 💳 Abonnements
+- Formules **Essentiel** (gratuit), **Plus** (9,90€), **Infinite** (19,90€).
+- Débit immédiat, transaction associée, notification, prochaine facturation J+30.
+- Découvert autorisé selon formule : 100€ / 500€ / 1000€.
+
+### 📊 Crédit & Scoring IA
+- Simulation de crédit avec **scoring automatique** (Random Forest).
+- Règles métier strictes : DTI < 45%, Reste-à-vivre, Solvabilité.
+- **Suggestion intelligente** : Proposition de mensualité/durée optimisées si refus.
+- Calculs financiers rigoureux (formule PMT actuarielle, NPER pour suggestions).
+
+### 🔔 Notifications & Support
+- Centre de notifications unifié (virements, abonnements, crédit, découvert).
+- Chat support client ↔ admin avec badge non-lu.
+
+### ⚙️ Administration
+- Dashboard custom, validation crédits, console de gestion (comptes/cartes/bénéficiaires).
+- Rapports admin : heatmap dépenses, comptes à surveiller, exports.
+- Commande hebdomadaire email (`send_weekly_admin_report`).
+
+### 🚨 Alertes & Actions Rapides
+- Page `/alertes/` : Comptes avec solde bas, prélèvements crédit à venir, virements programmés.
+- Bouton "Approvisionner" pré-remplit l'IBAN sur la page virement.
+
+---
 
 ## 2. Stack technique
-- Python 3.9+, Django 4.2.25
-- crispy-forms + crispy-bootstrap5, mathfilters
-- SQLite par défaut, Tailwind CDN + Bootstrap Icons
-- ReportLab optionnel pour PDF
-- Email : backend console (`django.core.mail.backends.console.EmailBackend`) ; config SMTP en prod via `EMAIL_BACKEND` / `DEFAULT_FROM_EMAIL`.
+
+| Catégorie | Technologies |
+|-----------|--------------|
+| Backend | Python 3.9+, Django 4.2 |
+| Frontend | Tailwind CSS (CDN), Bootstrap Icons |
+| Formulaires | crispy-forms + crispy-bootstrap5, mathfilters |
+| Base de données | SQLite (dev), PostgreSQL (prod recommandé) |
+| ML / Data Science | scikit-learn, pandas, numpy, joblib |
+| PDF | ReportLab (optionnel) |
+| Email | Console backend (dev), SMTP (prod) |
+
+---
 
 ## 3. Installation
+
 ```bash
+# Cloner le projet
+git clone https://github.com/binksterrel/Banquise.git
+cd Banquise
+
+# Environnement virtuel
 python3 -m venv venv
 source venv/bin/activate
-pip install "Django==4.2.25" crispy-forms crispy-bootstrap5 django-mathfilters reportlab
+
+# Dépendances
+pip install -r requirements.txt
+# Ou manuellement :
+# pip install Django==4.2.25 crispy-forms crispy-bootstrap5 django-mathfilters reportlab numpy pandas scikit-learn joblib
+
+# Migrations
 python manage.py migrate
+
+# Créer un superutilisateur
 python manage.py createsuperuser
+
+# Entraîner le modèle ML (optionnel, un modèle pré-entraîné est fourni)
+python manage.py train_credit_model
+
+# Lancer le serveur
 python manage.py runserver
 ```
-Variables utiles (dev) : `DJANGO_SETTINGS_MODULE=Banquise.settings`, `DEBUG=1`, `SECRET_KEY` à régénérer en prod. Basculer sur PostgreSQL pour la prod (ENGINE/NAME/USER/PASSWORD/HOST/PORT).  
-Ajoute aussi les dépendances ML : `numpy`, `pandas`, `scikit-learn`, `openpyxl`, `joblib` (déjà listées dans `requirements.txt`) pour pouvoir entraîner/charger le pipeline de scoring.
 
-## 4. Arborescence (principale)
+### Variables d'environnement (prod)
+```bash
+DJANGO_SECRET_KEY=your-secret-key
+DJANGO_DEBUG=0
+DJANGO_ALLOWED_HOSTS=yourdomain.com
+DATABASE_URL=postgres://...
+EMAIL_HOST=smtp.example.com
+EMAIL_PORT=587
+EMAIL_HOST_USER=...
+EMAIL_HOST_PASSWORD=...
+```
+
+---
+
+## 4. Arborescence
+
 ```
 Banquise/
-├─ manage.py                  # Entrée Django (CLI)
-├─ Banquise/                  # Config projet
-│  ├─ settings.py             # Paramètres (DB, apps, sécurité, CSP, email)
-│  ├─ urls.py                 # Routage racine
-│  ├─ wsgi.py / asgi.py       # Entrées serveur
-├─ scoring/                   # App métier
-│  ├─ admin.py                # Enregistrement admin Django
-│  ├─ apps.py                 # Config app
-│  ├─ forms.py                # Formulaires (inscription, virement, filtre, etc.)
-│  ├─ middleware.py           # Middleware sécurité (CSP, headers)
-│  ├─ models.py               # Modèles (Compte, Carte, Transaction, etc.)
-│  ├─ urls.py                 # Routes de l’app
-│  ├─ views.py                # Vues (dashboard, virement, crédits, admin custom…)
-│  ├─ ml.py                   # Chargement du pipeline ML sérialisé
-│  ├─ migrations/             # Migrations base
-│  └─ templatetags/           # Tags/filters personnalisés
-├─ templates/                 # Templates HTML
-│  ├─ base.html               # Layout principal
-│  ├─ registration/           # Templates auth Django
-│  └─ scoring/                # Pages app (home, dashboard, admin custom, produits, etc.)
-├─ data/                      # Datasets publics (GiveMeSomeCredit, German Credit, etc.) pour le scoring ML
-├─ ml/                        # Scripts d'entraînement offline (ml/train_credit_model.py)
-├─ scoring/model_credit.pkl   # Pipeline ML sérialisé (à générer via `ml/train_credit_model.py`)
-├─ README.md                  # Présentation et guide
-└─ cahier_des_charges.tex     # Spécifications fonctionnelles/techniques
+├── manage.py                     # Entrée Django (CLI)
+├── requirements.txt              # Dépendances Python
+├── Procfile                      # Config Render/Heroku
+├── db.sqlite3                    # Base SQLite (dev)
+├── demandes_credits.log          # Log des simulations (audit)
+├── README.md                     # Ce fichier
+├── cahier_des_charges.tex        # Spécifications fonctionnelles
+│
+├── Banquise/                     # Config projet Django
+│   ├── settings.py               # Paramètres (DB, apps, sécurité, email, logging)
+│   ├── urls.py                   # Routage racine
+│   └── wsgi.py / asgi.py         # Entrées serveur
+│
+├── scoring/                      # App métier principale
+│   ├── models.py                 # Modèles (Compte, Carte, Transaction, DemandeCredit...)
+│   ├── views.py                  # Vues (dashboard, virement, crédits, admin custom…)
+│   ├── forms.py                  # Formulaires (inscription, virement, simulation...)
+│   ├── urls.py                   # Routes de l'app
+│   ├── admin.py                  # Enregistrement admin Django
+│   ├── ml.py                     # Chargement du pipeline ML sérialisé
+│   ├── model_credit.pkl          # Pipeline ML sérialisé (Random Forest)
+│   ├── utils.py                  # Fonctions utilitaires
+│   ├── cities.py                 # Données villes (autocomplétion)
+│   ├── context_processors.py     # Processeurs de contexte Django
+│   ├── middleware.py             # Middleware sécurité (CSP, headers)
+│   ├── management/               # Commandes Django custom
+│   │   └── commands/
+│   │       ├── train_credit_model.py       # Entraînement ML
+│   │       └── send_weekly_admin_report.py # Rapport hebdo admin
+│   ├── migrations/               # Migrations base de données
+│   ├── static/                   # Fichiers statiques (CSS, JS)
+│   ├── templatetags/             # Tags/filters personnalisés
+│   └── tests/                    # Tests unitaires
+│       ├── test_rigorous_logic.py
+│       └── ...
+│
+├── templates/                    # Templates HTML
+│   ├── base.html                 # Layout principal
+│   ├── registration/             # Templates auth Django
+│   └── scoring/                  # Pages app
+│       ├── dashboard.html
+│       ├── virement.html
+│       ├── resultat.html
+│       ├── historique.html
+│       ├── alertes.html
+│       └── ...
+│
+├── data/                         # Dataset d'entraînement
+│   └── loan_prediction_dataset.csv
+│
+├── ml/                           # Scripts ML legacy (optionnel)
+│
+└── scripts/                      # Scripts utilitaires
 ```
+
+---
 
 ## 5. URLs utiles
-- `/dashboard/` (Tableau de bord)
-- `/simulation/` puis `/resultat/<id>/`
-- `/virement/`
-- `/cartes/`
-- `/abonnements/`
-- `/notifications/`
-- `/support/chat/` (client) ; `/support/admin-chat/` (staff)
-- `/console/credits/` ou `/admin/credits/` (validation crédits)
-- `/console/manage/` ou `/admin/manage/` (console de gestion)
-- `/admin-dashboard/`
-- `/admin/` (Django admin)
-- `/admin-reports/` (heatmap dépenses & comptes à surveiller)
-- `/credit/<id>/` (vue détaillée d’une demande IA)
+
+| URL | Description |
+|-----|-------------|
+| `/dashboard/` | Tableau de bord principal |
+| `/simulation/` | Nouvelle simulation de crédit |
+| `/resultat/<id>/` | Résultat d'une simulation |
+| `/virement/` | Effectuer un virement |
+| `/cartes/` | Gestion des cartes |
+| `/abonnements/` | Changer de formule |
+| `/alertes/` | Actions rapides & rappels |
+| `/notifications/` | Centre de notifications |
+| `/historique/` | Historique des demandes de crédit |
+| `/support/chat/` | Chat support (client) |
+| `/support/admin-chat/` | Chat support (staff) |
+| `/console/credits/` | Validation des crédits (admin) |
+| `/console/manage/` | Console de gestion (admin) |
+| `/admin-dashboard/` | Dashboard admin |
+| `/admin-reports/` | Rapports & statistiques |
+| `/admin/` | Django admin natif |
+
+---
 
 ## 6. Règles métiers
-- Découverts : Essentiel 100 €, Plus 500 €, Infinite 1000 € ; blocage/déblocage auto des cartes selon le seuil.
-- Abonnements : débit immédiat + transaction, prochaine facturation J+30, résiliation fin de période.
-- Virements internes : transaction miroir crédit, IBAN normalisé pour retrouver les comptes internes.
-- Crédit : avis automatique, statut EN_ATTENTE jusqu’à action admin, notifications.
 
+### Découverts
+| Formule | Limite découvert | Blocage auto carte |
+|---------|------------------|-------------------|
+| Essentiel | 100 € | Oui |
+| Plus | 500 € | Oui |
+| Infinite | 1000 € | Oui |
 
-## 7. Automatisation
-- Commande `python manage.py send_weekly_admin_report` : envoie hebdomadaire aux admins (comptes à surveiller + top catégories).
-- Planifier cette commande via cron/cron-like (ou GitHub Actions) pour recevoir le résumé par mail chaque lundi matin.
+### Abonnements
+- Débit immédiat à l'upgrade, transaction associée.
+- Prochaine facturation : J+30.
+- Résiliation : fin de période (pas de remboursement prorata).
 
-## 8. Données / Migrations
-Modèles et migrations dans `scoring/`. Si `db.sqlite3` absent : `python manage.py migrate`. Créer un compte admin pour valider les crédits et répondre au support.  
-Les datasets publics (GiveMeSomeCredit, German Credit, etc.) résident dans `data/` et alimentent `ml/train_credit_model.py`. Lance par exemple :
+### Virements
+- Internes : transaction miroir crédit automatique.
+- IBAN normalisé : espaces/traits ignorés, insensible à la casse.
+
+---
+
+## 7. Système de Crédit & IA
+
+### Pipeline de décision (3 couches)
+
+1. **Hard Rules (Règles absolues)**
+   - DTI (Taux d'endettement) ≤ 45%
+   - Reste-à-vivre ≥ 800€ + 300€/enfant
+   - Mensualité couvre au minimum le capital
+
+2. **Scoring IA (Random Forest)**
+   - Features : revenus, montant, durée, historique crédit, personnes à charge...
+   - Score 0-100, seuil d'acceptation : 50
+
+3. **Policy Adjustments**
+   - Bonus : Bon état de santé (+5), Apport ≥ 10% (+10), DTI < 35% (+15)
+
+### Moteur de suggestion
+Si refus, le système propose une **configuration optimisée** :
+- Calcul actuariel exact (formule NPER) pour trouver la durée idéale.
+- Cible un DTI de 33% pour garantir l'acceptation.
+
+### Logging (Audit)
+Chaque simulation est enregistrée dans `demandes_credits.log` :
 ```
-python ml/train_credit_model.py --input data/GiveMeSomeCredit.xlsx --target SeriousDlqin2yrs
+2024-12-14 14:15:00 [INFO] SIMULATION | User: john | Montant: 50000€ | Durée: 15 ans | Score: 72 | Décision IA: ACCEPTEE
 ```
-pour générer `scoring/model_credit.pkl`, qui est ensuite chargé via `scoring/ml.py` dans les simulations de crédit.
 
-## 9. Tests manuels
-- Création compte, login, profil, changement de mot de passe.
-- Comptes : ouverture/clôture, relevé, PDF (si reportlab).
-- Cartes : blocage/déblocage, options, blocage auto sur dépassement découvert.
-- Virements interne/externe : débit + miroir interne, notifications.
-- Abonnements : upgrade/downgrade, débit, résiliation fin de période.
-- Crédit : simulation (avis auto), validation/refus admin, notifications.
-- Support : message client, réponse admin, badge non lu.
-- Console admin : actions comptes/cartes/bénéficiaires, transactions visibles.
+---
 
-## 10. Sécurité
-- Mode démo : clé secrète en clair, pas d’e-mails/SMS réels. En prod : changer `SECRET_KEY`, désactiver `DEBUG`, activer HTTPS, 2FA/IP allowlist pour staff, externaliser statiques/médias, vérifier CSP (middleware), cookies sécurisés (SESSION/CSRF), config mail SMTP.
+## 8. Automatisation
 
-## 11. Support / Contact
-📞 Support et contact  
-Pour toute question ou assistance concernant l’installation ou l’utilisation de Banquise, contactez-nous :
-- Email : nuentsa.terrel@gmail.com
-- Site web : https://banquise.onrender.com
+```bash
+# Rapport hebdomadaire admin (cron recommandé le lundi 8h)
+python manage.py send_weekly_admin_report
 
-## 12. Licence
-- Projet protégé par droits d’auteur. Tous droits réservés.
+# Entraîner le modèle ML
+python manage.py train_credit_model
+```
 
-## 13. Contributeurs
-- Terrel NUENTSA
-- © 2025 Banquise. Tous droits réservés.
+---
+
+## 9. Données / Migrations
+
+```bash
+# Appliquer les migrations
+python manage.py migrate
+
+# Créer un compte admin
+python manage.py createsuperuser
+```
+
+Le dataset d'entraînement (`data/loan_prediction_dataset.csv`) est inclus. Le modèle pré-entraîné (`scoring/model_credit.pkl`) est prêt à l'emploi.
+
+---
+
+## 10. Tests manuels
+
+- [ ] Création compte, login, profil, changement de mot de passe
+- [ ] Comptes : ouverture/clôture, relevé, PDF
+- [ ] Cartes : blocage/déblocage, options, blocage auto sur découvert
+- [ ] Virements interne/externe : débit + miroir, notifications
+- [ ] Virements programmés : création, pause, reprise, suppression
+- [ ] Abonnements : upgrade/downgrade, débit, résiliation
+- [ ] Crédit : simulation, avis auto, application suggestion, validation admin
+- [ ] Support : message client, réponse admin, badge non lu
+- [ ] Console admin : actions comptes/cartes/bénéficiaires
+
+---
+
+## 11. Sécurité
+
+> ⚠️ **Mode démo** : Clé secrète en clair, pas d'e-mails réels.
+
+### Checklist production
+- [ ] Changer `SECRET_KEY`
+- [ ] Mettre `DEBUG=0`
+- [ ] Activer HTTPS (certificat SSL)
+- [ ] Configurer SMTP réel
+- [ ] Migrer vers PostgreSQL
+- [ ] Vérifier CSP (middleware)
+- [ ] Cookies sécurisés (`SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE`)
+- [ ] 2FA / IP allowlist pour staff
+
+---
+
+## 12. Support / Contact
+
+📧 **Email** : nuentsa.terrel@gmail.com  
+🌐 **Site web** : [banquise.onrender.com](https://banquise.onrender.com)
+
+---
+
+## 13. Licence
+
+© 2025 Banquise. Tous droits réservés.  
+Projet protégé par droits d'auteur.
+
+**Développé par** : Terrel NUENTSA

@@ -253,30 +253,32 @@ L'IA Banquise vise à :
 \end{itemize}
 
 \section{Calculs principaux}
-\paragraph{}Le moteur combine des règles métiers (annuités, DTI/LTV, pondérations de stabilité pro et apport) et un micro-modèle ML entraîné à la volée sur un dataset synthétique. L'objectif est de produire un avis automatique cohérent dès la simulation, tout en restant explicable et ajustable par l'utilisateur (suggestion si le DTI est trop élevé).
+\paragraph{}Le moteur utilise un pipeline à 3 couches : Hard Rules (règles absolues), ML Risk Assessment (Random Forest), et Policy Adjustments (bonus/malus). L'objectif est de produire un avis automatique cohérent, explicable et ajustable.
 \begin{itemize}[leftmargin=1.3cm]
-    \item \textbf{Mensualité théorique} : formule d'annuité (taux mensuel, durée, montant).
-    \item \textbf{DTI} (Debt-to-Income) : (mensualité + charges) / revenus nets.
-    \item \textbf{LTV} (Loan-to-Value) : montant prêté / valeur du bien (ou apport total).
-    \item \textbf{Score heuristique} : pondération des critères (DTI, LTV, stabilité pro, bonus propriétaire, historique Banquise).
-    \item \textbf{Suggestion DTI 35\%} : si la mensualité dépasse le DTI cible (35\%), calcul d'une mensualité conseillée et d'une durée ajustée (plafond 40 ans) proposée à l'utilisateur.
+    \item \textbf{Mensualité théorique} : formule PMT actuarielle (taux 3{,}5\% annuel, durée, montant).
+    \item \textbf{DTI} (Debt-to-Income) : (mensualité + dettes + loyer) / revenus nets × 100.
+    \item \textbf{Reste-à-vivre} : revenus - (dettes + mensualité), doit dépasser 800€ + 300€/enfant.
+    \item \textbf{Suggestion DTI 33\%} : si le DTI dépasse 33\%, calcul d'une mensualité cible et durée ajustée via formule NPER (plafond 25 ans).
 \end{itemize}
 
-\section{Modèle ML simplifié – runtime (ancienne version)}
-En complément des règles heuristiques, un petit modèle de régression logistique est entraîné à l'exécution sur un jeu de données synthétique :
+\section{Modèle ML (version actuelle)}
+Le pipeline de scoring utilise un modèle \textbf{Random Forest} pré-entraîné hors-ligne :
 \begin{itemize}[leftmargin=1.3cm]
-    \item Génération de 600 profils aléatoires (revenus 1-12 k€, DTI 10-70\%, LTV 50-110\%, apport 0-60\%).
-    \item Étiquette "bon profil" si au moins 3 critères sur 4 sont satisfaits (revenus $>$ 4 k€, DTI $<$ 40\%, LTV $<$ 90\%, apport $>$ 20\%).
-    \item Normalisation des variables, ajout d'un biais, descente de gradient (300 itérations, lr = 0{,}05) pour obtenir les poids \texttt{\_ML\_WEIGHTS}.
-    \item Au moment de la simulation, le modèle est chargé si absent, produit un score 0-100 (\texttt{\_ml\_score}) à partir des features normalisées (revenus, DTI, LTV, ratio apport) ; ce score est moyenné avec le score heuristique pour l'\textbf{avis automatique}.
+    \item Dataset d'entraînement : \texttt{loan\_prediction\_dataset.csv} (Kaggle).
+    \item Features : revenus, montant, durée, historique crédit, personnes à charge, statut marital, diplôme, emploi.
+    \item Le modèle est sérialisé dans \texttt{scoring/model\_credit.pkl} via \texttt{python manage.py train\_credit\_model}.
+    \item Au runtime, \texttt{scoring/ml.py} charge le pipeline et retourne \texttt{proba\_good}, \texttt{label}, et \texttt{score\_0\_100}.
+    \item Fallback : si le modèle est indisponible, le dossier passe automatiquement en révision manuelle.
 \end{itemize}
 
 \section{Seuils et décisions}
 \begin{itemize}[leftmargin=1.3cm]
-    \item DTI seuil : 42\% (revenus $<$ 6000€) ou 47\% (revenus $\geq$ 6000€).
-    \item LTV seuil : 95\%, porté à 97\% si montant $\geq$ 250k€ et apport $\geq$ 10\%.
-    \item Score minimal : 55/100 pour une acceptation automatique (avis IA).
-    \item Cas limites : si DTI légèrement au-dessus, l'IA suggère d'allonger la durée ou d'augmenter l'apport.
+    \item DTI seuil (Hard Rule) : \textbf{45\%} maximum, sinon refus immédiat.
+    \item Reste-à-vivre minimal : 800€ + 300€ par enfant à charge.
+    \item Score final $\geq$ \textbf{50}/100 : avis IA « ACCEPTEE ».
+    \item Score final $\geq$ \textbf{80}/100 : acceptation garantie quelle que soit la décision ML.
+    \item Score final $<$ \textbf{50}/100 : refus systématique.
+    \item Cas limites : si DTI dépasse 33\% (mais $<$ 45\%), l'IA suggère d'allonger la durée.
 \end{itemize}
 
 \section{Parcours utilisateur}
@@ -310,6 +312,35 @@ En complément des règles heuristiques, un petit modèle de régression logisti
 \item Explicabilité : conserver les raisons d'un refus (DTI/LTV/score) pour transparence utilisateur.
 \end{itemize}
 
+\section{Formules actuarielles rigoureuses}
+\paragraph{}Le calcul des mensualités et des durées suggérées utilise des formules financières exactes, alignées entre l'entraînement ML, la prédiction runtime et l'affichage utilisateur.
+
+\subsection{Mensualité (formule PMT)}
+La mensualité (\textit{Payment}) est calculée selon la formule :
+\[
+M = P \times \frac{r \times (1+r)^n}{(1+r)^n - 1}
+\]
+où :
+\begin{itemize}[leftmargin=1.5cm]
+    \item \(P\) = capital emprunté (€)
+    \item \(r\) = taux d'intérêt mensuel (taux annuel / 12)
+    \item \(n\) = nombre de mensualités (durée en années × 12)
+    \item Taux de référence Banquise : 3{,}5\% annuel
+\end{itemize}
+
+\subsection{Durée suggérée (formule NPER)}
+Si le DTI dépasse la cible (33\%), une durée alternative est calculée :
+\[
+n = \frac{\ln\left(\frac{M_{\text{cible}}}{M_{\text{cible}} - P \times r}\right)}{\ln(1+r)}
+\]
+où \(M_{\text{cible}}\) = mensualité maximale respectant le DTI cible (33\% des revenus).
+
+\subsection{Montant total dû}
+\[
+\text{Montant total} = M \times n
+\]
+Cette valeur est affichée à l'utilisateur pour transparence sur le coût total du crédit.
+
 \section{Pipeline ML entraîné hors-ligne (dernière version)}
 \paragraph{}En plus de l'ancienne logique heuristique et du micro-modèle synthétique, une version plus réaliste est introduite. Elle suit un cycle classique “\textbf{entraînement hors-ligne} \textrightarrow{} \textbf{sérialisation} \textrightarrow{} \textbf{prédiction en ligne}” :
 \begin{enumerate}[leftmargin=1.3cm]
@@ -323,7 +354,7 @@ LP001005 Male   Yes     0         Graduate      Yes           3000            0.
 LP001006 Male   Yes     0         Not Graduate  No            2583            2358.0            120.0      360.0            1.0            Urban         Y
 LP001008 Male   No      0         Graduate      No            6000            0.0               141.0      360.0            1.0            Urban         Y
 \end{CodeBlock}
-    \item \textbf{Entraînement hors-ligne} (\texttt{ml/train\_credit\_model.py}) : construction d'un \textit{pipeline} scikit-learn (prétraitement + modèle). Trois modèles testés (régression logistique, arbre, random forest). Sélection du meilleur sur ROC AUC/F1, puis sauvegarde du pipeline complet (prépro + modèle) avec \texttt{joblib} dans \texttt{scoring/model\_credit.pkl}.
+    \item \textbf{Entraînement hors-ligne} (\texttt{python manage.py train\_credit\_model}) : construction d'un \textit{pipeline} scikit-learn (prétraitement + modèle). Trois modèles testés (régression logistique, arbre, random forest). Sélection du meilleur sur ROC AUC/F1, puis sauvegarde du pipeline complet (prépro + modèle) avec \texttt{joblib} dans \texttt{scoring/model\_credit.pkl}.
     \item \textbf{Chargement en production} (\texttt{scoring/ml.py}) : au démarrage, le pipeline est chargé une seule fois (lazy load, cache). La fonction \texttt{predict\_credit(features: dict)} applique automatiquement le même prétraitement et renvoie la probabilité de “bon payeur”, le label (ACCEPTEE/REFUSEE) et un score 0-100.
     \item \textbf{Fallback} : si le fichier \texttt{model\_credit.pkl} est absent ou invalide, l'heuristique historique est utilisée pour garder une simulation fonctionnelle.
     \item \textbf{Décision} : probabilité $\geq 0{,}5$ $\Rightarrow$ label ACCEPTEE, sinon REFUSEE ; le score affiché est \texttt{proba\_good * 100}.
@@ -537,6 +568,25 @@ Le système Banquise implique trois acteurs principaux :
     \item Consultation des transactions et export CSV (comptes, cartes, crédits)
     \item Blocage massif des cartes via sélection d'identifiants
     \item Accès Django admin pour CRUD complet
+\end{itemize}
+
+\subsection{Module Alertes et Actions Rapides}
+\paragraph{}Page récapitulative affichant les alertes et actions prioritaires pour l'utilisateur, accessible via \texttt{/alertes/}.
+\begin{itemize}[leftmargin=1.5cm]
+    \item Comptes avec solde bas (seuil configurable, par défaut 200 €)
+    \item Prélèvements crédit à venir (7 prochains jours)
+    \item Virements programmés à exécuter dans le mois
+    \item Bouton « Approvisionner » pré-rempli avec l'IBAN du compte concerné
+    \item Liens vers relevé, demande de découvert et historique virements
+\end{itemize}
+
+\subsection{Module Logging et Audit}
+\paragraph{}Journalisation des simulations de crédit pour traçabilité et audit, configurée dans \texttt{settings.py}.
+\begin{itemize}[leftmargin=1.5cm]
+    \item Fichier de log : \texttt{demandes\_credits.log}
+    \item Format : horodatage, niveau, message structuré
+    \item Données enregistrées : utilisateur, montant, durée, revenus, apport, dettes, score, décision IA
+    \item Rotation des logs recommandée en production
 \end{itemize}
 
 \section{Besoins non fonctionnels}
@@ -914,39 +964,63 @@ credit.save(...)
 Cet extrait montre le rattrapage automatique des mensualités dues en fonction de la date de demande et du nombre d'échéances déjà payées.
 
 \subsection{Scoring crédit}
-Le calcul du score de crédit combine une heuristique et un micro-modèle logistique entraîné à la volée :
+Le pipeline de scoring Banquise utilise une architecture à \textbf{3 couches} :
 \begin{itemize}[leftmargin=1.5cm]
-    \item \textbf{DTI} : mensualité + charges / revenus (pénalité au-delà de 30\%, seuil dynamique 42\% ou 47\% selon revenus)
-    \item \textbf{LTV} : pénalité au-delà de 85\% (seuil jusqu'à 97\% si montant $\geq$ 250k€ et apport $\geq$ 10\%)
-    \item \textbf{Revenus et apport} : bonus si apport $\geq$ 20\% ; malus si revenus $<$ 2000€
-    \item \textbf{Profil} : bonus CDI, bonus propriétaire, bonus santé BON
-    \item \textbf{Modèle ML} : régression logistique sur dataset synthétique (revenus, DTI, LTV, ratio apport), moyenné avec le score heuristique
-    \item \textbf{Décision IA} : score final $\geq$ 55 $\Rightarrow$ avis auto accepté ; sinon refus (statut métier reste EN\_ATTENTE jusqu’à validation admin)
-    \item \textbf{Suggestion} : si DTI dépasse 35\%, proposition d'une mensualité cible et d'une durée ajustée (plafond 40 ans)
+    \item \textbf{Couche 1 — Hard Rules (Knockout)} : Règles absolues provoquant un refus immédiat.
+    \begin{itemize}
+        \item DTI $>$ 45\% $\Rightarrow$ refus
+        \item Reste-à-vivre $<$ 800€ + 300€/enfant $\Rightarrow$ refus
+        \item Mensualité insuffisante pour couvrir le capital $\Rightarrow$ refus
+    \end{itemize}
+    \item \textbf{Couche 2 — ML Risk Assessment} : Si les Hard Rules passent, le modèle Random Forest est consulté.
+    \begin{itemize}
+        \item Features : revenus, montant, durée, historique crédit, personnes à charge, etc.
+        \item Retourne : probabilité de "bon payeur", label (ACCEPTEE/REFUSEE), score 0-100.
+    \end{itemize}
+    \item \textbf{Couche 3 — Policy Adjustments} : Bonus/malus appliqués au score ML.
+    \begin{itemize}
+        \item +5 si santé = BON
+        \item +10 si apport $\geq$ 10\% du montant
+        \item +15 si DTI $<$ 35\%, +5 si DTI $<$ 40\%
+        \item +5 si reste-à-vivre $>$ 1,5× seuil minimal
+    \end{itemize}
 \end{itemize}
 
-\paragraph{Formule heuristique (profil “bon”)} Le score heuristique est initialisé à 100 et pénalisé/bonifié ainsi :
-{\small
-\begin{multline*}
-\text{score\_h} = \max\Big(0,\ \min\big(100,\ 100 - \underbrace{\max(0,DTI-30)}_{\text{malus DTI}} - \underbrace{0{,}25\times \max(0,LTV-85)}_{\text{malus LTV}} \\
-- \underbrace{\mathbf{1}_{revenus<2000}\times 8}_{\text{revenus faibles}} + \underbrace{\mathbf{1}_{apport\ge 20\%}\times 10}_{\text{bonus apport}} + \underbrace{\mathbf{1}_{CDI}\times 10}_{\text{bonus CDI}} + \underbrace{\mathbf{1}_{proprio}\times 10}_{\text{bonus logement}} + \underbrace{\mathbf{1}_{santé=BON}\times 2}_{\text{bonus santé}} \big)\Big)
-\end{multline*}
-}
-Le score final est la moyenne \(\frac{\text{score\_heur} + \text{score\_ml}}{2}\) (si \texttt{numpy} indisponible : score heuristique seul) ; un crédit est considéré “bon” par l’IA si le score final $\geq 55$.
+\paragraph{Décision finale}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Score final $\geq$ 80 $\Rightarrow$ acceptation garantie
+    \item Score final $\geq$ 50 $\Rightarrow$ avis IA \og ACCEPTEE \fg{}
+    \item Score final $<$ 50 $\Rightarrow$ refus systématique
+    \item Fallback : si modèle ML indisponible, statut \og EN\_ATTENTE \fg{} pour révision manuelle.
+\end{itemize}
 
-\paragraph{Extrait de code (seuils et avis IA)} 
+\paragraph{Extrait de code (pipeline 3 couches)} 
 \begin{verbatim}
-final_score = int((score + (ml_score if ml_score else score)) / 2)
-ia_decision = 'ACCEPTEE' if final_score >= 55 else 'REFUSEE'
-dti_limit = 42 if revenus_mensuels < 6000 else 47
-ltv_limit = 97 if montant >= 250000 and apport >= 0.10*montant else 95
+# LAYER 1: HARD RULES
+DTI_LIMIT = Decimal("45")
+if dti > DTI_LIMIT:
+    knockout_reason = f"DTI excessif ({dti:.1f}% > 45%)"
+if reste_vivre < subsistence_threshold:
+    knockout_reason = f"Reste à vivre insuffisant"
+
+# LAYER 2: ML
+ml_result = predict_credit(ml_payload)
+base_score = ml_result["score_0_100"]
+
+# LAYER 3: POLICY ADJUSTMENTS
+if dti < Decimal("35"): policy_adj += 15
+if reste_vivre > subsistence_threshold * Decimal("1.5"): policy_adj += 5
+final_score = min(100, max(0, base_score + policy_adj))
+
+if final_score >= 80: ia_decision = 'ACCEPTEE'
+if final_score < 50: ia_decision = 'REFUSEE'
 \end{verbatim}
-Cet extrait montre le calcul du score final, l'avis IA et les seuils DTI/LTV dynamiques.
+Cet extrait montre le pipeline 3 couches avec les seuils actuels.
 
 \subsection{Cycle de vie du crédit}
 \begin{enumerate}
     \item Client remplit le formulaire de simulation
-    \item Système calcule le score et génère un avis IA (score final $\geq$ 55 = avis accepté)
+    \item Système calcule le score via pipeline 3 couches (score final $\geq$ 50 = avis accepté)
     \item Statut initial : « EN\_ATTENTE » (même en cas d'avis IA accepté)
     \item Notification envoyée au client et aux admins, possibilité de soumettre ou de garder la simulation
     \item Admin examine la demande et décide
@@ -1023,7 +1097,7 @@ Ce chapitre présente l'architecture logique et physique du système, ainsi que 
 \hline
 \texttt{scoring.templatetags} & Filtres personnalisés (ratio, multiply/subtract, accès dictionnaire) \\
 \hline
-\texttt{ml/train\_credit\_model.py} & Script d'entraînement offline (pandas/scikit-learn) pour générer \texttt{model\_credit.pkl} \\
+\texttt{manage.py train\_credit\_model} & Commande Django d'entraînement offline (pandas/scikit-learn) pour générer \texttt{model\_credit.pkl} \\
 \hline
 \texttt{templates/} & Templates HTML avec Tailwind CSS et Bootstrap Icons \\
 \hline
@@ -1947,8 +2021,9 @@ Banquise2.0/
 |   `-- images/
 |-- media/                 # Fichiers uploadés
 |-- data/                  # Datasets publics pour scorer (GiveMeSomeCredit, German Credit…)
-|-- ml/                    # Scripts d'entraînement (train_credit_model.py)
-|-- scoring/model_credit.pkl # Pipeline ML sérialisé (ou générer via ml/train_credit_model.py)
+|-- scoring/management/commands/  # Commandes Django custom
+|   `-- train_credit_model.py     # Entraînement ML (python manage.py train_credit_model)
+|-- scoring/model_credit.pkl      # Pipeline ML sérialisé
 |-- manage.py              # Commandes Django
 `-- requirements.txt       # Dépendances Python
 `-- cahier_des_charges.tex  # Spec. fonctionnelles/techniques

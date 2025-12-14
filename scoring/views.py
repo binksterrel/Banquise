@@ -1702,6 +1702,8 @@ def virement(request):
             initial_data['montant'] = request.GET.get('montant')
         if request.GET.get('motif'):
             initial_data['motif'] = request.GET.get('motif')
+        if request.GET.get('iban'):
+            initial_data['nouveau_beneficiaire_iban'] = request.GET.get('iban')
                 
         form = VirementForm(request.user, initial=initial_data)
         
@@ -2960,7 +2962,7 @@ def alertes_view(request):
         low_balance_items.append({
             'compte': c,
             'seuil': SEUIL_BAS,
-            'topup_url': reverse('virement') + f"?vers={c.id}", # Lien prérempli
+            'topup_url': reverse('virement') + f"?vers={c.id}&iban={c.numero_compte}", # Lien prérempli avec IBAN
             'releve_url': reverse('releve_compte', args=[c.id])
         })
 
