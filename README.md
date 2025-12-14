@@ -1,4 +1,4 @@
-# Banquise 🏔️
+# Banquise
 
 **Banquise** est une néobanque web complète développée avec Django 4.2. Elle propose : gestion de comptes, cartes bancaires, virements SEPA, abonnements, crédit avec scoring IA, notifications temps réel, support chat et console d'administration dédiée.
 
