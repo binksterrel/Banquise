@@ -332,6 +332,8 @@ class SimulationPretForm(forms.ModelForm):
     dettes_mensuelles = forms.IntegerField(label="Autres crédits en cours (€)", required=False, min_value=0)
     jour_prelevement = forms.IntegerField(label="Jour souhaité de prélèvement", min_value=1, max_value=28, initial=5)
     compte_versement = forms.ModelChoiceField(queryset=Compte.objects.none(), label="Compte à créditer", required=True)
+    marie = forms.BooleanField(label="Je suis marié(e) / pacsé(e)", required=False)
+    diplome = forms.BooleanField(label="Je suis diplômé(e) (Bac ou plus)", required=False, initial=True)
     
     class Meta:
         model = DemandeCredit

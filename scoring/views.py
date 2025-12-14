@@ -1971,8 +1971,8 @@ def page_simulation(request):
                             "duree_mois": nb_mois,
                             "historique_credit": 1,  # Défaut = bon historique
                             "personnes_a_charge": dependants,
-                            "marie": 0,  # Inconnu, défaut
-                            "diplome": 1,  # Défaut = diplômé
+                            "marie": 1 if demande.marie else 0,
+                            "diplome": 1 if demande.diplome else 0,
                             "independant": 0,  # Défaut = salarié
                         }
                         

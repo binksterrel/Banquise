@@ -160,6 +160,8 @@ class DemandeCredit(models.Model):
     loyer_actuel = models.IntegerField(default=0)
     dettes_mensuelles = models.IntegerField(default=0)
     enfants_a_charge = models.IntegerField(default=0)
+    marie = models.BooleanField(default=False, verbose_name="Marié(e)")
+    diplome = models.BooleanField(default=True, verbose_name="Diplômé(e) (Bac+)")
     emploi_snapshot = models.ForeignKey(TypeEmploi, on_delete=models.SET_NULL, null=True, blank=True)
     logement_snapshot = models.ForeignKey(TypeLogement, on_delete=models.SET_NULL, null=True, blank=True)
     sante_snapshot = models.CharField(max_length=10, choices=ETAT_SANTE_CHOIX, default='BON')
