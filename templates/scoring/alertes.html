@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Rappels & actions{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-6">
+    <div class="glass-panel p-6 md:p-8 rounded-3xl">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+                <p class="text-xs font-bold uppercase text-ice-600 tracking-[0.2em]">Rappels automatiques</p>
+                <h1 class="text-2xl font-display font-bold text-slate-900">Actions rapides</h1>
+                <p class="text-sm text-slate-500 mt-1">Généré à l’ouverture de la page (mode opportuniste).</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="{% url 'historique_virements' %}" class="px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50">Historique virements</a>
+                <a href="{% url 'notifications' %}" class="px-4 py-2 rounded-xl bg-ice-600 text-white text-xs font-bold hover:bg-ice-700">Notifications</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-6">
+        <div class="glass-panel p-6 rounded-3xl space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="font-display font-bold text-slate-900">Solde bas</h2>
+                <span class="text-xs font-bold text-slate-500">Seuil {{ seuil_solde_bas }} €</span>
+            </div>
+            <div class="space-y-3">
+                {% for it in low_balance %}
+                <div class="p-4 rounded-2xl border border-amber-100 bg-amber-50/70">
+                    <p class="text-xs font-bold uppercase tracking-[0.15em] text-amber-700">{{ it.compte.get_type_compte_display }}</p>
+                    <p class="text-lg font-bold text-slate-900 mt-1">{{ it.compte.solde }} €</p>
+                    <p class="text-xs text-slate-600 mt-1">En dessous du seuil ({{ it.seuil }} €).</p>
+                    <div class="flex flex-wrap gap-2 mt-3">
+                        {% if it.topup_url %}
+                        <a href="{{ it.topup_url }}" class="px-3 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800">Approvisionner</a>
+                        {% endif %}
+                        <a href="{{ it.releve_url }}" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50">Voir relevé</a>
+                        <a href="{% url 'demande_decouvert' %}" class="px-3 py-2 rounded-xl border border-ice-200 bg-ice-50 text-xs font-bold text-ice-800 hover:bg-ice-100">Demander découvert</a>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-500">Aucun compte sous le seuil.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="glass-panel p-6 rounded-3xl space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="font-display font-bold text-slate-900">Prélèvements à venir</h2>
+                <span class="text-xs font-bold text-slate-500">7 jours</span>
+            </div>
+            <div class="space-y-3">
+                {% for it in credit_upcoming %}
+                <div class="p-4 rounded-2xl border border-slate-100 bg-white/80">
+                    <p class="text-xs text-slate-500">{{ it.due_date|date:"d M Y" }}{% if it.days == 0 %} · aujourd’hui{% elif it.days == 1 %} · demain{% else %} · dans {{ it.days }} jours{% endif %}</p>
+                    <p class="font-bold text-slate-900">{{ it.credit.produit.nom|default:"Crédit" }}</p>
+                    <p class="text-sm text-slate-600">Mensualité : <span class="font-bold">{{ it.mensualite }} €</span></p>
+                    <div class="flex gap-2 mt-3">
+                        <a href="{{ it.details_url }}" class="px-3 py-2 rounded-xl bg-ice-600 text-white text-xs font-bold hover:bg-ice-700">Voir échéancier</a>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-500">Aucun prélèvement dans les prochains jours.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="glass-panel p-6 rounded-3xl space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="font-display font-bold text-slate-900">Virements à venir</h2>
+                <span class="text-xs font-bold text-slate-500">d'ici {{ virements_mois_fin|date:"d M" }}</span>
+            </div>
+            <div class="space-y-3">
+                {% for vp in virements_mois %}
+                <div class="p-4 rounded-2xl border border-ice-100 bg-ice-50/60">
+                    <p class="text-xs text-slate-500">Exécution : {{ vp.prochaine_execution|date:"d M Y" }}</p>
+                    <p class="text-lg font-bold text-slate-900">{{ vp.montant }} €</p>
+                    <p class="text-xs text-slate-600 mt-1">
+                        {% if vp.beneficiaire %}{{ vp.beneficiaire.nom }}{% elif vp.cible_phone %}Téléphone {{ vp.cible_phone }}{% elif vp.cible_iban %}IBAN {{ vp.cible_iban }}{% else %}Destinataire{% endif %}
+                    </p>
+                    <p class="text-[11px] text-slate-500 mt-1">{{ vp.motif|default:"(Sans motif)" }}</p>
+                    <div class="flex flex-wrap gap-2 mt-3">
+                        <form method="post" action="{% url 'cancel_virement_programme' vp.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="px-3 py-2 rounded-xl bg-yellow-50 text-yellow-700 border border-yellow-200 text-xs font-bold hover:bg-yellow-100">Pause</button>
+                        </form>
+                        <a href="{% url 'virement' %}" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50">Ouvrir</a>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-500">Aucun virement programmé sur la période.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

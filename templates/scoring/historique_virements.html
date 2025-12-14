@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Historique des virements{% endblock %}
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+<div class="glass-panel p-6 md:p-8 rounded-3xl">
+<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
+<div>
+<p class="text-xs font-bold uppercase text-ice-600 tracking-[0.2em]">Virements</p>
+<h1 class="text-2xl font-display font-bold text-slate-900">Historique</h1>
+<p class="text-sm text-slate-500">Réutilisez un virement en un clic : répéter, dupliquer ou rendre mensuel.</p>
+</div>
+<a href="{% url 'virement' %}" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800">Nouveau virement</a>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+<div class="inline-flex rounded-2xl border border-slate-200 bg-white overflow-hidden">
+<a href="?sens=envoyes" class="px-4 py-2 text-xs font-bold {% if sens != 'recus' %}bg-ice-50 text-ice-800{% else %}text-slate-700 hover:bg-slate-50{% endif %}">Envoyés</a>
+<a href="?sens=recus" class="px-4 py-2 text-xs font-bold {% if sens == 'recus' %}bg-ice-50 text-ice-800{% else %}text-slate-700 hover:bg-slate-50{% endif %}">Reçus</a>
+</div>
+<div class="text-xs text-slate-500">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</div>
+</div>
+<div class="space-y-3">
+{% for it in items %}
+<div class="p-4 rounded-2xl border border-slate-100 bg-white/80 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+<div class="min-w-0">
+<p class="text-xs text-slate-500">
+{{ it.date_execution|date:"d M Y H:i" }} · {{ it.compte.get_type_compte_display }}
+</p>
+<div class="flex items-center gap-2">
+<p class="font-bold text-slate-900 text-lg">{{ it.montant }} €</p>
+{% if it.is_permanent %}
+<span class="text-[11px] font-bold px-2 py-1 rounded-full bg-ice-50 text-ice-800 border border-ice-100">Permanent</span>
+{% endif %}
+</div>
+<p class="text-sm text-slate-600 truncate">
+{% if it.dest %}{{ it.dest }}{% else %}{{ it.libelle }}{% endif %}
+</p>
+</div>
+{% if sens != 'recus' %}
+<div class="flex flex-wrap gap-2">
+<a href="{% url 'virement_depuis_transaction' it.id 'duplicate' %}"
+class="px-3 py-2 rounded-xl bg-ice-600 text-white text-xs font-bold hover:bg-ice-700">Dupliquer</a>
+</div>
+{% endif %}
+</div>
+{% empty %}
+<p class="text-slate-500 text-sm">Aucun virement dans l’historique.</p>
+{% endfor %}
+</div>
+<div class="flex items-center justify-between mt-6">
+<div class="text-xs text-slate-500">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</div>
+<div class="flex items-center gap-2">
+{% if page_obj.has_previous %}
+<a class="px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50" href="?sens={{ sens }}&page={{ page_obj.previous_page_number }}">Précédent</a>
+{% endif %}
+{% if page_obj.has_next %}
+<a class="px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50" href="?sens={{ sens }}&page={{ page_obj.next_page_number }}">Suivant</a>
+{% endif %}
+</div>
+</div>
+</div>
+</div>
+{% endblock %}

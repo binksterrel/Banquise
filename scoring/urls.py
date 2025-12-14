@@ -26,6 +26,8 @@ urlpatterns = [
     
     # --- VIREMENTS & BENEFICIAIRES ---
     path('virement/', views.virement, name='virement'),
+    path('virements/historique/', views.historique_virements, name='historique_virements'),
+    path('virements/transaction/<int:transaction_id>/<str:action>/', views.virement_depuis_transaction, name='virement_depuis_transaction'),
     path('virements/programme/<int:vp_id>/cancel/', views.cancel_virement_programme, name='cancel_virement_programme'),
     path('virements/programme/<int:vp_id>/resume/', views.resume_virement_programme, name='resume_virement_programme'),
     path('virements/programme/<int:vp_id>/delete/', views.delete_virement_programme, name='delete_virement_programme'),
@@ -67,6 +69,7 @@ urlpatterns = [
     path('cookies/', views.page_cookies, name='cookies'),
     path('abonnements/', views.page_abonnements, name='abonnements'),
     path('notifications/', views.notifications_view, name='notifications'),
+    path('alertes/', views.alertes_view, name='alertes'), # Nouvelle route pour Actions Rapides
     path('projet-immobilier/', views.projet_immobilier, name='projet_immobilier'),
 
     # --- CHAT SUPPORT ---

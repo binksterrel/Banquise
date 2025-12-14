@@ -144,3 +144,30 @@ EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "fdb7e18c4c2243")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "2e49fe13365aac")
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "1") == "1"
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "no-reply@banquise.demo")
+
+# --- LOGGING CONFIGURATION ---
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} [{levelname}] {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'credit_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'demandes_credits.log',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'scoring': {
+            'handlers': ['credit_file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}

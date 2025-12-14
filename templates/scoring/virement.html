@@ -1,627 +1,588 @@
 {% extends "base.html" %}
-
 {% block title %}Virement - Banquise{% endblock %}
-
 {% block extra_css %}
+
 <style>
-    /* Styles du formulaire */
-    .form-control,
-    .form-select {
-        background-color: rgba(255, 255, 255, 0.8);
-        border: 1px solid #e2e8f0;
-        padding: 0.875rem 1rem;
-        border-radius: 1rem;
-        transition: all 0.2s ease;
-        width: 100%;
-        color: #1e293b;
-        font-weight: 500;
-    }
-
-    .form-control:focus,
-    .form-select:focus {
-        background-color: #ffffff;
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
-        outline: none;
-    }
-
-    label {
-        font-family: 'Outfit', sans-serif;
-        font-weight: 600;
-        font-size: 0.875rem;
-        color: #475569;
-        margin-bottom: 0.5rem;
-        display: block;
-    }
-
-    /* Style pour les messages d'erreur Django */
-    .alert {
-        padding: 1rem;
-        border-radius: 1rem;
-        margin-bottom: 1.5rem;
-        font-size: 0.9rem;
-        font-weight: 500;
-    }
-
-    .alert-error,
-    .alert-danger {
-        background-color: #fee2e2;
-        color: #991b1b;
-        border: 1px solid #fecaca;
-    }
-
-    .alert-success {
-        background-color: #dcfce7;
-        color: #166534;
-        border: 1px solid #bbf7d0;
-    }
+/* Styles du formulaire */
+.form-control,
+.form-select {
+background-color: rgba(255, 255, 255, 0.8);
+border: 1px solid #e2e8f0;
+padding: 0.875rem 1rem;
+border-radius: 1rem;
+transition: all 0.2s ease;
+width: 100%;
+color: #1e293b;
+font-weight: 500;
+}
+.form-control:focus,
+.form-select:focus {
+background-color: #ffffff;
+border-color: #0ea5e9;
+box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
+outline: none;
+}
+label {
+font-family: 'Outfit', sans-serif;
+font-weight: 600;
+font-size: 0.875rem;
+color: #475569;
+margin-bottom: 0.5rem;
+display: block;
+}
+/* Style pour les messages d'erreur Django */
+.alert {
+padding: 1rem;
+border-radius: 1rem;
+margin-bottom: 1.5rem;
+font-size: 0.9rem;
+font-weight: 500;
+}
+.alert-error,
+.alert-danger {
+background-color: #fee2e2;
+color: #991b1b;
+border: 1px solid #fecaca;
+}
+.alert-success {
+background-color: #dcfce7;
+color: #166534;
+border: 1px solid #bbf7d0;
+}
 </style>
 {% endblock %}
-
 {% block content %}
 {% now "Y-m-d" as today_str %}
 <div class="relative min-h-screen overflow-hidden">
-    <div class="absolute top-0 left-0 w-full h-full z-0 pointer-events-none">
-        <div class="absolute top-20 left-20 w-96 h-96 bg-ice-200 rounded-full blur-3xl opacity-50"></div>
-    </div>
-
-    <div class="relative z-10 max-w-6xl mx-auto py-12 px-4">
-
-        <div class="mb-10">
-            <h1 class="text-4xl font-display font-bold text-slate-900">Effectuer un virement</h1>
-            <p class="text-slate-500 text-lg mt-2">Envoyez de l'argent en toute sécurité, instantanément.</p>
-        </div>
-
-        {% if messages %}
-        <div class="mb-6">
-            {% for message in messages %}
-            <div
-                class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-{{ message.tags }}{% endif %}">
-                <i class="bi bi-info-circle-fill mr-2"></i> {{ message }}
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        {% if form.non_field_errors %}
-        <div class="alert alert-danger">
-            {{ form.non_field_errors }}
-        </div>
-        {% endif %}
-
-        <div class="grid lg:grid-cols-3 gap-8">
-
-            <div class="lg:col-span-2 space-y-6">
-                <div class="glass-premium p-8 md:p-10 rounded-[2rem] relative overflow-hidden">
-                    <div
-                        class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-ice-100 to-transparent rounded-full opacity-50 pointer-events-none blur-2xl">
-                    </div>
-
-                    <form method="POST" class="space-y-8 relative z-10">
-                        {% csrf_token %}
-                        <input type="hidden" name="operation_id" value="{{ operation_id }}">
-                        {% with form.data.nouveau_beneficiaire_iban|default_if_none:'' as iban_full %}
-
-                        <div>
-                            <label class="flex items-center gap-2 mb-3">
-                                <i class="bi bi-wallet2 text-ice-600"></i> Compte à débiter
-                            </label>
-                            <div class="relative">
-                                <select name="compte_emetteur" class="form-select appearance-none" required>
-                                    {% for compte in comptes %}
-                                    <option value="{{ compte.id }}" {% if form.data.compte_emetteur == compte.id|stringformat:'s' %}selected{% endif %}>
-                                        {{ compte.get_type_compte_display }} - Solde: {{ compte.solde }} €
-                                    </option>
-                                    {% empty %}
-                                    <option disabled selected>Aucun compte disponible</option>
-                                    {% endfor %}
-                                </select>
-                                <i
-                                    class="bi bi-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
-                            </div>
-                            {% if form.compte_emetteur.errors %}
-                            <p class="text-red-500 text-sm mt-1">{{ form.compte_emetteur.errors.0 }}</p>
-                            {% endif %}
-                        </div>
-
-                        <hr class="border-slate-200">
-
-                        <div>
-                            <label class="flex items-center gap-2">
-                                <i class="bi bi-person-badge text-ice-600"></i> Destinataire
-                            </label>
-
-                            <div class="flex gap-2 flex-wrap mt-2">
-                                <button type="button" class="dest-tab px-4 py-2 rounded-xl text-sm font-bold border border-slate-200 text-slate-700 bg-white active" data-target="dest-bene">Bénéficiaire</button>
-                                <button type="button" class="dest-tab px-4 py-2 rounded-xl text-sm font-bold border border-slate-200 text-slate-700 bg-white" data-target="dest-iban">IBAN</button>
-                                <button type="button" class="dest-tab px-4 py-2 rounded-xl text-sm font-bold border border-slate-200 text-slate-700 bg-white" data-target="dest-phone">Téléphone</button>
-                            </div>
-
-                            <div id="dest-bene" class="dest-pane space-y-2 mt-2">
-                                <div class="text-xs font-bold text-slate-400 uppercase">Bénéficiaire enregistré</div>
-                                <div class="relative">
-                                    <select name="beneficiaire_enregistre" class="form-select appearance-none">
-                                        <option value="" selected>-- Choisir un bénéficiaire --</option>
-                                        {% for bene in form.beneficiaire_enregistre.field.queryset %}
-                                        <option value="{{ bene.id }}" {% if form.data.beneficiaire_enregistre == bene.id|stringformat:'s' %}selected{% endif %}>{{ bene.nom }}{% if bene.telephone %} - {{ bene.telephone }}{% endif %}{% if bene.iban %} ({{ bene.iban }}){% endif %}</option>
-                                        {% endfor %}
-                                    </select>
-                                    <i
-                                        class="bi bi-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
-                                </div>
-                            </div>
-
-                            <div id="dest-iban" class="dest-pane space-y-2 mt-2 hidden">
-                                <div class="text-xs font-bold text-slate-400 uppercase">IBAN</div>
-
-                                <div
-                                    class="flex shadow-sm rounded-xl overflow-hidden border border-slate-200 focus-within:border-ice-500 focus-within:ring-4 focus-within:ring-ice-500/10 transition-all bg-white/80">
-
-                                    <div
-                                        class="relative bg-slate-50 border-r border-slate-200 min-w-[130px] max-w-[160px]">
-                                        <select id="iban-prefix"
-                                            class="w-full h-full pl-3 pr-8 py-3 bg-transparent text-slate-700 font-bold font-mono text-sm appearance-none focus:outline-none cursor-pointer truncate">
-                                            <optgroup label="Fréquents">
-                                                <option value="FR76" selected>🇫🇷 FR76</option>
-                                                <option value="BE68">🇧🇪 BE68</option>
-                                                <option value="DE89">🇩🇪 DE89</option>
-                                                <option value="ES64">🇪🇸 ES64</option>
-                                                <option value="IT60">🇮🇹 IT60</option>
-                                                <option value="GB29">🇬🇧 GB29</option>
-                                                <option value="CH93">🇨🇭 CH93</option>
-                                            </optgroup>
-                                            <optgroup label="Monde">
-                                                <option value="AF12">🇦🇫 AF12</option>
-                                                <option value="ZA23">🇿🇦 ZA23</option>
-                                                <option value="AL45">🇦🇱 AL45</option>
-                                                <option value="DZ88">🇩🇿 DZ88</option>
-                                                <option value="DE89">🇩🇪 DE89</option>
-                                                <option value="AD10">🇦🇩 AD10</option>
-                                                <option value="SA33">🇸🇦 SA33</option>
-                                                <option value="AR71">🇦🇷 AR71</option>
-                                                <option value="AM22">🇦🇲 AM22</option>
-                                                <option value="AU55">🇦🇺 AU55</option>
-                                                <option value="AT61">🇦🇹 AT61</option>
-                                                <option value="AZ09">🇦🇿 AZ09</option>
-                                                <option value="BH44">🇧🇭 BH44</option>
-                                                <option value="BE68">🇧🇪 BE68</option>
-                                                <option value="BY11">🇧🇾 BY11</option>
-                                                <option value="BA99">🇧🇦 BA99</option>
-                                                <option value="BR82">🇧🇷 BR82</option>
-                                                <option value="BG35">🇧🇬 BG35</option>
-                                                <option value="CA14">🇨🇦 CA14</option>
-                                                <option value="CN77">🇨🇳 CN77</option>
-                                                <option value="CY51">🇨🇾 CY51</option>
-                                                <option value="KR30">🇰🇷 KR30</option>
-                                                <option value="HR19">🇭🇷 HR19</option>
-                                                <option value="DK21">🇩🇰 DK21</option>
-                                                <option value="EG56">🇪🇬 EG56</option>
-                                                <option value="AE90">🇦🇪 AE90</option>
-                                                <option value="ES64">🇪🇸 ES64</option>
-                                                <option value="EE42">🇪🇪 EE42</option>
-                                                <option value="US01">🇺🇸 US01</option>
-                                                <option value="FI18">🇫🇮 FI18</option>
-                                                <option value="FR76">🇫🇷 FR76</option>
-                                                <option value="GE33">🇬🇪 GE33</option>
-                                                <option value="GR91">🇬🇷 GR91</option>
-                                                <option value="HU58">🇭🇺 HU58</option>
-                                                <option value="IN25">🇮🇳 IN25</option>
-                                                <option value="ID74">🇮🇩 ID74</option>
-                                                <option value="IR83">🇮🇷 IR83</option>
-                                                <option value="IE20">🇮🇪 IE20</option>
-                                                <option value="IS04">🇮🇸 IS04</option>
-                                                <option value="IL38">🇮🇱 IL38</option>
-                                                <option value="IT60">🇮🇹 IT60</option>
-                                                <option value="JP88">🇯🇵 JP88</option>
-                                                <option value="JO52">🇯🇴 JO52</option>
-                                                <option value="KZ66">🇰🇿 KZ66</option>
-                                                <option value="LB15">🇱🇧 LB15</option>
-                                                <option value="LI77">🇱🇮 LI77</option>
-                                                <option value="LT99">🇱🇹 LT99</option>
-                                                <option value="LU55">🇱🇺 LU55</option>
-                                                <option value="MK07">🇲🇰 MK07</option>
-                                                <option value="MT22">🇲🇹 MT22</option>
-                                                <option value="MA48">🇲🇦 MA48</option>
-                                                <option value="MU36">🇲🇺 MU36</option>
-                                                <option value="MR59">🇲🇷 MR59</option>
-                                                <option value="MX81">🇲🇽 MX81</option>
-                                                <option value="MD92">🇲🇩 MD92</option>
-                                                <option value="MC05">🇲🇨 MC05</option>
-                                                <option value="ME17">🇲🇪 ME17</option>
-                                                <option value="NO84">🇳🇴 NO84</option>
-                                                <option value="NZ11">🇳🇿 NZ11</option>
-                                                <option value="PK63">🇵🇰 PK63</option>
-                                                <option value="PS28">🇵🇸 PS28</option>
-                                                <option value="NL95">🇳🇱 NL95</option>
-                                                <option value="PL34">🇵🇱 PL34</option>
-                                                <option value="PT50">🇵🇹 PT50</option>
-                                                <option value="QA79">🇶🇦 QA79</option>
-                                                <option value="RO41">🇷🇴 RO41</option>
-                                                <option value="GB29">🇬🇧 GB29</option>
-                                                <option value="RU03">🇷🇺 RU03</option>
-                                                <option value="SM98">🇸🇲 SM98</option>
-                                                <option value="RS10">🇷🇸 RS10</option>
-                                                <option value="SG65">🇸🇬 SG65</option>
-                                                <option value="SK12">🇸🇰 SK12</option>
-                                                <option value="SI56">🇸🇮 SI56</option>
-                                                <option value="SE30">🇸🇪 SE30</option>
-                                                <option value="CH93">🇨🇭 CH93</option>
-                                                <option value="TN54">🇹🇳 TN54</option>
-                                                <option value="TR14">🇹🇷 TR14</option>
-                                                <option value="UA70">🇺🇦 UA70</option>
-                                                <option value="VN88">🇻🇳 VN88</option>
-                                            </optgroup>
-                                        </select>
-                                        <div
-                                            class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                            <i class="bi bi-chevron-down text-xs"></i>
-                                        </div>
-                                    </div>
-
-                                    <input type="text" id="iban-body" maxlength="17" placeholder="0000 0000 0000 00"
-                                        class="w-full py-3 px-4 bg-transparent font-mono text-slate-700 placeholder:text-slate-300 focus:outline-none border-none tracking-wider"
-                                        oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/(.{4})/g, '$1 ').trim()">
-                                </div>
-
-                                <input type="hidden" name="nouveau_beneficiaire_iban" id="real_iban_input">
-                                {% with iban_full|slice:":4" as iban_prefix_val %}
-                                {% with iban_full|slice:"4:" as iban_body_val %}
-                                <input type="hidden" id="iban-prefix-value" value="{{ iban_prefix_val }}">
-                                <input type="hidden" id="iban-body-value" value="{{ iban_body_val|default_if_none:'' }}">
-                                {% endwith %}
-                                {% endwith %}
-
-                                {% if form.nouveau_beneficiaire_iban.errors %}
-                                <p class="text-red-500 text-sm mt-1">{{ form.nouveau_beneficiaire_iban.errors.0 }}</p>
-                                {% endif %}
-                            </div>
-
-                            <div id="dest-phone" class="dest-pane space-y-2 mt-2 hidden">
-                                <div class="text-xs font-bold text-slate-400 uppercase">Téléphone (client Banquise)</div>
-                                <div class="relative">
-                                    <input type="tel" name="nouveau_beneficiaire_phone" placeholder="06 12 34 56 78"
-                                    class="form-control pl-10" inputmode="tel" value="{{ form.data.nouveau_beneficiaire_phone|default_if_none:'' }}">
-                                    <i class="bi bi-telephone absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                                </div>
-                                {% if form.nouveau_beneficiaire_phone.errors %}
-                                <p class="text-red-500 text-sm mt-1">{{ form.nouveau_beneficiaire_phone.errors.0 }}</p>
-                                {% endif %}
-                                <p class="text-xs text-slate-500">Pour envoyer vers un autre client Banquise sans IBAN.</p>
-                            </div>
-
-                            {% if form.errors.beneficiaire_enregistre or form.errors.nouveau_beneficiaire_iban or form.errors.nouveau_beneficiaire_phone %}
-                            <p class="text-red-500 text-sm mt-2">Veuillez choisir un bénéficiaire, un IBAN ou un numéro de téléphone.</p>
-                            {% endif %}
-                        </div>
-
-                        <hr class="border-slate-200">
-
-                        <div class="grid md:grid-cols-2 gap-6">
-                            <div>
-                                <label class="flex items-center gap-2 mb-3">
-                                    <i class="bi bi-currency-euro text-ice-600"></i> Montant
-                                </label>
-                                <div class="relative">
-                                    <input type="number" step="0.01" min="0.01" name="montant" placeholder="0.00" required
-                                        class="form-control pl-4 pr-16 text-2xl font-bold text-slate-900 placeholder:text-slate-300"
-                                        oninput="if (this.value < 0) this.value = ''; this.value = this.value.replace(/[^0-9.,-]/g, '').replace(',', '.');"
-                                        value="{{ form.data.montant|default_if_none:'' }}">
-                                    <span
-                                        class="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 font-bold">EUR</span>
-                                </div>
-                                {% if form.montant.errors %}
-                                <p class="text-red-500 text-sm mt-1">{{ form.montant.errors.0 }}</p>
-                                {% endif %}
-                            </div>
-                            <div>
-                                <label class="flex items-center gap-2 mb-3">
-                                    <i class="bi bi-chat-text text-ice-600"></i> Motif
-                                </label>
-                                <input type="text" name="motif" placeholder="Ex: Loyer" class="form-control h-[3.6rem]" value="{{ form.data.motif|default_if_none:'' }}">
-                            </div>
-                        </div>
-
-                        <div class="glass-panel p-4 rounded-xl bg-white/80 border border-slate-200">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-2">
-                                    <i class="bi bi-calendar3 text-ice-600"></i>
-                                    <p class="font-bold text-slate-800 text-sm">Programmation (optionnel)</p>
-                                </div>
-                                <button type="button" id="plan-toggle"
-                                    class="text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 bg-white hover:border-ice-200 hover:text-ice-700 transition-colors">
-                                    Programmer
-                                </button>
-                            </div>
-                            <div id="plan-box" class="mt-3 space-y-3 hidden">
-                                <div class="grid md:grid-cols-3 gap-3">
-                                    <div>
-                                        <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Date d'exécution</label>
-                                        <input type="date" name="execution_date" class="form-control"
-                                            value="{{ form.data.execution_date|default:today_str }}">
-                                    </div>
-                                    <div>
-                                        <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Récurrence</label>
-                                        <select name="recurrence" class="form-select">
-                                            <option value="NONE" {% if form.data.recurrence == 'NONE' or not form.data.recurrence %}selected{% endif %}>Ponctuel</option>
-                                            <option value="MENSUEL" {% if form.data.recurrence == 'MENSUEL' %}selected{% endif %}>Mensuel</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Seuil solde minimum (€)</label>
-                                        <input type="number" name="solde_minimum" step="0.01" min="0" class="form-control" placeholder="0" value="{{ form.data.solde_minimum|default_if_none:'0' }}">
-                                        <p class="text-[11px] text-slate-500 mt-1">Le virement ne part que si le solde du compte dépasse ce seuil.</p>
-                                    </div>
-                                </div>
-                                <p class="text-xs text-slate-500">Laisse par défaut pour exécuter aujourd'hui. Active uniquement si tu veux planifier ou répéter.</p>
-                            </div>
-                        </div>
-
-                        <div
-                            class="p-5 rounded-2xl border border-slate-200 bg-white/60 flex items-center justify-between cursor-pointer hover:border-ice-300 transition-colors">
-                            <div class="flex items-center gap-4">
-                                <div
-                                    class="w-12 h-12 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center text-xl">
-                                    <i class="bi bi-lightning-charge-fill"></i>
-                                </div>
-                                <div>
-                                    <p class="font-bold text-slate-900">Virement Instantané</p>
-                                    <p class="text-xs text-slate-500">Arrive en moins de 10s (Gratuit)</p>
-                                </div>
-                            </div>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" name="instantane" value="true" class="sr-only peer" checked>
-                                <div
-                                    class="w-12 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-slate-900">
-                                </div>
-                            </label>
-                        </div>
-
-                        <button type="submit"
-                            class="w-full py-4 bg-slate-900 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-3 text-lg">
-                            <span>Valider le virement</span>
-                            <i class="bi bi-arrow-right"></i>
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <div class="space-y-6">
-                <div class="glass-premium p-6 rounded-[2rem]">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-slate-900">Bénéficiaires</h3>
-                        <a href="{% url 'beneficiaires' %}"
-                            class="text-xs text-ice-600 font-bold hover:underline">Gérer</a>
-                    </div>
-
-                    <div class="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
-                        <a href="{% url 'ajouter_beneficiaire' %}"
-                            class="flex flex-col items-center gap-2 min-w-[64px] cursor-pointer group">
-                            <div
-                                class="w-14 h-14 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 group-hover:border-ice-500 group-hover:text-ice-500 transition-colors bg-white/50">
-                                <i class="bi bi-plus-lg text-lg"></i>
-                            </div>
-                            <span class="text-xs font-bold text-slate-500 group-hover:text-ice-600">Nouveau</span>
-                        </a>
-
-                        {% for bene in form.beneficiaire_enregistre.field.queryset|slice:":5" %}
-                        <div class="flex flex-col items-center gap-2 min-w-[64px] cursor-pointer group"
-                            onclick="document.querySelector('select[name=beneficiaire_enregistre]').value='{{ bene.id }}'">
-                            <div
-                                class="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm border-2 border-white shadow-sm group-hover:shadow-md transition-all uppercase">
-                                {{ bene.nom|slice:":2" }}
-                            </div>
-                            <span class="text-xs font-bold text-slate-600 truncate w-16 text-center">{{ bene.nom }}</span>
-                        </div>
-                        {% empty %}
-                        <div class="flex items-center h-14 pl-2">
-                            <span class="text-xs text-slate-400 italic">Aucun favori</span>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <div class="bg-gradient-to-br from-slate-900 to-slate-800 p-6 rounded-[2rem] text-white shadow-xl space-y-4">
-                    <h3 class="font-display font-bold text-lg flex items-center gap-2">
-                        <i class="bi bi-speedometer"></i> Vos plafonds
-                    </h3>
-                    {% if carte_plafond %}
-                    <div class="text-sm text-slate-200">
-                        <p class="font-bold text-white">Carte principale : **** {{ carte_plafond.numero_visible }}</p>
-                        <div class="flex justify-between mt-3">
-                            <span class="text-slate-300">Paiement</span>
-                            <span class="font-bold">{{ carte_plafond.plafond_paiement }} € / mois</span>
-                        </div>
-                        <div class="flex justify-between mt-2">
-                            <span class="text-slate-300">Retrait</span>
-                            <span class="font-bold">{{ carte_plafond.plafond_retrait }} € / semaine</span>
-                        </div>
-                    </div>
-                    {% else %}
-                    <p class="text-sm text-slate-200">Aucune carte active trouvée. Ajoutez ou activez une carte pour gérer vos plafonds.</p>
-                    {% endif %}
-                    <a href="{% if carte_plafond %}{% url 'gestion_plafonds' carte_id=carte_plafond.id %}{% else %}{% url 'cartes' %}{% endif %}"
-                        class="w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 text-sm font-bold transition-colors border border-white/10 flex items-center justify-center gap-2">
-                        Modifier les plafonds
-                    </a>
-                </div>
-
-                <div class="glass-premium p-6 rounded-[2rem] space-y-4">
-                    <div class="flex items-center justify-between">
-                        <h3 class="font-display font-bold text-slate-900 text-lg">Virements programmés</h3>
-                        <div class="text-right">
-                            <span class="block text-xs text-slate-500 font-bold">{{ virements_programmes|length }} au total</span>
-                            {% if prochain_vp %}
-                            <span class="block text-[11px] text-emerald-600 font-bold">Prochain : {{ prochain_vp.prochaine_execution|date:"d M Y" }}</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% if virements_programmes %}
-                    <div class="space-y-3 max-h-72 overflow-y-auto no-scrollbar">
-                        {% for vp in virements_programmes %}
-                        <div class="p-3 rounded-xl border border-slate-200 bg-white/70">
-                            <div class="flex justify-between items-center">
-                                <p class="font-bold text-slate-900">{{ vp.montant }} €</p>
-                                <span class="text-xs font-bold px-2 py-1 rounded-full bg-ice-50 text-ice-700 border border-ice-100">
-                                    {% if vp.recurrence == 'MENSUEL' %}Mensuel{% else %}Ponctuel{% endif %}
-                                </span>
-                            </div>
-                            <p class="text-xs text-slate-500 mt-1">{{ vp.motif|default:"(Sans motif)" }}</p>
-                            <p class="text-xs text-slate-500">Prochaine exécution : {{ vp.prochaine_execution|date:"d M Y" }}</p>
-                            <p class="text-xs text-slate-500">Seuil solde : {{ vp.solde_minimum }} €</p>
-                            <div class="flex gap-2 mt-2">
-                                {% if vp.actif %}
-                                <form method="post" action="{% url 'cancel_virement_programme' vp.id %}">
-                                    {% csrf_token %}
-                                    <button class="px-3 py-1 text-xs font-bold rounded-lg bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-100" type="submit">Pause</button>
-                                </form>
-                                {% else %}
-                                <form method="post" action="{% url 'resume_virement_programme' vp.id %}">
-                                    {% csrf_token %}
-                                    <button class="px-3 py-1 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100" type="submit">Reprendre</button>
-                                </form>
-                                {% endif %}
-                                <form method="post" action="{% url 'delete_virement_programme' vp.id %}">
-                                    {% csrf_token %}
-                                    <button class="px-3 py-1 text-xs font-bold rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100" type="submit">Supprimer</button>
-                                </form>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <p class="text-sm text-slate-500">Aucun virement programmé.</p>
-                    {% endif %}
-                </div>
-            </div>
-
-        </div>
-    </div>
+<div class="absolute top-0 left-0 w-full h-full z-0 pointer-events-none">
+<div class="absolute top-20 left-20 w-96 h-96 bg-ice-200 rounded-full blur-3xl opacity-50"></div>
 </div>
-
+<div class="relative z-10 max-w-6xl mx-auto py-12 px-4">
+<div class="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+<div>
+<h1 class="text-4xl font-display font-bold text-slate-900">Effectuer un virement</h1>
+<p class="text-slate-500 text-lg mt-2">Envoyez de l'argent en toute sécurité, instantanément.</p>
+</div>
+<div class="flex items-center gap-2">
+<a href="{% url 'historique_virements' %}"
+class="px-4 py-2 rounded-xl border border-slate-200 bg-white/80 text-slate-700 text-xs font-bold hover:bg-slate-50">
+Historique
+</a>
+<a href="{% url 'beneficiaires' %}"
+class="px-4 py-2 rounded-xl bg-ice-600 text-white text-xs font-bold hover:bg-ice-700">
+Bénéficiaires
+</a>
+</div>
+</div>
+{% if messages %}
+<div class="mb-6">
+{% for message in messages %}
+<div
+class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-{{ message.tags }}{% endif %}">
+<i class="bi bi-info-circle-fill mr-2"></i> {{ message }}
+</div>
+{% endfor %}
+</div>
+{% endif %}
+{% if form.non_field_errors %}
+<div class="alert alert-danger">
+{{ form.non_field_errors }}
+</div>
+{% endif %}
+<div class="grid lg:grid-cols-3 gap-8">
+<div class="lg:col-span-2 space-y-6">
+<div class="glass-premium p-8 md:p-10 rounded-[2rem] relative overflow-hidden">
+<div
+class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-ice-100 to-transparent rounded-full opacity-50 pointer-events-none blur-2xl">
+</div>
+<form method="POST" class="space-y-8 relative z-10">
+{% csrf_token %}
+<input type="hidden" name="operation_id" value="{{ operation_id }}">
+{% with form.nouveau_beneficiaire_iban.value|default_if_none:'' as iban_full %}
+<div>
+<label class="flex items-center gap-2 mb-3">
+<i class="bi bi-wallet2 text-ice-600"></i> Compte à débiter
+</label>
+<div class="relative">
+<select name="compte_emetteur" class="form-select appearance-none" required>
+{% for compte in comptes %}
+<option value="{{ compte.id }}" {% if form.compte_emetteur.value|stringformat:'s' == compte.id|stringformat:'s' %}selected{% endif %}>
+{{ compte.get_type_compte_display }} - Solde: {{ compte.solde }} €
+</option>
+{% empty %}
+<option disabled selected>Aucun compte disponible</option>
+{% endfor %}
+</select>
+<i
+class="bi bi-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+</div>
+{% if form.compte_emetteur.errors %}
+<p class="text-red-500 text-sm mt-1">{{ form.compte_emetteur.errors.0 }}</p>
+{% endif %}
+</div>
+<hr class="border-slate-200">
+<div>
+<label class="flex items-center gap-2">
+<i class="bi bi-person-badge text-ice-600"></i> Destinataire
+</label>
+<div class="flex gap-2 flex-wrap mt-2">
+<button type="button" class="dest-tab px-4 py-2 rounded-xl text-sm font-bold border border-slate-200 text-slate-700 bg-white active" data-target="dest-bene">Bénéficiaire</button>
+<button type="button" class="dest-tab px-4 py-2 rounded-xl text-sm font-bold border border-slate-200 text-slate-700 bg-white" data-target="dest-iban">IBAN</button>
+<button type="button" class="dest-tab px-4 py-2 rounded-xl text-sm font-bold border border-slate-200 text-slate-700 bg-white" data-target="dest-phone">Téléphone</button>
+</div>
+<div id="dest-bene" class="dest-pane space-y-2 mt-2">
+<div class="text-xs font-bold text-slate-400 uppercase">Bénéficiaire enregistré</div>
+<div class="relative">
+<select name="beneficiaire_enregistre" class="form-select appearance-none">
+<option value="" selected>-- Choisir un bénéficiaire --</option>
+{% for bene in form.beneficiaire_enregistre.field.queryset %}
+<option value="{{ bene.id }}" {% if form.beneficiaire_enregistre.value|stringformat:'s' == bene.id|stringformat:'s' %}selected{% endif %}>{{ bene.nom }}{% if bene.telephone %} - {{ bene.telephone }}{% endif %}{% if bene.iban %} ({{ bene.iban }}){% endif %}</option>
+{% endfor %}
+</select>
+<i
+class="bi bi-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+</div>
+</div>
+<div id="dest-iban" class="dest-pane space-y-2 mt-2 hidden">
+<div class="text-xs font-bold text-slate-400 uppercase">IBAN</div>
+<div
+class="flex shadow-sm rounded-xl overflow-hidden border border-slate-200 focus-within:border-ice-500 focus-within:ring-4 focus-within:ring-ice-500/10 transition-all bg-white/80">
+<div
+class="relative bg-slate-50 border-r border-slate-200 min-w-[130px] max-w-[160px]">
+<select id="iban-prefix"
+class="w-full h-full pl-3 pr-8 py-3 bg-transparent text-slate-700 font-bold font-mono text-sm appearance-none focus:outline-none cursor-pointer truncate">
+<optgroup label="Fréquents">
+<option value="FR76" selected>🇫🇷 FR76</option>
+<option value="BE68">🇧🇪 BE68</option>
+<option value="DE89">🇩🇪 DE89</option>
+<option value="ES64">🇪🇸 ES64</option>
+<option value="IT60">🇮🇹 IT60</option>
+<option value="GB29">🇬🇧 GB29</option>
+<option value="CH93">🇨🇭 CH93</option>
+</optgroup>
+<optgroup label="Monde">
+<option value="AF12">🇦🇫 AF12</option>
+<option value="ZA23">🇿🇦 ZA23</option>
+<option value="AL45">🇦🇱 AL45</option>
+<option value="DZ88">🇩🇿 DZ88</option>
+<option value="DE89">🇩🇪 DE89</option>
+<option value="AD10">🇦🇩 AD10</option>
+<option value="SA33">🇸🇦 SA33</option>
+<option value="AR71">🇦🇷 AR71</option>
+<option value="AM22">🇦🇲 AM22</option>
+<option value="AU55">🇦🇺 AU55</option>
+<option value="AT61">🇦🇹 AT61</option>
+<option value="AZ09">🇦🇿 AZ09</option>
+<option value="BH44">🇧🇭 BH44</option>
+<option value="BE68">🇧🇪 BE68</option>
+<option value="BY11">🇧🇾 BY11</option>
+<option value="BA99">🇧🇦 BA99</option>
+<option value="BR82">🇧🇷 BR82</option>
+<option value="BG35">🇧🇬 BG35</option>
+<option value="CA14">🇨🇦 CA14</option>
+<option value="CN77">🇨🇳 CN77</option>
+<option value="CY51">🇨🇾 CY51</option>
+<option value="KR30">🇰🇷 KR30</option>
+<option value="HR19">🇭🇷 HR19</option>
+<option value="DK21">🇩🇰 DK21</option>
+<option value="EG56">🇪🇬 EG56</option>
+<option value="AE90">🇦🇪 AE90</option>
+<option value="ES64">🇪🇸 ES64</option>
+<option value="EE42">🇪🇪 EE42</option>
+<option value="US01">🇺🇸 US01</option>
+<option value="FI18">🇫🇮 FI18</option>
+<option value="FR76">🇫🇷 FR76</option>
+<option value="GE33">🇬🇪 GE33</option>
+<option value="GR91">🇬🇷 GR91</option>
+<option value="HU58">🇭🇺 HU58</option>
+<option value="IN25">🇮🇳 IN25</option>
+<option value="ID74">🇮🇩 ID74</option>
+<option value="IR83">🇮🇷 IR83</option>
+<option value="IE20">🇮🇪 IE20</option>
+<option value="IS04">🇮🇸 IS04</option>
+<option value="IL38">🇮🇱 IL38</option>
+<option value="IT60">🇮🇹 IT60</option>
+<option value="JP88">🇯🇵 JP88</option>
+<option value="JO52">🇯🇴 JO52</option>
+<option value="KZ66">🇰🇿 KZ66</option>
+<option value="LB15">🇱🇧 LB15</option>
+<option value="LI77">🇱🇮 LI77</option>
+<option value="LT99">🇱🇹 LT99</option>
+<option value="LU55">🇱🇺 LU55</option>
+<option value="MK07">🇲🇰 MK07</option>
+<option value="MT22">🇲🇹 MT22</option>
+<option value="MA48">🇲🇦 MA48</option>
+<option value="MU36">🇲🇺 MU36</option>
+<option value="MR59">🇲🇷 MR59</option>
+<option value="MX81">🇲🇽 MX81</option>
+<option value="MD92">🇲🇩 MD92</option>
+<option value="MC05">🇲🇨 MC05</option>
+<option value="ME17">🇲🇪 ME17</option>
+<option value="NO84">🇳🇴 NO84</option>
+<option value="NZ11">🇳🇿 NZ11</option>
+<option value="PK63">🇵🇰 PK63</option>
+<option value="PS28">🇵🇸 PS28</option>
+<option value="NL95">🇳🇱 NL95</option>
+<option value="PL34">🇵🇱 PL34</option>
+<option value="PT50">🇵🇹 PT50</option>
+<option value="QA79">🇶🇦 QA79</option>
+<option value="RO41">🇷🇴 RO41</option>
+<option value="GB29">🇬🇧 GB29</option>
+<option value="RU03">🇷🇺 RU03</option>
+<option value="SM98">🇸🇲 SM98</option>
+<option value="RS10">🇷🇸 RS10</option>
+<option value="SG65">🇸🇬 SG65</option>
+<option value="SK12">🇸🇰 SK12</option>
+<option value="SI56">🇸🇮 SI56</option>
+<option value="SE30">🇸🇪 SE30</option>
+<option value="CH93">🇨🇭 CH93</option>
+<option value="TN54">🇹🇳 TN54</option>
+<option value="TR14">🇹🇷 TR14</option>
+<option value="UA70">🇺🇦 UA70</option>
+<option value="VN88">🇻🇳 VN88</option>
+</optgroup>
+</select>
+<div
+class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+<i class="bi bi-chevron-down text-xs"></i>
+</div>
+</div>
+<input type="text" id="iban-body" maxlength="17" placeholder="0000 0000 0000 00"
+class="w-full py-3 px-4 bg-transparent font-mono text-slate-700 placeholder:text-slate-300 focus:outline-none border-none tracking-wider"
+oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/(.{4})/g, '$1 ').trim()">
+</div>
+<input type="hidden" name="nouveau_beneficiaire_iban" id="real_iban_input">
+{% with iban_full|slice:":4" as iban_prefix_val %}
+{% with iban_full|slice:"4:" as iban_body_val %}
+<input type="hidden" id="iban-prefix-value" value="{{ iban_prefix_val }}">
+<input type="hidden" id="iban-body-value" value="{{ iban_body_val|default_if_none:'' }}">
+{% endwith %}
+{% endwith %}
+{% if form.nouveau_beneficiaire_iban.errors %}
+<p class="text-red-500 text-sm mt-1">{{ form.nouveau_beneficiaire_iban.errors.0 }}</p>
+{% endif %}
+</div>
+<div id="dest-phone" class="dest-pane space-y-2 mt-2 hidden">
+<div class="text-xs font-bold text-slate-400 uppercase">Téléphone (client Banquise)</div>
+<div class="relative">
+<input type="tel" name="nouveau_beneficiaire_phone" placeholder="06 12 34 56 78"
+class="form-control pl-10" inputmode="tel" value="{{ form.nouveau_beneficiaire_phone.value|default_if_none:'' }}">
+<i class="bi bi-telephone absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+</div>
+{% if form.nouveau_beneficiaire_phone.errors %}
+<p class="text-red-500 text-sm mt-1">{{ form.nouveau_beneficiaire_phone.errors.0 }}</p>
+{% endif %}
+<p class="text-xs text-slate-500">Pour envoyer vers un autre client Banquise sans IBAN.</p>
+</div>
+{% if form.errors.beneficiaire_enregistre or form.errors.nouveau_beneficiaire_iban or form.errors.nouveau_beneficiaire_phone %}
+<p class="text-red-500 text-sm mt-2">Veuillez choisir un bénéficiaire, un IBAN ou un numéro de téléphone.</p>
+{% endif %}
+</div>
+<hr class="border-slate-200">
+<div class="grid md:grid-cols-2 gap-6">
+<div>
+<label class="flex items-center gap-2 mb-3">
+<i class="bi bi-currency-euro text-ice-600"></i> Montant
+</label>
+<div class="relative">
+<input type="number" step="0.01" min="0.01" name="montant" placeholder="0.00" required
+class="form-control pl-4 pr-16 text-2xl font-bold text-slate-900 placeholder:text-slate-300"
+oninput="if (this.value < 0) this.value = ''; this.value = this.value.replace(/[^0-9.,-]/g, '').replace(',', '.');"
+value="{{ form.montant.value|default_if_none:'' }}">
+<span
+class="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 font-bold">EUR</span>
+</div>
+{% if form.montant.errors %}
+<p class="text-red-500 text-sm mt-1">{{ form.montant.errors.0 }}</p>
+{% endif %}
+</div>
+<div>
+<label class="flex items-center gap-2 mb-3">
+<i class="bi bi-chat-text text-ice-600"></i> Motif
+</label>
+<input type="text" name="motif" placeholder="Ex: Loyer" class="form-control h-[3.6rem]" value="{{ form.motif.value|default_if_none:'' }}">
+</div>
+</div>
+<div class="glass-panel p-4 rounded-xl bg-white/80 border border-slate-200">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<i class="bi bi-calendar3 text-ice-600"></i>
+<p class="font-bold text-slate-800 text-sm">Programmation (optionnel)</p>
+</div>
+<button type="button" id="plan-toggle"
+class="text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 bg-white hover:border-ice-200 hover:text-ice-700 transition-colors">
+Programmer
+</button>
+</div>
+<div id="plan-box" class="mt-3 space-y-3 hidden">
+<div class="grid md:grid-cols-3 gap-3">
+<div>
+<label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Date d'exécution</label>
+<input type="date" name="execution_date" class="form-control"
+value="{{ form.execution_date.value|default:today_str }}">
+</div>
+<div>
+<label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Récurrence</label>
+<select name="recurrence" class="form-select">
+<option value="NONE" {% if form.recurrence.value == 'NONE' or not form.recurrence.value %}selected{% endif %}>Ponctuel</option>
+<option value="MENSUEL" {% if form.recurrence.value == 'MENSUEL' %}selected{% endif %}>Mensuel</option>
+</select>
+</div>
+<div>
+<label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Seuil solde minimum (€)</label>
+<input type="number" name="solde_minimum" step="0.01" min="0" class="form-control" placeholder="0" value="{{ form.solde_minimum.value|default_if_none:'0' }}">
+<p class="text-[11px] text-slate-500 mt-1">Le virement ne part que si le solde du compte dépasse ce seuil.</p>
+</div>
+</div>
+<p class="text-xs text-slate-500">Laisse par défaut pour exécuter aujourd'hui. Active uniquement si tu veux planifier ou répéter.</p>
+</div>
+</div>
+<div
+class="p-5 rounded-2xl border border-slate-200 bg-white/60 flex items-center justify-between cursor-pointer hover:border-ice-300 transition-colors">
+<div class="flex items-center gap-4">
+<div
+class="w-12 h-12 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center text-xl">
+<i class="bi bi-lightning-charge-fill"></i>
+</div>
+<div>
+<p class="font-bold text-slate-900">Virement Instantané</p>
+<p class="text-xs text-slate-500">Arrive en moins de 10s (Gratuit)</p>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input type="checkbox" name="instantane" value="true" class="sr-only peer" checked>
+<div
+class="w-12 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-slate-900">
+</div>
+</label>
+</div>
+<button type="submit"
+class="w-full py-4 bg-slate-900 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-3 text-lg">
+<span>Valider le virement</span>
+<i class="bi bi-arrow-right"></i>
+</button>
+</form>
+</div>
+</div>
+<div class="space-y-6">
+<div class="glass-premium p-6 rounded-[2rem]">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-bold text-slate-900">Bénéficiaires</h3>
+<a href="{% url 'beneficiaires' %}"
+class="text-xs text-ice-600 font-bold hover:underline">Gérer</a>
+</div>
+<div class="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
+<a href="{% url 'ajouter_beneficiaire' %}"
+class="flex flex-col items-center gap-2 min-w-[64px] cursor-pointer group">
+<div
+class="w-14 h-14 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 group-hover:border-ice-500 group-hover:text-ice-500 transition-colors bg-white/50">
+<i class="bi bi-plus-lg text-lg"></i>
+</div>
+<span class="text-xs font-bold text-slate-500 group-hover:text-ice-600">Nouveau</span>
+</a>
+{% for bene in form.beneficiaire_enregistre.field.queryset|slice:":5" %}
+<div class="flex flex-col items-center gap-2 min-w-[64px] cursor-pointer group"
+onclick="document.querySelector('select[name=beneficiaire_enregistre]').value='{{ bene.id }}'">
+<div
+class="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm border-2 border-white shadow-sm group-hover:shadow-md transition-all uppercase">
+{{ bene.nom|slice:":2" }}
+</div>
+<span class="text-xs font-bold text-slate-600 truncate w-16 text-center">{{ bene.nom }}</span>
+</div>
+{% empty %}
+<div class="flex items-center h-14 pl-2">
+<span class="text-xs text-slate-400 italic">Aucun favori</span>
+</div>
+{% endfor %}
+</div>
+</div>
+<div class="bg-gradient-to-br from-slate-900 to-slate-800 p-6 rounded-[2rem] text-white shadow-xl space-y-4">
+<h3 class="font-display font-bold text-lg flex items-center gap-2">
+<i class="bi bi-speedometer"></i> Vos plafonds
+</h3>
+{% if carte_plafond %}
+<div class="text-sm text-slate-200">
+<p class="font-bold text-white">Carte principale : **** {{ carte_plafond.numero_visible }}</p>
+<div class="flex justify-between mt-3">
+<span class="text-slate-300">Paiement</span>
+<span class="font-bold">{{ carte_plafond.plafond_paiement }} € / mois</span>
+</div>
+<div class="flex justify-between mt-2">
+<span class="text-slate-300">Retrait</span>
+<span class="font-bold">{{ carte_plafond.plafond_retrait }} € / semaine</span>
+</div>
+</div>
+{% else %}
+<p class="text-sm text-slate-200">Aucune carte active trouvée. Ajoutez ou activez une carte pour gérer vos plafonds.</p>
+{% endif %}
+<a href="{% if carte_plafond %}{% url 'gestion_plafonds' carte_id=carte_plafond.id %}{% else %}{% url 'cartes' %}{% endif %}"
+class="w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 text-sm font-bold transition-colors border border-white/10 flex items-center justify-center gap-2">
+Modifier les plafonds
+</a>
+</div>
+<div class="glass-premium p-6 rounded-[2rem] space-y-4">
+<div class="flex items-center justify-between">
+<h3 class="font-display font-bold text-slate-900 text-lg">Virements programmés</h3>
+<div class="text-right">
+<span class="block text-xs text-slate-500 font-bold">{{ virements_programmes|length }} au total</span>
+{% if prochain_vp %}
+<span class="block text-[11px] text-emerald-600 font-bold">Prochain : {{ prochain_vp.prochaine_execution|date:"d M Y" }}</span>
+{% endif %}
+</div>
+</div>
+{% if virements_programmes %}
+<div class="space-y-3 max-h-72 overflow-y-auto no-scrollbar">
+{% for vp in virements_programmes %}
+<div class="p-3 rounded-xl border border-slate-200 bg-white/70">
+<div class="flex justify-between items-center">
+<p class="font-bold text-slate-900">{{ vp.montant }} €</p>
+<span class="text-xs font-bold px-2 py-1 rounded-full bg-ice-50 text-ice-700 border border-ice-100">
+{% if vp.recurrence == 'MENSUEL' %}Mensuel{% else %}Ponctuel{% endif %}
+</span>
+</div>
+<p class="text-xs text-slate-500 mt-1">{{ vp.motif|default:"(Sans motif)" }}</p>
+<p class="text-xs text-slate-500">Prochaine exécution : {{ vp.prochaine_execution|date:"d M Y" }}</p>
+<p class="text-xs text-slate-500">Seuil solde : {{ vp.solde_minimum }} €</p>
+<div class="flex gap-2 mt-2">
+{% if vp.actif %}
+<form method="post" action="{% url 'cancel_virement_programme' vp.id %}">
+{% csrf_token %}
+<button class="px-3 py-1 text-xs font-bold rounded-lg bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-100" type="submit">Pause</button>
+</form>
+{% else %}
+<form method="post" action="{% url 'resume_virement_programme' vp.id %}">
+{% csrf_token %}
+<button class="px-3 py-1 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100" type="submit">Reprendre</button>
+</form>
+{% endif %}
+<form method="post" action="{% url 'delete_virement_programme' vp.id %}">
+{% csrf_token %}
+<button class="px-3 py-1 text-xs font-bold rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100" type="submit">Supprimer</button>
+</form>
+</div>
+</div>
+{% endfor %}
+</div>
+{% else %}
+<p class="text-sm text-slate-500">Aucun virement programmé.</p>
+{% endif %}
+</div>
+</div>
+</div>
+</div>
+</div>
 <script>
-    const selectBene = document.querySelector('select[name="beneficiaire_enregistre"]');
-    const ibanPrefix = document.getElementById('iban-prefix');
-    const ibanBody = document.getElementById('iban-body');
-    const realIbanInput = document.getElementById('real_iban_input');
-    const ibanPrefixValue = document.getElementById('iban-prefix-value');
-    const ibanBodyValue = document.getElementById('iban-body-value');
-
-    // Fonction pour mettre à jour l'input caché envoyé à Django
-    function updateRealIban() {
-        const prefix = ibanPrefix.value;
-        // On enlève les espaces pour l'envoi
-        const body = ibanBody.value.replace(/\s/g, '');
-
-        if (body.length > 0) {
-            realIbanInput.value = prefix + body;
-            // Si on écrit un IBAN, on désactive la sélection de bénéficiaire
-            selectBene.value = '';
-        } else {
-            realIbanInput.value = '';
-        }
-    }
-
-    // Écouteurs d'événements
-    ibanPrefix.addEventListener('change', updateRealIban);
-    ibanBody.addEventListener('input', updateRealIban);
-
-    // Gestion du conflit entre Select Bénéficiaire et Input IBAN
-    selectBene.addEventListener('change', function () {
-        if (this.value) {
-            ibanBody.value = '';
-            realIbanInput.value = '';
-            ibanBody.disabled = true;
-            ibanPrefix.disabled = true;
-            ibanBody.parentElement.classList.add('opacity-50', 'bg-slate-100');
-        } else {
-            ibanBody.disabled = false;
-            ibanPrefix.disabled = false;
-            ibanBody.parentElement.classList.remove('opacity-50', 'bg-slate-100');
-        }
-    });
-
-    ibanBody.addEventListener('input', function () {
-        if (this.value) {
-            selectBene.value = '';
-        }
-    });
-
-    // État initial si des valeurs étaient déjà saisies
-    if (ibanPrefixValue && ibanPrefixValue.value) {
-        ibanPrefix.value = ibanPrefixValue.value;
-    }
-    if (ibanBodyValue && ibanBodyValue.value) {
-        // réinjecte avec espaces pour l'affichage
-        const chunks = ibanBodyValue.value.replace(/\s/g, '').match(/.{1,4}/g) || [];
-        ibanBody.value = chunks.join(' ');
-        updateRealIban();
-        selectBene.value = '';
-    }
-    if (selectBene && selectBene.value) {
-        ibanBody.disabled = true;
-        ibanPrefix.disabled = true;
-        ibanBody.parentElement.classList.add('opacity-50', 'bg-slate-100');
-    }
-    {% endwith %}
-
-    // Tabs destinataire
-    const tabs = document.querySelectorAll('.dest-tab');
-    const panes = document.querySelectorAll('.dest-pane');
-    function setTab(targetId) {
-        panes.forEach(p => {
-            const isActive = p.id === targetId;
-            p.classList.toggle('hidden', !isActive);
-            p.querySelectorAll('input, select').forEach(inp => {
-                inp.disabled = !isActive;
-            });
-        });
-        tabs.forEach(btn => {
-            const active = btn.dataset.target === targetId;
-            btn.classList.toggle('active', active);
-            btn.classList.toggle('bg-slate-900', active);
-            btn.classList.toggle('text-white', active);
-            btn.classList.toggle('border-slate-200', !active);
-            btn.classList.toggle('bg-white', !active);
-            btn.classList.toggle('text-slate-700', !active);
-        });
-    }
-
-    // Choix initial en fonction des données saisies
-    if (document.querySelector('input[name=nouveau_beneficiaire_phone]').value) {
-        setTab('dest-phone');
-    } else if (document.getElementById('iban-body-value') && document.getElementById('iban-body-value').value) {
-        setTab('dest-iban');
-    } else if (selectBene && selectBene.value) {
-        setTab('dest-bene');
-    } else {
-        setTab('dest-bene');
-    }
-
-    tabs.forEach(btn => btn.addEventListener('click', () => setTab(btn.dataset.target)));
-
-    // Planification toggle
-    const planBox = document.getElementById('plan-box');
-    const planToggle = document.getElementById('plan-toggle');
-    const execInput = document.querySelector('input[name=execution_date]');
-    const recurSelect = document.querySelector('select[name=recurrence]');
-    const todayVal = "{{ today_str }}";
-
-    function setPlanVisible(on) {
-        planBox.classList.toggle('hidden', !on);
-        if (!on) {
-            execInput.value = todayVal;
-            recurSelect.value = 'NONE';
-        }
-    }
-
-    if (planToggle) {
-        planToggle.addEventListener('click', () => {
-            const isOpen = !planBox.classList.contains('hidden');
-            setPlanVisible(!isOpen);
-        });
-    }
-    // Auto-open if user filled date future or recurrence
-    const hasPlan = (execInput && execInput.value && execInput.value !== todayVal) || (recurSelect && recurSelect.value === 'MENSUEL');
-    setPlanVisible(hasPlan);
+const selectBene = document.querySelector('select[name="beneficiaire_enregistre"]');
+const ibanPrefix = document.getElementById('iban-prefix');
+const ibanBody = document.getElementById('iban-body');
+const realIbanInput = document.getElementById('real_iban_input');
+const ibanPrefixValue = document.getElementById('iban-prefix-value');
+const ibanBodyValue = document.getElementById('iban-body-value');
+// Fonction pour mettre à jour l'input caché envoyé à Django
+function updateRealIban() {
+const prefix = ibanPrefix.value;
+// On enlève les espaces pour l'envoi
+const body = ibanBody.value.replace(/\s/g, '');
+if (body.length > 0) {
+realIbanInput.value = prefix + body;
+// Si on écrit un IBAN, on désactive la sélection de bénéficiaire
+selectBene.value = '';
+} else {
+realIbanInput.value = '';
+}
+}
+// Écouteurs d'événements
+ibanPrefix.addEventListener('change', updateRealIban);
+ibanBody.addEventListener('input', updateRealIban);
+// Gestion du conflit entre Select Bénéficiaire et Input IBAN
+selectBene.addEventListener('change', function () {
+if (this.value) {
+ibanBody.value = '';
+realIbanInput.value = '';
+ibanBody.disabled = true;
+ibanPrefix.disabled = true;
+ibanBody.parentElement.classList.add('opacity-50', 'bg-slate-100');
+} else {
+ibanBody.disabled = false;
+ibanPrefix.disabled = false;
+ibanBody.parentElement.classList.remove('opacity-50', 'bg-slate-100');
+}
+});
+ibanBody.addEventListener('input', function () {
+if (this.value) {
+selectBene.value = '';
+}
+});
+// État initial si des valeurs étaient déjà saisies
+if (ibanPrefixValue && ibanPrefixValue.value) {
+ibanPrefix.value = ibanPrefixValue.value;
+}
+if (ibanBodyValue && ibanBodyValue.value) {
+// réinjecte avec espaces pour l'affichage
+const chunks = ibanBodyValue.value.replace(/\s/g, '').match(/.{1,4}/g) || [];
+ibanBody.value = chunks.join(' ');
+updateRealIban();
+selectBene.value = '';
+}
+if (selectBene && selectBene.value) {
+ibanBody.disabled = true;
+ibanPrefix.disabled = true;
+ibanBody.parentElement.classList.add('opacity-50', 'bg-slate-100');
+}
+{% endwith %}
+// Tabs destinataire
+const tabs = document.querySelectorAll('.dest-tab');
+const panes = document.querySelectorAll('.dest-pane');
+function setTab(targetId) {
+panes.forEach(p => {
+const isActive = p.id === targetId;
+p.classList.toggle('hidden', !isActive);
+p.querySelectorAll('input, select').forEach(inp => {
+inp.disabled = !isActive;
+});
+});
+tabs.forEach(btn => {
+const active = btn.dataset.target === targetId;
+btn.classList.toggle('active', active);
+btn.classList.toggle('bg-slate-900', active);
+btn.classList.toggle('text-white', active);
+btn.classList.toggle('border-slate-200', !active);
+btn.classList.toggle('bg-white', !active);
+btn.classList.toggle('text-slate-700', !active);
+});
+}
+// Choix initial en fonction des données saisies
+if (document.querySelector('input[name=nouveau_beneficiaire_phone]').value) {
+setTab('dest-phone');
+} else if (document.getElementById('iban-body-value') && document.getElementById('iban-body-value').value) {
+setTab('dest-iban');
+} else if (selectBene && selectBene.value) {
+setTab('dest-bene');
+} else {
+setTab('dest-bene');
+}
+tabs.forEach(btn => btn.addEventListener('click', () => setTab(btn.dataset.target)));
+// Planification toggle
+const planBox = document.getElementById('plan-box');
+const planToggle = document.getElementById('plan-toggle');
+const execInput = document.querySelector('input[name=execution_date]');
+const recurSelect = document.querySelector('select[name=recurrence]');
+const todayVal = "{{ today_str }}";
+function setPlanVisible(on) {
+planBox.classList.toggle('hidden', !on);
+if (!on) {
+execInput.value = todayVal;
+recurSelect.value = 'NONE';
+}
+}
+if (planToggle) {
+planToggle.addEventListener('click', () => {
+const isOpen = !planBox.classList.contains('hidden');
+setPlanVisible(!isOpen);
+});
+}
+// Auto-open if user filled date future or recurrence
+const hasPlan = (execInput && execInput.value && execInput.value !== todayVal) || (recurSelect && recurSelect.value === 'MENSUEL');
+setPlanVisible(hasPlan);
 </script>
 {% endblock %}

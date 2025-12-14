@@ -304,13 +304,30 @@
                     <div class="rounded-2xl border border-slate-200 bg-white/80 p-5 md:p-6 shadow-sm">
                         <div class="flex items-center justify-between mb-2">
                             <div>
-                                <p class="text-xs font-bold uppercase tracking-[0.15em] text-slate-500 mb-1">Versement du crédit</p>
+                                <label for="{{ form.compte_versement.id_for_label }}" class="text-xs font-bold uppercase tracking-[0.15em] text-slate-500 mb-1 block">Versement du crédit</label>
                                 <p class="text-sm font-bold text-slate-900">Choisissez le compte à créditer</p>
                             </div>
                             <span class="text-[11px] px-2 py-1 rounded-full bg-ice-50 text-ice-700 border border-ice-100 font-bold">Obligatoire</span>
                         </div>
                         <p class="text-xs text-slate-500 mb-3">Le capital sera versé sur ce compte lors de l'acceptation.</p>
-                        {{ form.compte_versement|as_crispy_field }}
+                        
+                        <div class="relative">
+                            {{ form.compte_versement }}
+                            <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-slate-500">
+                                <i class="bi bi-chevron-down text-xs"></i>
+                            </div>
+                        </div>
+
+                        {% if form.compte_versement.errors %}
+                            <div class="mt-2 flex items-start gap-2 text-rose-500 text-xs font-medium bg-rose-50 border border-rose-100 p-2 rounded-lg animate-fade-in-up">
+                                <i class="bi bi-exclamation-circle-fill mt-0.5"></i>
+                                <div>
+                                    {% for error in form.compte_versement.errors %}
+                                        <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
                     </div>
                     {% endif %}
 

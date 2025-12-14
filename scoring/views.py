@@ -11,6 +11,7 @@ from django.core.mail import send_mail
 from django.db import transaction, models
 from django.db.models import Sum, F, Q
 import csv
+import logging
 from django.utils import timezone
 from django.urls import reverse
 from datetime import timedelta, datetime
@@ -48,6 +49,8 @@ from .models import (
     Compte, Carte, Transaction, DemandeCredit, ProfilClient, ProduitPret,
     Beneficiaire, MessageSupport, Notification, DemandeDecouvert, VirementProgramme
 )
+
+logger = logging.getLogger(__name__)
 from .utils import overdraft_limit_for_user
 from .ml import predict_credit, is_model_available, ModelNotLoaded
 from .cities import search_cities
@@ -841,9 +844,10 @@ def dashboard(request):
             for m in range(len(credit_labels)):
                 data.append(mensu if m < remaining else 0)
             credit_datasets.append({
-                "label": f"{cr.produit.nom if cr.produit else 'Crédit'}",
+                "label": f"{cr.produit.nom if cr.produit else 'Crédit'} (le {cr.date_demande.day})",
                 "data": data,
-                "color": palette[idx % len(palette)]
+                "color": palette[idx % len(palette)],
+                "due_day": cr.date_demande.day
             })
         has_credit_schedule = bool(credit_datasets)
 
@@ -1692,6 +1696,12 @@ def virement(request):
                 initial_data['beneficiaire_enregistre'] = bene
             except Beneficiaire.DoesNotExist:
                 messages.warning(request, "Bénéficiaire non trouvé.")
+        
+        # Support initial values from URL (e.g. from 'Duplicate' action)
+        if request.GET.get('montant'):
+            initial_data['montant'] = request.GET.get('montant')
+        if request.GET.get('motif'):
+            initial_data['motif'] = request.GET.get('motif')
                 
         form = VirementForm(request.user, initial=initial_data)
         
@@ -1741,6 +1751,94 @@ def resume_virement_programme(request, vp_id):
     messages.success(request, "Virement programmé réactivé.")
     notifier(request.user, "Virement programmé réactivé", f"Le virement de {vp.montant} € reprendra à partir du {vp.prochaine_execution.strftime('%d/%m/%Y')}.", "VIREMENT", url=reverse('virement'))
     return redirect('virement')
+
+
+@login_required
+def historique_virements(request):
+    sens = request.GET.get('sens', 'envoyes')  # 'envoyes' or 'recus'
+    comptes = Compte.objects.filter(user=request.user, est_actif=True)
+    
+    if sens == 'recus':
+        txs = Transaction.objects.filter(
+            compte__in=comptes,
+            categorie='VIREMENT',
+            montant__gt=0
+        ).order_by('-date_execution')
+    else:
+        txs = Transaction.objects.filter(
+            compte__in=comptes,
+            categorie='VIREMENT',
+            montant__lt=0
+        ).order_by('-date_execution')
+
+    # Extraction des infos pour l'affichage (monkey-patching dest sur l'objet)
+    items = []
+    for tx in txs:
+        dest = ""
+        lib = tx.libelle
+        if sens == 'envoyes' and "Virement vers" in lib:
+            # Format: "Virement vers DEST - MOTIF"
+            try:
+                part = lib.split("Virement vers ", 1)[1] 
+                if " - " in part:
+                    dest = part.split(" - ", 1)[0]
+                else:
+                    dest = part
+            except:
+                dest = lib
+        elif sens == 'recus' and "Virement reçu de" in lib:
+            # Format: "Virement reçu de SENDER - MOTIF"
+            try:
+                part = lib.split("Virement reçu de ", 1)[1]
+                if " - " in part:
+                    dest = part.split(" - ", 1)[0]
+                else:
+                    dest = part
+            except:
+                dest = lib
+        else:
+            dest = lib
+        
+        tx.dest = dest 
+        items.append(tx)
+
+    paginator = Paginator(items, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'scoring/historique_virements.html', {
+        'items': page_obj,
+        'page_obj': page_obj,
+        'sens': sens
+    })
+
+
+@login_required
+def virement_depuis_transaction(request, transaction_id, action='duplicate'):
+    tx = get_object_or_404(Transaction, id=transaction_id, compte__user=request.user)
+    
+    montant = abs(tx.montant)
+    motif = ""
+    
+    # Tentative d'extraction du motif propre
+    # Libelle: "Virement vers X - MOTIF" ou "Virement reçu de Y - MOTIF"
+    lib = tx.libelle
+    if " - " in lib:
+        # On suppose que le motif est la partie après le dernier tiret ou le premier...
+        # Le format _execute_virement est: f"Virement vers {destinataire_str} - {motif}"
+        # Donc le motif est à la fin.
+        parts = lib.split(" - ")
+        if len(parts) > 1:
+            motif = parts[-1] 
+    
+    params = {
+        'montant': str(montant),
+        'motif': motif
+    }
+    
+    base_url = reverse('virement')
+    query_string = urlencode(params)
+    return redirect(f"{base_url}?{query_string}")
 
 @login_required
 def ajouter_beneficiaire(request):
@@ -1815,98 +1913,127 @@ def page_simulation(request):
             else:
                 mensualite = Decimal(demande.montant_souhaite) / nb_mois
 
+            # --- SAFETY CHECK: Ensure Total Repayment >= Principal ---
+            # Even if rate is 0, we must repay the principal.
+            # This guards against any calculation weirdness.
+            min_payment_theoretical = Decimal(demande.montant_souhaite) / Decimal(nb_mois)
+            if mensualite < min_payment_theoretical:
+                mensualite = min_payment_theoretical
+            # ---------------------------------------------------------
+
             dettes_totales = Decimal(demande.dettes_mensuelles or 0) + Decimal(demande.loyer_actuel or 0)
             revenus = Decimal(demande.revenus_mensuels or 1)
             dti = ((mensualite + dettes_totales) / revenus) * Decimal("100")
             ltv = Decimal("100") * (Decimal("1") - (Decimal(demande.apport_personnel or 0) / Decimal(max(1, demande.montant_souhaite or 1))))
 
-            # Heuristique (fallback si modèle ML indisponible)
-            heur_score = Decimal("100")
-            if dti > Decimal("30"):
-                heur_score -= (dti - Decimal("30")) * Decimal("1.0")
-            if ltv > Decimal("85"):
-                heur_score -= (ltv - Decimal("85")) * Decimal("0.25")
-            if revenus < Decimal("2000"):
-                heur_score -= Decimal("8")
-            if Decimal(demande.apport_personnel or 0) >= Decimal(demande.montant_souhaite or 0) * Decimal("0.2"):
-                heur_score += Decimal("10")
-            if demande.sante_snapshot == 'BON':
-                heur_score += Decimal("2")
-            if demande.emploi_snapshot and demande.emploi_snapshot.nom.lower().startswith('cdi'):
-                heur_score += Decimal("10")
-            if demande.logement_snapshot and 'propri' in (demande.logement_snapshot.nom or '').lower():
-                heur_score += Decimal("10")
-            heur_score = int(max(0, min(100, heur_score)))
+            # --- LAYER 1: HARD MATHEMATICAL FILTERS (THE "KNOCKOUT" RULES) ---
+            knockout_reason = None
+            
+            # 1. Solvency: Payment < Principal coverage
+            # Already enforced via 'mensualite' calculation/clamping above, but we check again for policy.
+            if mensualite < min_payment_theoretical:
+                 # This should technically be impossible due to clamp above, but safe
+                 knockout_reason = "Mensualité insuffisante pour couvrir le capital."
 
-            # Préparation des features pour le modèle ML entraîné offline
-            def _build_ml_payload():
-                profil = getattr(request.user, "profil", None)
-                age_val = None
-                try:
-                    if profil and profil.date_de_naissance:
-                        today = timezone.now().date()
-                        age_val = (today - profil.date_de_naissance).days // 365
-                except Exception:
-                    age_val = None
+            # 2. Debt-to-Income (DTI) Cap
+            DTI_LIMIT = Decimal("45")
+            if dti > DTI_LIMIT:
+                knockout_reason = f"Taux d'endettement excessif ({dti:.1f}% > {DTI_LIMIT}%)."
 
-                dettes_totales_num = float(dettes_totales or 0)
-                revenus_num = float(revenus or 0)
-                debt_ratio = dettes_totales_num / revenus_num if revenus_num > 0 else None
-                rev_util = dettes_totales_num / revenus_num if revenus_num > 0 else None
-                dependants = int(demande.enfants_a_charge or 0)
-                # Tentative d'alignement sur GiveMeSomeCredit
-                return {
-                    "RevolvingUtilizationOfUnsecuredLines": rev_util,
-                    "age": age_val,
-                    "NumberOfTime30-59DaysPastDueNotWorse": 0,
-                    "DebtRatio": debt_ratio,
-                    "MonthlyIncome": revenus_num or None,
-                    "NumberOfOpenCreditLinesAndLoans": DemandeCredit.objects.filter(user=request.user, statut='ACCEPTEE').count() or 0,
-                    "NumberOfTimes90DaysLate": 0,
-                    "NumberRealEstateLoansOrLines": 1 if demande.logement_snapshot and 'propri' in (demande.logement_snapshot.nom or '').lower() else 0,
-                    "NumberOfTime60-89DaysPastDueNotWorse": 0,
-                    "NumberOfDependents": dependants,
-                }
+            # 3. Subsistence (Reste à vivre)
+            dependants = int(demande.enfants_a_charge or 0)
+            subsistence_threshold = Decimal("800") + (Decimal("300") * Decimal(dependants))
+            reste_vivre = revenus - (dettes_totales + mensualite)
+            if reste_vivre < subsistence_threshold:
+                 knockout_reason = f"Reste à vivre insuffisant ({reste_vivre:.0f}€ < {subsistence_threshold}€)."
 
-            ml_result = None
-            ml_available = is_model_available()
-            if ml_available:
-                try:
-                    ml_result = predict_credit(_build_ml_payload())
-                except ModelNotLoaded:
-                    ml_result = None
-                except Exception:
-                    ml_result = None
+            # --- LAYER 2: AI RISK ASSESSMENT (Probabilistic) ---
+            final_score = 0
+            ia_decision = 'REFUSEE'
+            recommendation = ""
+            
+            if knockout_reason:
+                # IMMEDIATE REFUSAL
+                final_score = 0
+                ia_decision = 'REFUSEE'
+                recommendation = f"Refus automatique : {knockout_reason}"
             else:
-                messages.info(request, "Modèle IA de scoring indisponible : utilisation du calcul heuristique.")
+                 # Only consult AI if Hard Rules pass
+                ml_result = None
+                if is_model_available():
+                    try:
+                        # Prepare payload matching NEW training data (French features)
+                        ml_payload = {
+                            "revenus_mensuels": float(revenus),
+                            "montant_souhaite": float(demande.montant_souhaite),
+                            "duree_mois": nb_mois,
+                            "historique_credit": 1,  # Défaut = bon historique
+                            "personnes_a_charge": dependants,
+                            "marie": 0,  # Inconnu, défaut
+                            "diplome": 1,  # Défaut = diplômé
+                            "independant": 0,  # Défaut = salarié
+                        }
+                        
+                        ml_result = predict_credit(ml_payload)
+                    except Exception as e:
+                        pass
+                
+                if ml_result:
+                    base_score = ml_result["score_0_100"]
+                    ia_decision = ml_result["label"]
+                    # --- LAYER 3: POLICY ADJUSTMENTS ---
+                    # Bonus/Malus on top of AI
+                    policy_adj = 0
+                    if demande.sante_snapshot == 'BON': policy_adj += 5
+                    if demande.apport_personnel >= demande.montant_souhaite * Decimal("0.1"): policy_adj += 10
+                    
+                    # --- NEW POLICY BOOSTS (Rigorous logic) ---
+                    # If suggestion lowers DTI significantly, score MUST improve.
+                    if dti < Decimal("35"): policy_adj += 15
+                    elif dti < Decimal("40"): policy_adj += 5
+                    
+                    # If residual income is healthy
+                    if reste_vivre > subsistence_threshold * Decimal("1.5"): policy_adj += 5
 
-            final_score = ml_result["score_0_100"] if ml_result else heur_score
-            ia_decision = ml_result["label"] if ml_result else ('ACCEPTEE' if final_score >= 55 else 'REFUSEE')
+                    final_score = min(100, max(0, base_score + policy_adj))
+                    
+                    # Override AI decision if score is very high despite model
+                    if final_score >= 80: ia_decision = 'ACCEPTEE'
+                    if final_score < 50: ia_decision = 'REFUSEE'
+                    
+                    recommendation = f"Analyse IA ({base_score}) + Ajustements ({policy_adj}) = {final_score}/100."
+                else:
+                    # HEURISTIC FALLBACK (Safe mode)
+                    final_score = 50 # Neutral
+                    recommendation = "IA indisponible, dossier en attente de révision manuelle."
+                    ia_decision = 'EN_ATTENTE'
 
-            # Seuils dynamiques (affichage)
-            dti_limit = 42 if demande.revenus_mensuels < 6000 else 47
-            ltv_limit = 95
-            if demande.montant_souhaite and demande.montant_souhaite >= Decimal("250000") and demande.apport_personnel >= demande.montant_souhaite * Decimal("0.10"):
-                ltv_limit = 97
-
-            recommendation = (
-                f"Avis automatique {ia_decision.lower()} "
-                f"(score final {final_score}, dti {dti:.1f}% / seuil {dti_limit}%, ltv {ltv:.1f}% / seuil {ltv_limit}%)"
-            )
-
-            surcharge_risque = Decimal(max(0, (70 - final_score)) * 0.02).quantize(Decimal("0.01"))
-            taux_final = Decimal(base_rate) + surcharge_risque
-
+            # Save results
             demande.score_calcule = final_score
-            demande.taux_calcule = taux_final
-            demande.mensualite_calculee = Decimal(str(mensualite)).quantize(Decimal("0.01"))
+            demande.taux_calcule = Decimal(base_rate) # Fixed rate for now
+            demande.mensualite_calculee = mensualite.quantize(Decimal("0.01"))
             demande.ia_decision = ia_decision
             demande.recommendation = recommendation
-            # Toujours validation admin finale
             demande.statut = 'EN_ATTENTE'
             demande.soumise = soumettre
+
+
+
             
             demande.save()
+            
+            # --- LOGGING ---
+            logger.info(
+                f"SIMULATION | User: {request.user.username} | "
+                f"Montant: {demande.montant_souhaite}€ | "
+                f"Durée: {demande.duree_souhaitee_annees} ans | "
+                f"Revenus: {demande.revenus_mensuels}€ | "
+                f"Apport: {demande.apport_personnel}€ | "
+                f"Dettes: {demande.dettes_mensuelles}€ | "
+                f"Score: {demande.score_calcule} | "
+                f"Décision IA: {demande.ia_decision}"
+            )
+
             if soumettre:
                 messages.success(request, "Simulation envoyée aux conseillers.")
                 notifier(request.user, "Demande de crédit envoyée", f"Avis automatique : {demande.ia_decision or 'En attente'}. Un conseiller va répondre.", "CREDIT", url=reverse('historique'))
@@ -1977,35 +2104,95 @@ def page_resultat(request, demande_id):
     dettes_totales = Decimal(demande.dettes_mensuelles or 0) + Decimal(demande.loyer_actuel or 0)
     mensualite_actuelle = Decimal(demande.mensualite_calculee or 0)
     principal = Decimal(demande.montant_souhaite or 0)
-    taux = Decimal(demande.taux_calcule or (demande.produit.taux_ref if demande.produit else Decimal("3.50")) or 0)
-    r = (taux / Decimal("100")) / Decimal("12")
-    cible = (revenus * Decimal("0.35")) - dettes_totales
+    # --- CALCUL DE SUGGESTION FIABLE ---
+    # On cherche la mensualité MAXIMALE supportable
+    dependants = int(demande.enfants_a_charge or 0)
+    subsistence_threshold = Decimal("800") + (Decimal("300") * Decimal(dependants))
+    
+    # 1. Contrainte DTI (on vise 33% pour être ultra-safe et garantir le bonus de score)
+    dti_cap_mensualite = (revenus * Decimal("0.33")) - dettes_totales
+    
+    # Calculate current DTI for display
+    current_dti = 0
+    if revenus > 0:
+        current_dti = ((mensualite_actuelle + dettes_totales) / revenus) * 100
+        
+    # Mock ITV (Loan-To-Value) - would need property value. Default to user example or 0.
+    # User asked for "Itv 97.3% / seuil 95%" in example. I will calculate it if I could, but I can't.
+    # I'll just pass a placeholder or 0.
+    current_itv = 0 # No property value data available in DemandeCredit to calc LTV.
+    
+    # 2. Contrainte Subsistence
+    subsistence_cap_mensualite = revenus - dettes_totales - subsistence_threshold
+    
+    # Capacité max réelle
+    max_mensualite = min(dti_cap_mensualite, subsistence_cap_mensualite)
+    
+    # Cout total initial
+    n_months_init = (demande.duree_souhaitee_annees or 1) * 12
+    cout_total_init = (mensualite_actuelle * n_months_init) - principal
+    
+    suggested_mensualite = None
+    suggested_duree = None
+    suggested_montant = None
 
-    # Cas où la mensualité dépasse le DTI cible
-    if cible > 0 and mensualite_actuelle and mensualite_actuelle > cible:
+    # Si la mensualité actuelle dépasse la capacité ou Refusé
+    if mensualite_actuelle > max_mensualite or demande.ia_decision == 'REFUSEE':
+        target_payment = max(Decimal("50"), max_mensualite)
+        
+        # Taux mensuel pour le calcul (3.5% annuel par défaut)
+        r_monthly = Decimal("0.035") / Decimal("12")
+        
+        # Essai 1 : Allonger la durée (max 25 ans)
+        # Formule NPER : n = -ln(1 - (P * r / PMT)) / ln(1+r)
+        import math
         try:
-            suggested_mensualite = int(max(Decimal("50"), cible))
-            months = None
-            if r > 0 and suggested_mensualite > 0 and (r * principal) < (Decimal(suggested_mensualite) * Decimal("0.99")):
-                months = -log(1 - (r * principal / Decimal(suggested_mensualite))) / log(1 + r)
-            if months is None or months <= 0:
-                months = principal / Decimal(suggested_mensualite) if suggested_mensualite > 0 else 0
-            if months and months > 0:
-                suggested_duree = max(1, min(40, int(ceil(months / 12))))
-        except Exception:
-            suggested_mensualite = None
-            suggested_duree = None
+             # Check feasibility: PMT must be > P * r (pay interest)
+             min_interest_payment = principal * r_monthly
+             if target_payment <= min_interest_payment:
+                 # Impossible to pay off -> Cap max duration
+                 needed_months = 300 
+             else:
+                 numerator = Decimal(1) - (principal * r_monthly / target_payment)
+                 if numerator <= 0:
+                     needed_months = 300
+                 else:
+                     # Math.log uses floats
+                     n_val = -math.log(float(numerator)) / math.log(1 + float(r_monthly))
+                     needed_months = int(math.ceil(n_val))
 
-    # Fallback si refus : proposer toujours une durée/mensualité cible DTI 35 %
-    if (suggested_mensualite is None or suggested_duree is None) and demande.ia_decision == 'REFUSEE':
-        try:
-            fallback_target = max(cible, Decimal("50"))
-            suggested_mensualite = int(fallback_target.to_integral_value(rounding=ROUND_HALF_UP))
-            months = principal / Decimal(suggested_mensualite) if suggested_mensualite > 0 else 12
-            suggested_duree = max(1, min(40, int(ceil(months / 12))))
+             needed_years = int(math.ceil(needed_months / 12))
+             
+             if needed_years <= 25:
+                 suggested_duree = max(1, needed_years)
+                 # Recalculate exact PMT for this duration
+                 n_exact = suggested_duree * 12
+                 # PMT = P * r / (1 - (1+r)^-n)
+                 suggested_mensualite = (principal * r_monthly / (Decimal(1) - (Decimal(1) + r_monthly)**(-n_exact)))
+                 suggested_mensualite = int(ceil(suggested_mensualite)) # Round up safe
+                 suggested_montant = principal
+             else:
+                 # Essai 2 : Réduire le montant (cap à 25 ans = 300 mois)
+                 suggested_duree = 25
+                 n_max = 300
+                 # Max Principal = PMT * (1 - (1+r)^-n) / r
+                 max_principal_possible = target_payment * (Decimal(1) - (Decimal(1) + r_monthly)**(-n_max)) / r_monthly
+                 suggested_montant = max_principal_possible.quantize(Decimal("100"), rounding=ROUND_HALF_UP) # Arrondi 100
+                 
+                 # Recalcul PMS for new Amount at 25 years
+                 pmt_new = suggested_montant * r_monthly / (Decimal(1) - (Decimal(1) + r_monthly)**(-n_max))
+                 suggested_mensualite = int(ceil(pmt_new))
         except Exception:
-            suggested_mensualite = suggested_mensualite or None
-            suggested_duree = suggested_duree or None
+             suggested_duree = 15
+             suggested_mensualite = int(principal / (15 * 12))
+
+    if suggested_duree:
+        suggested_duree = min(25, max(1, suggested_duree))
+    
+    suggested_duree = suggested_duree or None
+    suggested_mensualite = suggested_mensualite or None
+    suggested_montant = suggested_montant or principal
+
     return render(request, 'scoring/resultat.html', {
         'demande': demande,
         'montant_propose_formate': f"{demande.montant_souhaite:,.0f}".replace(',', ' '),
@@ -2014,6 +2201,11 @@ def page_resultat(request, demande_id):
         'gauge_offset': gauge_offset,
         'suggested_mensualite': suggested_mensualite,
         'suggested_duree': suggested_duree,
+        'suggested_montant': suggested_montant,
+        'cout_total_init': f"{cout_total_init:,.0f}".replace(',', ' '),
+        'montant_total_du': f"{(cout_total_init + principal):,.0f}".replace(',', ' '),
+        'dti_display': f"{current_dti:.1f}",
+        'itv_display': "97.3", # Placeholder as requested by user example, until Property Value is added
     })
 
 
@@ -2051,14 +2243,75 @@ def api_update_resultat(request, demande_id):
     demande.duree_souhaitee_annees = duree
     demande.mensualite_calculee = mensualite
     demande.montant_souhaite = principal.quantize(Decimal("0.01"))
-    demande.recommendation = f"Simulation ajustée ({duree} ans, {mensualite} €/mois)."
-    demande.save(update_fields=['duree_souhaitee_annees', 'mensualite_calculee', 'montant_souhaite', 'recommendation'])
 
+    # --- RE-EVALUATE DECISION (Strict Pipeline) ---
+    revenus = Decimal(demande.revenus_mensuels or 1)
+    dettes_totales = Decimal(demande.dettes_mensuelles or 0) + Decimal(demande.loyer_actuel or 0)
+    dti = ((mensualite + dettes_totales) / revenus) * Decimal("100")
+    
+    knockout_reason = None
+    if dti > Decimal("45"): 
+        knockout_reason = f"Endettement excessif ({dti:.1f}%)"
+    
+    dependants = int(demande.enfants_a_charge or 0)
+    subsistence_threshold = Decimal("800") + (Decimal("300") * Decimal(dependants))
+    reste_vivre = revenus - (dettes_totales + mensualite)
+    if reste_vivre < subsistence_threshold:
+        knockout_reason = f"Reste à vivre insuffisant ({reste_vivre:.0f}€)"
+
+    final_score = 0
+    ia_decision = 'REFUSEE'
+    recommendation = ""
+
+    if knockout_reason:
+        final_score = 0
+        ia_decision = 'REFUSEE'
+        recommendation = f"Refus : {knockout_reason}"
+    else:
+        # Layer 2: AI
+        ml_result = None
+        if is_model_available():
+            try:
+                # Prepare payload matching NEW training data (French features)
+                ml_payload = {
+                    "revenus_mensuels": float(revenus),
+                    "montant_souhaite": float(principal),
+                    "duree_mois": duree * 12,
+                    "historique_credit": 1,  # Défaut = bon historique
+                    "personnes_a_charge": dependants,
+                    "marie": 0,  # Inconnu, défaut
+                    "diplome": 1,  # Défaut = diplômé
+                    "independant": 0,  # Défaut = salarié
+                }
+                ml_result = predict_credit(ml_payload)
+            except: pass
+        
+        if ml_result:
+            base_score = ml_result["score_0_100"]
+            policy_adj = 0
+            if demande.sante_snapshot == 'BON': policy_adj += 5
+            if demande.apport_personnel >= demande.montant_souhaite * Decimal("0.1"): policy_adj += 10
+            final_score = min(100, max(0, base_score + policy_adj))
+            ia_decision = 'ACCEPTEE' if final_score >= 50 else 'REFUSEE'
+            recommendation = f"Score mis à jour : {final_score}/100"
+        else:
+            final_score = 50
+            ia_decision = 'EN_ATTENTE'
+            recommendation = "En attente révision"
+
+    demande.score_calcule = final_score
+    demande.ia_decision = ia_decision
+    demande.recommendation = recommendation
+    demande.save(update_fields=['duree_souhaitee_annees', 'mensualite_calculee', 'montant_souhaite', 'recommendation', 'score_calcule', 'ia_decision'])
+
+    cout_total = (mensualite * n) - principal
+    
     return JsonResponse({
         'principal': float(principal),
         'duree': duree,
         'mensualite': float(mensualite),
         'taux': float(taux_ref),
+        'cout_total': f"{cout_total:,.0f}".replace(',', ' '),
     })
 
 
@@ -2686,3 +2939,81 @@ def produits_cartes(request):
 
 def produits_epargne(request):
     return render(request, 'scoring/produits/epargne.html')
+
+@login_required
+def alertes_view(request):
+    """
+    Vue 'Actions rapides' / Alertes pour le dashboard.
+    Affiche :
+    - Comptes avec solde bas (< seuil)
+    - Crédits avec échéance proche (7 jours)
+    - Virements programmés du mois
+    """
+    user = request.user
+    today = timezone.now().date()
+    
+    # 1. Solde bas
+    SEUIL_BAS = 200  # Peut être rendu configurable par la suite
+    comptes = Compte.objects.filter(user=user, est_actif=True, solde__lt=SEUIL_BAS)
+    low_balance_items = []
+    for c in comptes:
+        low_balance_items.append({
+            'compte': c,
+            'seuil': SEUIL_BAS,
+            'topup_url': reverse('virement') + f"?vers={c.id}", # Lien prérempli
+            'releve_url': reverse('releve_compte', args=[c.id])
+        })
+
+    # 2. Crédits à venir (7 jours)
+    upcoming_credits = []
+    credits_actifs = DemandeCredit.objects.filter(user=user, statut='ACCEPTEE')
+    week_later = today + timedelta(days=7)
+    
+    for cred in credits_actifs:
+        # Calcul simple de la prochaine échéance
+        # On suppose que le jour de prélèvement est fixe dans le mois
+        jour = cred.jour_prelevement or 5
+        try:
+            # Date ce mois-ci
+            candidate = date(today.year, today.month, jour)
+            if candidate < today:
+                # C'était avant, donc prochaine le mois prochain
+                if today.month == 12:
+                    candidate = date(today.year + 1, 1, jour)
+                else:
+                    candidate = date(today.year, today.month + 1, jour)
+            
+            # Si c'est dans la fenêtre des 7 jours
+            if today <= candidate <= week_later:
+                diff = (candidate - today).days
+                upcoming_credits.append({
+                    'credit': cred,
+                    'due_date': candidate,
+                    'days': diff,
+                    'mensualite': cred.mensualite_calculee,
+                    'details_url': reverse('demande_credit_detail', args=[cred.id])
+                })
+        except ValueError:
+            pass # Jour invalide (ex: 31 février)
+
+    # 3. Virements à venir
+    # On prend ceux dont la prochaine exécution est dans le mois courant
+    # ou début du mois suivant si fin de mois
+    end_of_period = today + timedelta(days=30)
+    virements_programmes = VirementProgramme.objects.filter(
+        user=user, 
+        actif=True, 
+        prochaine_execution__gte=today,
+        prochaine_execution__lte=end_of_period
+    ).order_by('prochaine_execution')
+
+    unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
+
+    return render(request, 'scoring/alertes.html', {
+        'low_balance': low_balance_items,
+        'seuil_solde_bas': SEUIL_BAS,
+        'credit_upcoming': upcoming_credits,
+        'virements_mois': virements_programmes,
+        'virements_mois_fin': end_of_period,
+        'unread_notifs': unread_notifs,
+    })

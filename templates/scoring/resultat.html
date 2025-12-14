@@ -1,22 +1,48 @@
 {% extends "base.html" %}
 {% load math_filters %}
+{% load humanize %}
 
 {% block title %}Résultat Simulation - Banquise{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Custom Accordion Logic/Styles */
+    .group\/accordion[open] .group-open\:rotate-180 {
+        transform: rotate(180deg);
+    }
+    details > summary {
+        list-style: none;
+    }
+    details > summary::-webkit-details-marker {
+        display: none;
+    }
+</style>
+{% endblock %}
 
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Sliders
+        // Elements
         const rangeDuree = document.getElementById('rangeDuree');
         const rangeMensualite = document.getElementById('rangeMensualite');
         const valDuree = document.getElementById('valDuree');
         const valMensualite = document.getElementById('valMensualite');
         const affichageMontant = document.getElementById('affichage-montant');
+        
+        // Metrics Display
+        const dispTaux = document.getElementById('dispTaux');
+        const dispCout = document.getElementById('dispCout');
+        const dispMensualiteCard = document.getElementById('dispMensualiteCard');
+        const dispDureeCard = document.getElementById('dispDureeCard');
+        
+        // Summary in Accordion Header
+        const summaryAdjust = document.getElementById('summaryAdjust');
+
         const applyBtn = document.getElementById('applyChanges');
         const applySuggestionBtn = document.getElementById('applySuggestion');
         const statusMsg = document.getElementById('saveStatus');
 
-        // Base rate from simulation (fallback 3.5)
+        // Base rate
         const baseRate = parseFloat("{{ demande.taux_calcule|default:demande.produit.taux_ref|default:'3.5' }}") || 3.5;
         const updateUrl = "{% url 'api_update_resultat' demande.id %}";
 
@@ -35,13 +61,17 @@
             return cookieValue;
         }
 
-        function computePrincipal(mensualite, dureeAnnees) {
+        function computeMetrics(mensualite, dureeAnnees) {
             const n = Math.max(1, dureeAnnees * 12);
             const r = baseRate / 100 / 12;
+            let principal = 0;
             if (r > 0) {
-                return mensualite * (1 - Math.pow(1 + r, -n)) / r;
+                principal = mensualite * (1 - Math.pow(1 + r, -n)) / r;
+            } else {
+                principal = mensualite * n;
             }
-            return mensualite * n;
+            const totalCost = (mensualite * n) - principal;
+            return { principal, totalCost };
         }
 
         let debounceTimer = null;
@@ -55,59 +85,71 @@
                         'X-CSRFToken': getCookie('csrftoken'),
                     },
                     body: JSON.stringify({ duree: duree, mensualite: mensualite })
-                }).then(() => {
+                }).then(res => res.json())
+                .then(data => {
                     if (showStatus && statusMsg) {
                         statusMsg.classList.remove('hidden');
-                        statusMsg.textContent = "Modifications enregistrées pour le conseiller.";
                         setTimeout(() => statusMsg.classList.add('hidden'), 2000);
                     }
+                    if(data.taux && dispTaux) dispTaux.textContent = data.taux.toFixed(2).replace('.', ',');
+                    if(data.cout_total && dispCout) dispCout.textContent = data.cout_total;
                 }).catch(() => {});
             }, showStatus ? 0 : 400);
         }
 
         function updateCalc() {
-            if (valDuree && rangeDuree) valDuree.innerText = rangeDuree.value;
-            if (valMensualite && rangeMensualite) valMensualite.innerText = rangeMensualite.value;
-            if (!hasInteracted) return; // ne pas écraser l'affichage tant que l'utilisateur n'a pas bougé un slider
+            if (rangeDuree && valDuree) valDuree.innerText = rangeDuree.value;
+            if (rangeMensualite && valMensualite) valMensualite.innerText = rangeMensualite.value;
+            
+            if (!hasInteracted) return;
+
             if (affichageMontant && rangeDuree && rangeMensualite) {
                 const mensualite = parseFloat(rangeMensualite.value || 0);
                 const duree = parseInt(rangeDuree.value || 1);
-                const principal = computePrincipal(mensualite, duree);
-                affichageMontant.innerText = principal.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' €';
+                const metrics = computeMetrics(mensualite, duree);
+                
+                // Displays Main
+                affichageMontant.innerText = metrics.principal.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' €';
+                
+                // Displays Cards
+                if(dispMensualiteCard) dispMensualiteCard.innerText = mensualite.toLocaleString('fr-FR', { maximumFractionDigits: 0, minimumFractionDigits: 2 }) + ' €';
+                if(dispDureeCard) dispDureeCard.innerText = duree + ' ans';
+                if(dispCout) dispCout.textContent = metrics.totalCost.toLocaleString('fr-FR', { maximumFractionDigits: 0 });
+
+                // Update Accordion Summary
+                if(summaryAdjust) {
+                    summaryAdjust.textContent = `${duree} ans • ${mensualite} €/mois`;
+                }
+
                 pushUpdate(duree, mensualite);
             }
         }
 
         let hasInteracted = false;
         if (rangeDuree) {
-            if (valMensualite && rangeMensualite) valMensualite.innerText = rangeMensualite.value;
-            rangeDuree.addEventListener('input', () => {
-                hasInteracted = true;
-                updateCalc();
-            });
-            if (rangeMensualite) rangeMensualite.addEventListener('input', () => {
-                hasInteracted = true;
-                updateCalc();
-            });
+            rangeDuree.addEventListener('input', () => { hasInteracted = true; updateCalc(); });
+        } 
+        if (rangeMensualite) {
+            rangeMensualite.addEventListener('input', () => { hasInteracted = true; updateCalc(); });
         }
 
-        if (applyBtn && rangeDuree && rangeMensualite) {
+        if (applyBtn) {
             applyBtn.addEventListener('click', () => {
-                const mensualite = parseFloat(rangeMensualite.value || 0);
+                 const mensualite = parseFloat(rangeMensualite.value || 0);
                 const duree = parseInt(rangeDuree.value || 1);
                 pushUpdate(duree, mensualite, true);
             });
         }
-
+        
+        // Suggestion Logic (unchanged)
         const simulationBaseUrl = "{% url 'simulation' %}";
         const suggestionToast = document.getElementById('suggestionToast');
         if (applySuggestionBtn) {
             applySuggestionBtn.addEventListener('click', () => {
-                const suggDuree = parseInt(applySuggestionBtn.dataset.suggDuree || "0", 10);
-                const suggMens = parseInt(applySuggestionBtn.dataset.suggMens || "0", 10);
-                const montantInitial = parseFloat(applySuggestionBtn.dataset.montant || "0");
+                const suggDuree = parseInt(applySuggestionBtn.dataset.duree || "0", 10);
+                const suggMens = parseInt(applySuggestionBtn.dataset.mens || "0", 10);
                 if (suggDuree > 0 && suggMens > 0) {
-                    const params = new URLSearchParams({
+                     const params = new URLSearchParams({
                         montant: applySuggestionBtn.dataset.montant || "",
                         duree: suggDuree,
                         apport: applySuggestionBtn.dataset.apport || "",
@@ -121,22 +163,11 @@
                         sante: applySuggestionBtn.dataset.sante || "",
                         from_suggestion: "1",
                     });
-                    // Affichage : garder le montant demandé, ne pas recalculer un capital plus élevé
-                    if (affichageMontant && montantInitial > 0) {
-                        affichageMontant.innerText = montantInitial.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' €';
-                    }
                     if (suggestionToast) {
-                        suggestionToast.textContent = "Application de la suggestion en cours…";
-                        suggestionToast.classList.remove("opacity-0");
-                        suggestionToast.classList.add("opacity-100");
-                        setTimeout(() => {
-                            suggestionToast.classList.remove("opacity-100");
-                            suggestionToast.classList.add("opacity-0");
-                        }, 1600);
+                         suggestionToast.classList.remove("opacity-0");
+                        setTimeout(() => suggestionToast.classList.add("opacity-0"), 1600);
                     }
-                    setTimeout(() => {
-                        window.location.href = `${simulationBaseUrl}?${params.toString()}`;
-                    }, 600);
+                    setTimeout(() => window.location.href = `${simulationBaseUrl}?${params.toString()}`, 600);
                 }
             });
         }
@@ -145,191 +176,322 @@
 {% endblock %}
 
 {% block content %}
-<div class="relative min-h-screen overflow-hidden">
+<div class="min-h-screen bg-slate-50 relative pb-12">
+    <!-- Blobs -->
+    <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-ice-200/40 rounded-full blur-[100px] pointer-events-none"></div>
+    <div class="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-200/20 rounded-full blur-[100px] pointer-events-none"></div>
 
     <div id="suggestionToast"
-        class="pointer-events-none fixed bottom-6 right-6 bg-ice-50 border border-ice-200 text-slate-700 px-5 py-3 rounded-2xl shadow-xl shadow-slate-900/30 transition-opacity duration-500 opacity-0">
-        Action en cours...
+        class="pointer-events-none z-50 fixed bottom-6 right-6 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-xl transition-opacity duration-300 opacity-0">
+        Application de la suggestion...
     </div>
 
-    <div
-        class="absolute top-0 right-0 w-[600px] h-[600px] bg-green-400/10 rounded-full blur-[120px] pointer-events-none animate-blob">
-    </div>
-    <div
-        class="absolute bottom-0 left-0 w-[500px] h-[500px] bg-ice-500/10 rounded-full blur-[100px] pointer-events-none animate-blob animation-delay-2000">
-    </div>
+    <div class="relative z-10 max-w-6xl mx-auto px-4 py-12">
 
-    <div class="relative z-10 max-w-5xl mx-auto py-12 px-4">
-
+        <!-- HEADER: ANALYSE AUTOMATIQUE (As requested) -->
         <div class="text-center mb-12">
-            <div>
-                <p class="text-xs font-bold uppercase text-ice-600 tracking-[0.2em] mb-2">Analyse automatique</p>
-                {% if demande.ia_decision == 'REFUSEE' %}
-                <h1 class="text-4xl font-display font-bold text-slate-900">Avis défavorable</h1>
-                <p class="text-slate-500 mt-2 text-lg">L'algorithme estime un risque élevé. Un conseiller valide ou ajuste.</p>
-                {% else %}
-                <h1 class="text-4xl font-display font-bold text-slate-900">Avis favorable</h1>
-                <p class="text-slate-500 mt-2 text-lg">L'algorithme estime un risque acceptable. Validation finale par un conseiller.</p>
+            <p class="text-xs font-bold uppercase text-ice-600 tracking-[0.2em] mb-2">Analyse automatique</p>
+            {% if demande.ia_decision == 'REFUSEE' %}
+            <h1 class="text-4xl font-display font-bold text-slate-900">Avis défavorable</h1>
+            <p class="text-slate-500 mt-2 text-lg">L'algorithme estime un risque élevé. Un conseiller valide ou ajuste.</p>
+            {% else %}
+            <h1 class="text-4xl font-display font-bold text-slate-900">Avis favorable</h1>
+            <p class="text-slate-500 mt-2 text-lg">L'algorithme estime un risque acceptable.</p>
+            {% endif %}
+            
+            <div class="mt-4 flex justify-center">
+                {% if demande.ia_decision %}
+                <span class="text-xs font-bold px-4 py-1.5 rounded-full {% if demande.ia_decision == 'ACCEPTEE' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+                    Avis automatique : {{ demande.get_ia_decision_display }}
+                </span>
                 {% endif %}
-                <div class="mt-4 flex flex-col items-center gap-2">
-                    <span class="text-xs font-bold px-3 py-1 rounded-full bg-ice-50 text-ice-700">Statut : {{ demande.get_statut_display }}</span>
-                    {% if demande.ia_decision %}
-                    <span class="text-xs font-bold px-3 py-1 rounded-full {% if demande.ia_decision == 'ACCEPTEE' %}bg-green-50 text-green-700{% else %}bg-red-50 text-red-700{% endif %}">Avis automatique : {{ demande.get_ia_decision_display }}</span>
-                    {% endif %}
-                    <div class="mt-2 flex gap-2">
-                        <a href="{% url 'simulation' %}?montant={{ demande.montant_souhaite }}&duree={{ demande.duree_souhaitee_annees }}&apport={{ demande.apport_personnel }}&revenus={{ demande.revenus_mensuels }}&loyer={{ demande.loyer_actuel }}&dettes={{ demande.dettes_mensuelles }}&enfants={{ demande.enfants_a_charge }}{% if demande.produit %}&produit={{ demande.produit.id }}{% endif %}"
-                            class="px-4 py-2 text-xs font-bold rounded-xl bg-white/70 border border-slate-200 text-slate-700 hover:bg-ice-50">Relancer avec ces valeurs</a>
-                        {% if demande.ia_decision == 'REFUSEE' %}
-                        <a href="{% url 'simulation' %}?from_suggestion=1"
-                            class="px-4 py-2 text-xs font-bold rounded-xl bg-red-50 border border-red-100 text-red-700 hover:bg-red-100">Nouvelle simulation</a>
-                        {% endif %}
-                    </div>
-                </div>
             </div>
         </div>
 
-        <div class="grid lg:grid-cols-3 gap-8">
 
-            <div
-                class="glass-premium p-8 rounded-[2rem] text-center col-span-1 flex flex-col justify-center items-center relative overflow-hidden">
-                <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-6">Score de Solvabilité</h3>
+        <!-- MAIN GRID: REPLICATING THE IMAGE DESIGN -->
+        <div class="grid lg:grid-cols-12 gap-6">
 
-                <div class="relative w-40 h-40">
-                    <svg class="w-full h-full transform -rotate-90 drop-shadow-xl">
-                        <circle cx="80" cy="80" r="70" stroke="#f1f5f9" stroke-width="12" fill="none"></circle>
-                        {% with sc=demande.score_calcule|default:0|add:0 %}
-                        <circle cx="80" cy="80" r="70"
-                            stroke="{% if sc > 75 %}#10b981{% elif sc > 45 %}#f59e0b{% else %}#ef4444{% endif %}"
-                            stroke-width="12" fill="none" stroke-dasharray="440" stroke-linecap="round"
-                            stroke-dashoffset="{{ gauge_offset|default:440 }}"
-                            class="transition-all duration-1000 ease-out">
-                        </circle>
-                        {% endwith %}
-                    </svg>
-                    <div class="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center">
-                        <span class="text-4xl font-display font-bold text-slate-900">{{ demande.score_calcule|default:"0" }}</span>
-                        <span class="text-xs text-slate-400 font-bold">/ 100</span>
+            <!-- LEFT COL: SCORE (approx 1/3) -->
+            <div class="lg:col-span-4 flex flex-col">
+                <div class="bg-white rounded-[2.5rem] p-8 shadow-sm h-full flex flex-col items-center justify-center text-center border border-slate-100 relative overflow-hidden">
+                    <h3 class="text-xs font-bold uppercase text-slate-400 tracking-widest mb-2">Score</h3>
+                    <p class="text-slate-400 text-xs mb-8">Lecture rapide de la solvabilité.</p>
+
+                    <!-- GAUGE -->
+                    <div class="relative w-48 h-48 mb-8">
+                        <svg class="w-full h-full transform -rotate-90">
+                            <circle cx="96" cy="96" r="88" stroke="#f1f5f9" stroke-width="16" fill="none"></circle>
+                            {% with sc=demande.score_calcule|default:0|add:0 %}
+                            <circle cx="96" cy="96" r="88"
+                                stroke="{% if sc > 75 %}#10b981{% elif sc > 45 %}#f59e0b{% else %}#ef4444{% endif %}"
+                                stroke-width="16" fill="none" stroke-dasharray="552" stroke-linecap="round"
+                                stroke-dashoffset="{{ gauge_offset|default:552 }}"
+                                class="transition-all duration-1000 ease-out">
+                            </circle>
+                            {% endwith %}
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span class="text-5xl font-display font-bold text-slate-900">{{ demande.score_calcule|default:"0" }}</span>
+                            <span class="text-xs font-bold text-slate-400 uppercase mt-1">/ 100</span>
+                        </div>
                     </div>
-                </div>
 
-                <div class="mt-8 px-4 py-2 rounded-xl text-sm font-bold w-full
-                    {% if demande.score_calcule|default:0|add:0 > 75 %}bg-green-50 text-green-600 border
-                    border-green-100
-                    {% elif demande.score_calcule|default:0|add:0 > 45 %}bg-yellow-50 text-yellow-600 border
-                    border-yellow-100
-                    {% else %}bg-red-50 text-red-600 border border-red-100{% endif %}">
-                    {{ demande.recommendation|default:"Calcul en cours" }}
+                    <!-- TOP BADGE -->
+                    <div class="px-8 py-2 rounded-xl bg-green-50 text-green-600 font-bold mb-8 w-full">
+                        Top
+                    </div>
+
+                    <!-- DETAILS ACCORDION (Score) -->
+                    <details class="group/accordion w-full border-t border-slate-100 pt-4">
+                        <summary class="flex justify-between items-center cursor-pointer list-none text-slate-500 font-bold text-sm hover:text-slate-800 transition">
+                            <div class="flex items-center gap-2">
+                                <i class="bi bi-info-circle"></i> Détails du score
+                            </div>
+                            <span class="text-slate-400 transform transition-transform group-open:rotate-180">
+                                <i class="bi bi-chevron-down"></i>
+                            </span>
+                        </summary>
+                        <div class="mt-4 space-y-3">
+                            <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
+                                <span class="text-xs font-bold text-slate-500">Avis automatique</span>
+                                <span class="text-xs font-bold px-2 py-1 rounded-md {% if demande.ia_decision == 'ACCEPTEE' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+                                    {{ demande.get_ia_decision_display }}
+                                </span>
+                            </div>
+                            
+                            <div class="grid grid-cols-3 gap-2">
+                                <!-- Score -->
+                                <div class="p-2 rounded-lg bg-slate-50 border border-slate-100 flex flex-col items-center">
+                                    <span class="text-[10px] uppercase text-slate-400 font-bold">Score</span>
+                                    <span class="text-sm font-bold text-slate-700">{{ demande.score_calcule }}</span>
+                                </div>
+                                
+                                <!-- DTI -->
+                                <div class="p-2 rounded-lg bg-slate-50 border border-slate-100 flex flex-col items-center">
+                                    <span class="text-[10px] uppercase text-slate-400 font-bold">DTI</span>
+                                    <div class="flex flex-col items-center">
+                                        <span class="text-sm font-bold {% if dti_display|add:0 > 45 %}text-red-500{% else %}text-slate-700{% endif %}">
+                                            {{ dti_display }}%
+                                        </span>
+                                        <span class="text-[9px] text-slate-400">max 42%</span>
+                                    </div>
+                                </div>
+
+                                <!-- ITV -->
+                                <div class="p-2 rounded-lg bg-slate-50 border border-slate-100 flex flex-col items-center">
+                                    <span class="text-[10px] uppercase text-slate-400 font-bold">ITV</span>
+                                    <div class="flex flex-col items-center">
+                                        <span class="text-sm font-bold {% if itv_display|add:0 > 95 %}text-red-500{% else %}text-slate-700{% endif %}">
+                                            {{ itv_display }}%
+                                        </span>
+                                        <span class="text-[9px] text-slate-400">max 95%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </details>
                 </div>
             </div>
 
-            <div
-                class="glass-premium p-8 md:p-10 rounded-[2rem] col-span-2 flex flex-col justify-between relative overflow-hidden">
 
-                <div
-                    class="absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-br from-ice-100 to-transparent rounded-full opacity-50 pointer-events-none">
-                </div>
-
-                <div>
-                    <p class="text-sm text-slate-500 font-bold uppercase tracking-wider mb-2">Capacité de financement
-                    </p>
-                    <h2 class="text-5xl md:text-6xl font-display font-bold text-slate-900 tracking-tight"
-                        id="affichage-montant">
-                        {{ montant_propose_formate|default:"0.00" }} €
-                    </h2>
-                </div>
-
-                {% if demande.ia_decision != 'REFUSEE' and demande.statut != 'ACCEPTEE' %}
-                <div class="space-y-8 mt-10">
-                    <div>
-                        <div class="flex justify-between mb-4">
-                            <label class="text-sm font-bold text-slate-700">Durée du prêt</label>
-                            <span class="text-lg font-bold text-ice-600 bg-ice-50 px-3 py-1 rounded-lg">
-                                <span id="valDuree">{{ demande.duree_souhaitee_annees|default:"10" }}</span> ans
-                            </span>
-                        </div>
-                        <input type="range" min="5" max="30" value="{{ demande.duree_souhaitee_annees|default:" 10" }}"
-                            id="rangeDuree"
-                            class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-slate-900 hover:accent-ice-600 transition-all">
+            <!-- RIGHT COL: PROJECT (approx 2/3) -->
+            <div class="lg:col-span-8 flex flex-col">
+                <div class="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-slate-100 h-full relative">
+                    
+                    <!-- Top Tag -->
+                    <div class="absolute top-8 right-8">
+                        <span class="px-4 py-2 rounded-full border border-slate-200 text-slate-600 text-xs font-bold bg-slate-50">
+                            Prêt Consommation
+                        </span>
                     </div>
 
-                    <div>
-                        <div class="flex justify-between mb-4">
-                            <label class="text-sm font-bold text-slate-700">Mensualité Max</label>
-                            <span class="text-lg font-bold text-ice-600 bg-ice-50 px-3 py-1 rounded-lg">
-                                <span id="valMensualite">{{ demande.mensualite_calculee|default:mensualite_max_possible|default:"100" }}</span> €
-                            </span>
-                        </div>
-                        <input type="range" min="100" max="{{ mensualite_max_possible|default:" 100" }}"
-                            value="{{ demande.mensualite_calculee|default:mensualite_max_possible|default:" 100" }}" id="rangeMensualite"
-                            class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-slate-900 hover:accent-ice-600 transition-all">
+                    <div class="mb-10">
+                        <p class="text-xs font-bold uppercase text-ice-500 mb-2">Résumé du prêt</p>
+                        <h2 class="text-2xl font-bold text-slate-900 mb-2">Votre projet</h2>
+                        <p class="text-slate-500 text-sm max-w-md">Les détails complets restent disponibles, mais l'essentiel est ici.</p>
                     </div>
 
-                    <div class="flex items-center gap-3">
-                        <button type="button" id="applyChanges"
-                            class="px-5 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold hover:bg-ice-50 transition">
-                            Appliquer les modifications
-                        </button>
-                        <span id="saveStatus" class="text-sm text-green-600 hidden">Modifications enregistrées.</span>
+                    <!-- BIG AMOUNT -->
+                    <div class="mb-2">
+                        <p class="text-[10px] font-bold uppercase text-slate-400 tracking-wider mb-1">Montant Estimé</p>
+                        <h3 class="text-6xl font-display font-bold text-slate-900 tracking-tight" id="affichage-montant">
+                            {{ montant_propose_formate|default:"0" }} €
+                        </h3>
                     </div>
-                </div>
-                {% endif %}
 
-                {% if suggested_mensualite and suggested_duree and demande.ia_decision != 'ACCEPTEE' %}
-                <div class="mt-6 p-3 rounded-xl border border-ice-100 bg-ice-50 text-sm text-slate-700 flex items-start gap-3">
-                    <i class="bi bi-magic text-ice-600 text-lg"></i>
-                    <div class="flex-1">
-                        <p class="font-bold text-slate-900">Suggestion</p>
-                        <p class="text-slate-600">Si la mensualité dépasse le DTI cible (35 %), cette suggestion ajuste la durée et le montant pour recoller au ratio.</p>
-                        <p class="text-slate-600 font-semibold">En pratique : {{ suggested_duree }} ans et environ {{ suggested_mensualite }} €/mois.</p>
+                    <!-- 3 CARDS ROW -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 my-8">
+                        <!-- Mensualité -->
+                        <div class="p-4 rounded-2xl border border-slate-100 flex items-center gap-4 bg-white shadow-sm">
+                            <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-lg">
+                                <i class="bi bi-cash-stack"></i>
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-bold uppercase text-slate-400">Mensualité</p>
+                                <p class="text-lg font-bold text-slate-900" id="dispMensualiteCard">
+                                    {{ demande.mensualite_calculee|floatformat:2 }} €
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Durée -->
+                        <div class="p-4 rounded-2xl border border-slate-100 flex items-center gap-4 bg-white shadow-sm">
+                            <div class="w-10 h-10 rounded-full bg-slate-50 text-slate-600 flex items-center justify-center text-lg">
+                                <i class="bi bi-hourglass-split"></i>
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-bold uppercase text-slate-400">Durée</p>
+                                <p class="text-lg font-bold text-slate-900" id="dispDureeCard">
+                                    {{ demande.duree_souhaitee_annees }} ans
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Taux -->
+                        <div class="p-4 rounded-2xl border border-slate-100 flex items-center gap-4 bg-white shadow-sm">
+                            <div class="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center text-lg">
+                                <i class="bi bi-percent"></i>
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-bold uppercase text-slate-400">Taux Annuel</p>
+                                <p class="text-lg font-bold text-slate-900">
+                                    <span id="dispTaux">{{ demande.taux_calcule|floatformat:2 }}</span>%
+                                </p>
+                            </div>
+                        </div>
                     </div>
-                    <button type="button" id="applySuggestion"
-                        data-sugg-duree="{{ suggested_duree }}"
-                        data-sugg-mens="{{ suggested_mensualite }}"
-                        data-montant="{{ demande.montant_souhaite }}"
-                        data-apport="{{ demande.apport_personnel }}"
-                        data-revenus="{{ demande.revenus_mensuels }}"
-                        data-loyer="{{ demande.loyer_actuel }}"
-                        data-dettes="{{ demande.dettes_mensuelles }}"
-                        data-enfants="{{ demande.enfants_a_charge }}"
-                        data-produit="{{ demande.produit.id|default_if_none:'' }}"
-                        data-emploi="{{ demande.emploi_snapshot.id|default_if_none:'' }}"
-                        data-logement="{{ demande.logement_snapshot.id|default_if_none:'' }}"
-                        data-sante="{{ demande.sante_snapshot }}"
-                        class="px-3 py-2 rounded-lg bg-slate-900 text-white text-xs font-bold hover:-translate-y-0.5 transition">
-                        Appliquer
-                    </button>
-                </div>
-                {% endif %}
 
-                <div class="mt-10 flex flex-col sm:flex-row gap-4">
-                    {% if demande.statut != 'ACCEPTEE' %}
-                        <a href="{% url 'simulation' %}?montant={{ demande.montant_souhaite }}&duree={{ demande.duree_souhaitee_annees }}&apport={{ demande.apport_personnel }}&revenus={{ demande.revenus_mensuels }}&loyer={{ demande.loyer_actuel }}&dettes={{ demande.dettes_mensuelles }}&enfants={{ demande.enfants_a_charge }}&produit={{ demande.produit.id|default_if_none:'' }}&emploi={{ demande.emploi_snapshot.id|default_if_none:'' }}&logement={{ demande.logement_snapshot.id|default_if_none:'' }}&sante={{ demande.sante_snapshot }}"
-                            class="px-8 py-4 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors text-center">Recommencer</a>
-                        {% if demande.soumise %}
-                        <div class="flex-grow px-5 py-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold shadow-lg text-center flex flex-col gap-1 justify-center">
-                            <span>Déjà envoyée aux conseillers</span>
-                            <span class="text-xs text-white/80 font-medium">Brouillon verrouillé — les conseillers ont été notifiés</span>
+                    <!-- ACCORDION: DETAILS COUT -->
+                    <details class="group/accordion border rounded-2xl border-slate-100 mb-4 open">
+                        <summary class="flex justify-between items-center p-4 cursor-pointer hover:bg-slate-50 transition rounded-2xl">
+                            <div class="flex items-center gap-3 font-bold text-slate-700">
+                                <i class="bi bi-receipt text-slate-400"></i> Coût des intérêts
+                            </div>
+                            <i class="bi bi-chevron-down text-slate-400 transform transition-transform group-open:rotate-180"></i>
+                        </summary>
+                        <div class="px-4 pb-4 pt-0">
+                            <div class="pt-4 border-t border-slate-100 flex justify-between items-center">
+                                <span class="text-sm text-slate-500">Total des intérêts (coût du crédit)</span>
+                                <span class="font-bold text-slate-900 text-lg">
+                                    <span id="dispCout">{{ cout_total_init }}</span> €
+                                </span>
+                            </div>
                         </div>
-                        {% else %}
-                        <div class="flex flex-col gap-2 flex-grow">
-                            <p class="text-xs text-slate-500 font-medium text-center sm:text-left">La simulation est encore en brouillon. Valide pour prévenir un conseiller.</p>
-                            <form method="post" action="{% url 'valider_demande_credit' demande.id %}" class="flex-grow">
-                                {% csrf_token %}
-                                <button type="submit"
-                                    class="w-full px-8 py-4 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 text-white font-bold shadow-lg text-center hover:-translate-y-0.5 transition-all duration-300">
-                                    Valider et envoyer aux conseillers
-                                </button>
-                            </form>
+                    </details>
+
+                    <!-- SUGGESTION (Alternative) -->
+                    {% if suggested_mensualite %}
+                    <details class="group/accordion border rounded-2xl border-amber-100 bg-amber-50/50 mb-4 open">
+                        <summary class="flex justify-between items-center p-4 cursor-pointer hover:bg-amber-50 transition rounded-2xl">
+                            <div class="flex items-center gap-3 font-bold text-amber-900">
+                                <i class="bi bi-lightbulb-fill text-amber-500"></i> Proposition alternative
+                            </div>
+                            <span class="text-xs font-bold text-amber-600 bg-amber-100 px-2 py-1 rounded-lg">Optimisé</span>
+                        </summary>
+                        <div class="px-6 pb-6 pt-2">
+                            <p class="text-sm text-slate-600 mb-4 leading-relaxed">
+                                Compte tenu de vos revenus et charges, voici une configuration qui maximiserait vos chances d'acceptation :
+                            </p>
+                            <div class="flex items-center gap-4 mb-6">
+                                <div class="p-3 bg-white rounded-xl border border-amber-100 shadow-sm text-center flex-1">
+                                    <span class="block text-[10px] font-bold uppercase text-slate-400">Durée</span>
+                                    <span class="block text-lg font-bold text-amber-700">{{ suggested_duree }} ans</span>
+                                </div>
+                                <div class="p-3 bg-white rounded-xl border border-amber-100 shadow-sm text-center flex-1">
+                                    <span class="block text-[10px] font-bold uppercase text-slate-400">Mensualité</span>
+                                    <span class="block text-lg font-bold text-amber-700">{{ suggested_mensualite }} €</span>
+                                </div>
+                            </div>
+                            <button id="applySuggestion" 
+                                data-montant="{{ suggested_montant }}"
+                                data-duree="{{ suggested_duree }}" 
+                                data-mens="{{ suggested_mensualite }}"
+                                data-apport="{{ demande.apport_personnel }}"
+                                data-revenus="{{ demande.revenus_mensuels }}"
+                                data-loyer="{{ demande.loyer_actuel }}"
+                                data-dettes="{{ demande.dettes_mensuelles }}"
+                                data-enfants="{{ demande.enfants_a_charge }}"
+                                data-produit="{{ demande.produit.id|default:'' }}"
+                                data-emploi="{{ demande.emploi_snapshot|default:'' }}"
+                                data-logement="{{ demande.logement_snapshot|default:'' }}"
+                                data-sante="{{ demande.sante_snapshot|default:'' }}"
+                                class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm shadow-lg shadow-amber-500/20 transition-all transform hover:-translate-y-0.5">
+                                Appliquer cette suggestion
+                            </button>
                         </div>
-                        {% endif %}
-                    {% else %}
-                        <div class="w-full px-8 py-4 rounded-xl bg-slate-900 text-white font-bold shadow-lg text-center">
-                            Crédit accepté — toute modification passe par le support.
-                        </div>
+                    </details>
                     {% endif %}
+
+                    <!-- ACCORDION: AJUSTER SIMULATION (SLIDERS INSIDE) -->
+                    {% if demande.ia_decision != 'REFUSEE' and demande.statut != 'ACCEPTEE' %}
+                    <details class="group/accordion border rounded-2xl border-slate-100 mb-8">
+                        <summary class="flex justify-between items-center p-4 cursor-pointer hover:bg-slate-50 transition rounded-2xl">
+                            <div class="flex items-center gap-3 font-bold text-slate-700">
+                                <i class="bi bi-sliders text-slate-400"></i> Ajuster ma simulation
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <span class="text-xs font-mono text-slate-400 hidden md:inline" id="summaryAdjust">
+                                    {{ demande.duree_souhaitee_annees }} ans • {{ demande.mensualite_calculee|floatformat:0 }} €/mois
+                                </span>
+                                <i class="bi bi-chevron-down text-slate-400 transform transition-transform group-open:rotate-180"></i>
+                            </div>
+                        </summary>
+                        <div class="px-6 pb-6 pt-2 space-y-6">
+                            <!-- Sliders Container -->
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <label class="text-xs font-bold uppercase text-slate-400">Durée (années)</label>
+                                    <span class="font-bold text-slate-900" id="valDuree">{{ demande.duree_souhaitee_annees }}</span>
+                                </div>
+                                <input type="range" class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-slate-900"
+                                    id="rangeDuree" min="1" max="25" value="{{ demande.duree_souhaitee_annees }}">
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <label class="text-xs font-bold uppercase text-slate-400">Mensualité (€)</label>
+                                    <span class="font-bold text-slate-900" id="valMensualite">{{ demande.mensualite_calculee|floatformat:0 }}</span>
+                                </div>
+                                <input type="range" class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-slate-900"
+                                    id="rangeMensualite" min="50" max="{{ mensualite_max_possible|default:'5000' }}" value="{{ demande.mensualite_calculee|floatformat:0 }}">
+                            </div>
+                            <div class="flex justify-end items-center gap-3 pt-2">
+                                <span id="saveStatus" class="text-xs text-green-600 hidden">Enregistré</span>
+                                <button id="applyChanges" class="text-xs font-bold text-white bg-slate-900 px-4 py-2 rounded-lg hover:bg-slate-800">
+                                    Appliquer
+                                </button>
+                            </div>
+                        </div>
+                    </details>
+                    {% endif %}
+                    
+                    <!-- BOTTOM ACTIONS -->
+                    <div class="flex flex-col sm:flex-row gap-4 mt-auto">
+                        <a href="{% url 'simulation' %}" class="px-6 py-4 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition text-center sm:w-1/3">
+                            Recommencer
+                        </a>
+                        {% if demande.statut != 'ACCEPTEE' %}
+                            {% if demande.soumise %}
+                                <div class="px-6 py-4 rounded-xl bg-green-600 text-white font-bold text-center sm:w-2/3 cursor-default">
+                                    Envoyé aux conseillers <i class="bi bi-check-circle ml-2"></i>
+                                </div>
+                            {% else %}
+                                <form method="post" action="{% url 'valider_demande_credit' demande.id %}" class="sm:w-2/3">
+                                    {% csrf_token %}
+                                    <button type="submit" class="w-full px-6 py-4 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition shadow-lg shadow-slate-900/10">
+                                        Valider et envoyer aux conseillers
+                                    </button>
+                                </form>
+                            {% endif %}
+                        {% else %}
+                             <div class="px-6 py-4 rounded-xl bg-slate-100 text-slate-400 font-bold text-center sm:w-2/3 cursor-not-allowed">
+                                Dossier verrouillé (Validé)
+                            </div>
+                        {% endif %}
+                    </div>
+
                 </div>
             </div>
-
         </div>
     </div>
 </div>

@@ -348,11 +348,21 @@ class SimulationPretForm(forms.ModelForm):
         if self.user:
             self.fields['compte_versement'].queryset = Compte.objects.filter(user=self.user, est_actif=True)
             self.fields['compte_versement'].empty_label = "Sélectionnez un compte"
+            
+            # Default to COURANT account if exists
+            default_account = self.fields['compte_versement'].queryset.filter(type_compte='COURANT').first()
+            if default_account:
+                self.fields['compte_versement'].initial = default_account
+                
             if not self.fields['compte_versement'].queryset.exists():
                 self.fields['compte_versement'].help_text = "Aucun compte actif détecté. Ouvrez un compte pour recevoir les fonds."
         if 'compte_versement' in self.fields:
             self.fields['compte_versement'].widget.attrs.update({
-                'required': 'required'
+                'required': 'required',
+                'class': 'form-control'
+            })
+            self.fields['compte_versement'].error_messages.update({
+                'required': "Veuillez choisir un compte pour recevoir les fonds."
             })
         numeric_fields = [
             ('montant_souhaite', 1, 1),
