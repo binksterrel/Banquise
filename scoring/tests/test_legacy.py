@@ -4,8 +4,8 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from decimal import Decimal
 
-from .models import Compte, Carte, ProfilClient, Transaction, Notification
-from .views import enforce_overdraft
+from scoring.models import Compte, Carte, ProfilClient, Transaction, Notification
+from scoring.views import enforce_overdraft
 
 
 class CoreFlowTests(TestCase):
@@ -44,7 +44,7 @@ class CoreFlowTests(TestCase):
 
     def test_changer_abonnement(self):
         self.client.login(username="alice", password="pass1234")
-        resp = self.client.post(reverse("changer_abonnement"), {"plan": "PLUS"}, follow=False)
+        resp = self.client.post(reverse("changer_abonnement"), {"plan": "PLUS", "password": "pass1234"}, follow=False)
         self.assertEqual(resp.status_code, 302)
         profil = ProfilClient.objects.get(user=self.user)
         self.assertEqual(profil.abonnement, "PLUS")

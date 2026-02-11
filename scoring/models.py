@@ -251,3 +251,33 @@ class VirementProgramme(models.Model):
 
     def __str__(self):
         return f"Virement programmé {self.user.username} -> {self.montant}€ ({self.recurrence})"
+
+from decimal import Decimal
+
+class ConfigurationGlobale(models.Model):
+    """
+    Singleton pour la configuration globale de l'application (taux, seuils, etc.)
+    """
+    seuil_dti = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('45.00'), help_text="Seuil maximum d'endettement (DTI) en %")
+    taux_reference = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('3.50'), help_text="Taux d'intérêt de référence annuel en %")
+    reste_vivre_base = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('800.00'), help_text="Reste à vivre minimum pour une personne seule (€)")
+    reste_vivre_enfant = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('300.00'), help_text="Majoration reste à vivre par enfant (€)")
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super(ConfigurationGlobale, self).save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        pass
+
+    @classmethod
+    def get_solo(cls):
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def __str__(self):
+        return "Configuration Globale Banquise"
+
+    class Meta:
+        verbose_name = "Configuration Globale"
+        verbose_name_plural = "Configuration Globale"

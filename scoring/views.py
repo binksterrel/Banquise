@@ -54,6 +54,10 @@ logger = logging.getLogger(__name__)
 from .utils import overdraft_limit_for_user
 from .ml import predict_credit, is_model_available, ModelNotLoaded
 from .cities import search_cities
+from .services.scoring import (
+    evaluate_credit_demand, add_months, months_diff, 
+    calculate_mensualite, next_installment_date, build_credit_schedule
+)
 
 # BIC Statique pour la démo
 BANQUISE_BIC = "BANQFR76"
@@ -70,110 +74,11 @@ PLAN_CONFIG = {
     'INFINITE': {'prix': Decimal("19.90"), 'label': 'Infinite'},
 }
 
-def notifier(user, titre, contenu, type_evt='INFO', url=''):
-    Notification.objects.create(
-        user=user,
-        titre=titre,
-        contenu=contenu,
-        type=type_evt,
-        url=url or ''
-    )
-
-
-def normalize_iban(value: str) -> str:
-    return re.sub(r"[\s-]+", "", (value or "")).upper()
-
-
-def find_account_by_iban(iban_norm: str):
-    """Recherche insensible aux espaces/majuscules."""
-    for c in Compte.objects.all():
-        if normalize_iban(c.numero_compte) == iban_norm:
-            return c
-    return None
-
-def normalize_phone(value: str) -> str:
-    return re.sub(r"[^0-9]", "", value or "")
-
-
-def find_account_by_phone(phone_norm: str):
-    profil = ProfilClient.objects.filter(telephone=phone_norm).select_related('user').first()
-    if not profil:
-        for p in ProfilClient.objects.exclude(telephone='').select_related('user'):
-            if normalize_phone(p.telephone) == phone_norm:
-                profil = p
-                break
-    if not profil:
-        return None
-    return Compte.objects.filter(user=profil.user, est_actif=True).order_by('id').first()
-
-
-def _execute_virement(compte, montant, motif, target_iban, target_phone, beneficiaire, request_user, operation_id):
-    target_iban = target_iban or ''
-    target_phone = target_phone or ''
-    destinataire_str = ""
-    if beneficiaire:
-        info_parts = [beneficiaire.nom]
-        if target_phone:
-            info_parts.append(f"tel {target_phone}")
-        if target_iban:
-            info_parts.append(f"IBAN {target_iban}")
-        destinataire_str = " - ".join(info_parts)
-    elif target_iban:
-        destinataire_str = f"IBAN {target_iban}"
-    elif target_phone:
-        destinataire_str = f"Téléphone {target_phone}"
-
-    compte_destinataire = None
-    if target_iban:
-        compte_destinataire = find_account_by_iban(normalize_iban(target_iban))
-    if not compte_destinataire and target_phone:
-        compte_destinataire = find_account_by_phone(target_phone)
-
-    if target_phone and not compte_destinataire:
-        raise ValueError("Aucun compte Banquise trouvé pour ce numéro.")
-
-    with transaction.atomic():
-        emetteur = Compte.objects.select_for_update().get(id=compte.id, user=request_user, est_actif=True)
-        destinataire_locked = None
-        if compte_destinataire:
-            if compte_destinataire.id == emetteur.id:
-                destinataire_locked = emetteur
-            else:
-                destinataire_locked = Compte.objects.select_for_update().get(id=compte_destinataire.id, est_actif=True)
-
-        if Transaction.objects.filter(operation_id=operation_id, compte=emetteur, type='DEBIT').exists():
-            return "duplicate"
-
-        if emetteur.solde < montant:
-            raise ValueError("Solde insuffisant pour effectuer ce virement.")
-
-        emetteur.solde -= montant
-        emetteur.save(update_fields=['solde'])
-        Transaction.objects.create(
-            compte=emetteur,
-            montant=-montant,
-            libelle=f"Virement vers {destinataire_str} - {motif}",
-            type='DEBIT',
-            categorie='VIREMENT',
-            operation_id=operation_id
-        )
-        notifier(request_user, "Virement envoyé", f"Virement vers {destinataire_str} de {montant} €", "VIREMENT", url=reverse('dashboard'))
-        enforce_overdraft(emetteur)
-
-        if destinataire_locked:
-            destinataire_locked.solde += montant
-            destinataire_locked.save(update_fields=['solde'])
-            Transaction.objects.create(
-                compte=destinataire_locked,
-                montant=montant,
-                libelle=f"Virement reçu de {request_user.first_name} {request_user.last_name} - {motif}",
-                type='CREDIT',
-                categorie='VIREMENT',
-                operation_id=operation_id
-            )
-            notifier(destinataire_locked.user, "Virement reçu", f"Vous avez reçu {montant} € de {request_user.get_full_name()}", "VIREMENT", url=reverse('dashboard'))
-            enforce_overdraft(destinataire_locked)
-    return "ok"
+from .services.notifications import notifier
+from .services.banking import (
+    execute_virement, normalize_iban, find_account_by_iban,
+    normalize_phone, find_account_by_phone, enforce_overdraft
+)
 
 
 def _run_scheduled_virements(user):
@@ -188,7 +93,7 @@ def _run_scheduled_virements(user):
                 v.prochaine_execution = today + timedelta(days=1)
                 v.save(update_fields=['prochaine_execution'])
                 continue
-            status = _execute_virement(
+            status = execute_virement(
                 compte=v.compte_emetteur,
                 montant=v.montant,
                 motif=v.motif,
@@ -256,28 +161,6 @@ def custom_404(request, exception):
     return render(request, 'scoring/404.html', status=404)
 
 
-def months_diff(d1, d2):
-    return (d1.year - d2.year) * 12 + (d1.month - d2.month)
-
-
-def first_day_next_month(d):
-    month = d.month + 1
-    year = d.year
-    if month > 12:
-        month = 1
-        year += 1
-    return date(year, month, 1)
-
-
-def add_months(d, n):
-    year = d.year + (d.month - 1 + n) // 12
-    month = (d.month - 1 + n) % 12 + 1
-    day = min(d.day, [31,
-                      29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28,
-                      31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1])
-    return date(year, month, day)
-
-
 def custom_200(request):
     return render(request, 'scoring/200.html', status=200)
 
@@ -291,69 +174,6 @@ def preview_200(request):
 
 
 
-def enforce_overdraft(compte):
-    """Blocage/déblocage des cartes en fonction du découvert autorisé."""
-    limit = overdraft_limit_for_user(compte.user)
-    solsous = compte.solde
-    cartes = Carte.objects.filter(compte=compte)
-
-    # Alerte préventive quand on approche du seuil de blocage
-    seuil_alerte = -limit * Decimal("0.8")
-    if solsous <= seuil_alerte:
-        recent_alert = Notification.objects.filter(
-            user=compte.user,
-            titre__icontains="Alerte découvert",
-            date_creation__gte=timezone.now() - timedelta(hours=12)
-        ).exists()
-        if not recent_alert:
-            notifier(
-                compte.user,
-                "Alerte découvert",
-                f"Votre solde ({solsous} €) s'approche de la limite autorisée ({-limit} €).",
-                "INFO",
-                url=reverse('dashboard')
-            )
-
-    if solsous < -limit:
-        # Blocage si pas déjà bloqué
-        updated = cartes.filter(est_bloquee=False).update(est_bloquee=True)
-        if updated:
-            notifier(compte.user, "Découvert dépassé", "Vos cartes sont bloquées jusqu'au retour en dessous du découvert autorisé.", "TRANSACTION", url=reverse('cartes'))
-    else:
-        # Déblocage si le compte est revenu au-dessus du découvert autorisé
-        updated = cartes.filter(est_bloquee=True).update(est_bloquee=False)
-        if updated:
-            notifier(compte.user, "Cartes débloquées", "Votre solde est revenu au-dessus du découvert autorisé.", "TRANSACTION", url=reverse('cartes'))
-
-
-def next_installment_date(credit: DemandeCredit):
-    total_months = max(1, (credit.duree_souhaitee_annees or 1) * 12)
-    already_paid = credit.echeances_payees or 0
-    if already_paid >= total_months:
-        return None
-    base_date = credit.date_acceptation or credit.date_demande.date()
-    jour = min(max(1, credit.jour_prelevement or 1), 28)
-    next_month = add_months(base_date.replace(day=1), 1)
-    start = date(next_month.year, next_month.month, jour)
-    return add_months(start, already_paid)
-
-
-def build_credit_schedule(credit: DemandeCredit):
-    total_months = max(1, (credit.duree_souhaitee_annees or 1) * 12)
-    base_date = credit.date_acceptation or credit.date_demande.date()
-    jour = min(max(1, credit.jour_prelevement or 1), 28)
-    next_month = add_months(base_date.replace(day=1), 1)
-    start = date(next_month.year, next_month.month, jour)
-    schedule = []
-    for i in range(total_months):
-        due_date = add_months(start, i)
-        schedule.append({
-            'numero': i + 1,
-            'date': due_date,
-            'montant': credit.mensualite_calculee or Decimal("0"),
-            'status': 'PAYEE' if (credit.echeances_payees or 0) > i else 'A_VENIR'
-        })
-    return schedule
 
 # ==============================================================================
 # 1. AUTHENTIFICATION
@@ -1669,7 +1489,7 @@ def virement(request):
                     notifier(request.user, "Virement programmé", f"{montant} € le {vp.prochaine_execution.strftime('%d/%m/%Y')} (seuil {vp.solde_minimum} €).", "VIREMENT", url=reverse('virement'))
                     # Si récurrent ou date du jour, exécute immédiatement une première fois
                     if should_execute_now:
-                        _execute_virement(compte, montant, motif, target_iban, target_phone, beneficiaire, request.user, operation_id)
+                        execute_virement(compte, montant, motif, target_iban, target_phone, beneficiaire, request.user, operation_id)
                         vp.derniere_execution = timezone.now()
                         if vp.recurrence == 'MENSUEL':
                             vp.prochaine_execution = vp.prochaine_execution + timedelta(days=30)
@@ -1678,7 +1498,7 @@ def virement(request):
                         vp.save(update_fields=['derniere_execution', 'prochaine_execution', 'actif'])
                 else:
                     # Exécution immédiate
-                    _execute_virement(compte, montant, motif, target_iban, target_phone, beneficiaire, request.user, operation_id)
+                    execute_virement(compte, montant, motif, target_iban, target_phone, beneficiaire, request.user, operation_id)
 
                 return redirect('dashboard')
             except ValueError as e:
@@ -1905,123 +1725,26 @@ def page_simulation(request):
             demande.montant_souhaite = demande.montant_souhaite or 0
             demande.duree_souhaitee_annees = demande.duree_souhaitee_annees or 1
             
-            # --- Simulation robuste ---
-            base_rate = demande.produit.taux_ref if demande.produit else Decimal("3.50")
-            nb_mois = max(1, (demande.duree_souhaitee_annees or 0) * 12)
-            taux_mensuel = (Decimal(base_rate) / Decimal("100")) / Decimal("12")
-
-            if taux_mensuel > 0:
-                mensualite = Decimal(demande.montant_souhaite) * taux_mensuel / (1 - (1 + taux_mensuel) ** (-nb_mois))
-            else:
-                mensualite = Decimal(demande.montant_souhaite) / nb_mois
-
-            # --- SAFETY CHECK: Ensure Total Repayment >= Principal ---
-            # Even if rate is 0, we must repay the principal.
-            # This guards against any calculation weirdness.
-            min_payment_theoretical = Decimal(demande.montant_souhaite) / Decimal(nb_mois)
-            if mensualite < min_payment_theoretical:
-                mensualite = min_payment_theoretical
-            # ---------------------------------------------------------
-
-            dettes_totales = Decimal(demande.dettes_mensuelles or 0) + Decimal(demande.loyer_actuel or 0)
-            revenus = Decimal(demande.revenus_mensuels or 1)
-            dti = ((mensualite + dettes_totales) / revenus) * Decimal("100")
-            ltv = Decimal("100") * (Decimal("1") - (Decimal(demande.apport_personnel or 0) / Decimal(max(1, demande.montant_souhaite or 1))))
-
-            # --- LAYER 1: HARD MATHEMATICAL FILTERS (THE "KNOCKOUT" RULES) ---
-            knockout_reason = None
+            # --- Evaluation via Service ---
+            eval_result = evaluate_credit_demand(demande)
             
-            # 1. Solvency: Payment < Principal coverage
-            # Already enforced via 'mensualite' calculation/clamping above, but we check again for policy.
-            if mensualite < min_payment_theoretical:
-                 # This should technically be impossible due to clamp above, but safe
-                 knockout_reason = "Mensualité insuffisante pour couvrir le capital."
-
-            # 2. Debt-to-Income (DTI) Cap
-            DTI_LIMIT = Decimal("45")
-            if dti > DTI_LIMIT:
-                knockout_reason = f"Taux d'endettement excessif ({dti:.1f}% > {DTI_LIMIT}%)."
-
-            # 3. Subsistence (Reste à vivre)
-            dependants = int(demande.enfants_a_charge or 0)
-            subsistence_threshold = Decimal("800") + (Decimal("300") * Decimal(dependants))
-            reste_vivre = revenus - (dettes_totales + mensualite)
-            if reste_vivre < subsistence_threshold:
-                 knockout_reason = f"Reste à vivre insuffisant ({reste_vivre:.0f}€ < {subsistence_threshold}€)."
-
-            # --- LAYER 2: AI RISK ASSESSMENT (Probabilistic) ---
-            final_score = 0
-            ia_decision = 'REFUSEE'
-            recommendation = ""
-            
-            if knockout_reason:
-                # IMMEDIATE REFUSAL
-                final_score = 0
-                ia_decision = 'REFUSEE'
-                recommendation = f"Refus automatique : {knockout_reason}"
-            else:
-                 # Only consult AI if Hard Rules pass
-                ml_result = None
-                if is_model_available():
-                    try:
-                        # Prepare payload matching NEW training data (French features)
-                        ml_payload = {
-                            "revenus_mensuels": float(revenus),
-                            "montant_souhaite": float(demande.montant_souhaite),
-                            "duree_mois": nb_mois,
-                            "historique_credit": 1,  # Défaut = bon historique
-                            "personnes_a_charge": dependants,
-                            "marie": 1 if demande.marie else 0,
-                            "diplome": 1 if demande.diplome else 0,
-                            "independant": 0,  # Défaut = salarié
-                        }
-                        
-                        ml_result = predict_credit(ml_payload)
-                    except Exception as e:
-                        pass
-                
-                if ml_result:
-                    base_score = ml_result["score_0_100"]
-                    ia_decision = ml_result["label"]
-                    # --- LAYER 3: POLICY ADJUSTMENTS ---
-                    # Bonus/Malus on top of AI
-                    policy_adj = 0
-                    if demande.sante_snapshot == 'BON': policy_adj += 5
-                    if demande.apport_personnel >= demande.montant_souhaite * Decimal("0.1"): policy_adj += 10
-                    
-                    # --- NEW POLICY BOOSTS (Rigorous logic) ---
-                    # If suggestion lowers DTI significantly, score MUST improve.
-                    if dti < Decimal("35"): policy_adj += 15
-                    elif dti < Decimal("40"): policy_adj += 5
-                    
-                    # If residual income is healthy
-                    if reste_vivre > subsistence_threshold * Decimal("1.5"): policy_adj += 5
-
-                    final_score = min(100, max(0, base_score + policy_adj))
-                    
-                    # Override AI decision if score is very high despite model
-                    if final_score >= 80: ia_decision = 'ACCEPTEE'
-                    if final_score < 50: ia_decision = 'REFUSEE'
-                    
-                    recommendation = f"Analyse IA ({base_score}) + Ajustements ({policy_adj}) = {final_score}/100."
-                else:
-                    # HEURISTIC FALLBACK (Safe mode)
-                    final_score = 50 # Neutral
-                    recommendation = "IA indisponible, dossier en attente de révision manuelle."
-                    ia_decision = 'EN_ATTENTE'
+            mensualite = eval_result['mensualite']
+            knockout_reason = eval_result['knockout_reason']
+            dti = eval_result['dti']
+            final_score = eval_result['score']
+            ia_decision = eval_result['decision'] 
+            recommendation = eval_result['recommendation']
 
             # Save results
             demande.score_calcule = final_score
-            demande.taux_calcule = Decimal(base_rate) # Fixed rate for now
+            demande.taux_calcule = eval_result['taux_calcule']
             demande.mensualite_calculee = mensualite.quantize(Decimal("0.01"))
             demande.ia_decision = ia_decision
             demande.recommendation = recommendation
             demande.statut = 'EN_ATTENTE'
             demande.soumise = soumettre
 
-
-
-            
+            # Sauvegarde pour persister l'état (nécessaire pour ref validation)
             demande.save()
             
             # --- LOGGING ---
@@ -2246,64 +1969,14 @@ def api_update_resultat(request, demande_id):
     demande.mensualite_calculee = mensualite
     demande.montant_souhaite = principal.quantize(Decimal("0.01"))
 
-    # --- RE-EVALUATE DECISION (Strict Pipeline) ---
-    revenus = Decimal(demande.revenus_mensuels or 1)
-    dettes_totales = Decimal(demande.dettes_mensuelles or 0) + Decimal(demande.loyer_actuel or 0)
-    dti = ((mensualite + dettes_totales) / revenus) * Decimal("100")
+    # --- RE-EVALUATE via Service ---
+    eval_result = evaluate_credit_demand(demande)
     
-    knockout_reason = None
-    if dti > Decimal("45"): 
-        knockout_reason = f"Endettement excessif ({dti:.1f}%)"
-    
-    dependants = int(demande.enfants_a_charge or 0)
-    subsistence_threshold = Decimal("800") + (Decimal("300") * Decimal(dependants))
-    reste_vivre = revenus - (dettes_totales + mensualite)
-    if reste_vivre < subsistence_threshold:
-        knockout_reason = f"Reste à vivre insuffisant ({reste_vivre:.0f}€)"
+    mensualite = eval_result['mensualite']
+    final_score = eval_result['score']
+    ia_decision = eval_result['decision'] 
+    recommendation = eval_result['recommendation']
 
-    final_score = 0
-    ia_decision = 'REFUSEE'
-    recommendation = ""
-
-    if knockout_reason:
-        final_score = 0
-        ia_decision = 'REFUSEE'
-        recommendation = f"Refus : {knockout_reason}"
-    else:
-        # Layer 2: AI
-        ml_result = None
-        if is_model_available():
-            try:
-                # Prepare payload matching NEW training data (French features)
-                ml_payload = {
-                    "revenus_mensuels": float(revenus),
-                    "montant_souhaite": float(principal),
-                    "duree_mois": duree * 12,
-                    "historique_credit": 1,  # Défaut = bon historique
-                    "personnes_a_charge": dependants,
-                    "marie": 0,  # Inconnu, défaut
-                    "diplome": 1,  # Défaut = diplômé
-                    "independant": 0,  # Défaut = salarié
-                }
-                ml_result = predict_credit(ml_payload)
-            except: pass
-        
-        if ml_result:
-            base_score = ml_result["score_0_100"]
-            policy_adj = 0
-            if demande.sante_snapshot == 'BON': policy_adj += 5
-            if demande.apport_personnel >= demande.montant_souhaite * Decimal("0.1"): policy_adj += 10
-            final_score = min(100, max(0, base_score + policy_adj))
-            ia_decision = 'ACCEPTEE' if final_score >= 50 else 'REFUSEE'
-            recommendation = f"Score mis à jour : {final_score}/100"
-        else:
-            final_score = 50
-            ia_decision = 'EN_ATTENTE'
-            recommendation = "En attente révision"
-
-    demande.score_calcule = final_score
-    demande.ia_decision = ia_decision
-    demande.recommendation = recommendation
     demande.save(update_fields=['duree_souhaitee_annees', 'mensualite_calculee', 'montant_souhaite', 'recommendation', 'score_calcule', 'ia_decision'])
 
     cout_total = (mensualite * n) - principal
