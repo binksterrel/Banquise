@@ -19,7 +19,8 @@ jobs:
         run: |
           python -m venv venv
           source venv/bin/activate
-          pip install "Django==4.2.25" crispy-forms crispy-bootstrap5 django-mathfilters reportlab black isort
+          pip install -r requirements.txt
+          pip install black isort
       - name: Lint (black/isort)
         run: |
           source venv/bin/activate
