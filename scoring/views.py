@@ -53,7 +53,7 @@ from .models import (
 logger = logging.getLogger(__name__)
 from .utils import overdraft_limit_for_user
 from .ml import predict_credit, is_model_available, ModelNotLoaded
-from .cities import search_cities
+from .cities import search_cities, is_valid_french_city
 from .services.scoring import (
     evaluate_credit_demand, add_months, months_diff, 
     calculate_mensualite, next_installment_date, build_credit_schedule
@@ -2522,7 +2522,6 @@ def profil(request):
     client_profil, created = ProfilClient.objects.get_or_create(user=request.user)
     comptes = Compte.objects.filter(user=request.user, est_actif=True)
     password_form = PasswordChangeForm(request.user)
-    messages_support = MessageSupport.objects.filter(user=request.user).order_by('-date_envoi')[:5]
     unread_notifs = Notification.objects.filter(user=request.user, est_lu=False).count()
 
     if request.method == 'POST':
@@ -2535,50 +2534,56 @@ def profil(request):
                 return redirect('profil')
             else:
                 messages.error(request, "Erreur lors du changement de mot de passe. Vérifiez les champs.")
-        
+
         elif 'update_info' in request.POST:
-            try:
-                request.user.first_name = request.POST.get('first_name')
-                ln = request.POST.get('last_name')
-                request.user.last_name = ln.upper() if ln else ''
-                request.user.email = request.POST.get('email')
-                tel_raw = request.POST.get('telephone')
-                if tel_raw and not re.match(r"^[0-9\s()+.-]+$", tel_raw):
-                    messages.error(request, "Le numéro doit contenir uniquement des chiffres (espaces/+/()- acceptés).")
-                    raise ValueError("invalid_phone_chars")
-                tel_norm = normalize_phone(tel_raw)
-                if tel_norm and (len(tel_norm) < 8 or len(tel_norm) > 15):
-                    messages.error(request, "Numéro de téléphone invalide (8 à 15 chiffres).")
-                    raise ValueError("invalid_phone")
-                # Empêche les doublons sur d'autres comptes
-                if tel_norm and ProfilClient.objects.exclude(user=request.user).filter(telephone=tel_norm).exists():
-                    messages.error(request, "Ce numéro est déjà utilisé par un autre compte.")
-                    raise ValueError("duplicate_phone")
+            valid = True
+            first_name = (request.POST.get('first_name') or '').strip()
+            ln = (request.POST.get('last_name') or '').strip()
+            last_name = ln.upper() if ln else ''
+            email = request.POST.get('email')
+            tel_raw = request.POST.get('telephone')
+            ville = (request.POST.get('ville') or '').strip()
 
-                current_pwd = request.POST.get('current_password') or ''
-                if not current_pwd:
-                    messages.error(request, "Veuillez saisir votre mot de passe pour confirmer.")
-                    raise ValueError("missing_password")
-                if not request.user.check_password(current_pwd):
-                    messages.error(request, "Mot de passe incorrect. Aucune modification enregistrée.")
-                    raise ValueError("wrong_password")
+            if tel_raw and not re.match(r"^[0-9\s()+.-]+$", tel_raw):
+                messages.error(request, "Le numéro doit contenir uniquement des chiffres (espaces/+/()- acceptés).")
+                valid = False
 
+            tel_norm = normalize_phone(tel_raw) if valid else None
+            if valid and tel_norm and (len(tel_norm) < 8 or len(tel_norm) > 15):
+                messages.error(request, "Numéro de téléphone invalide (8 à 15 chiffres).")
+                valid = False
+
+            if valid and tel_norm and ProfilClient.objects.exclude(user=request.user).filter(telephone=tel_norm).exists():
+                messages.error(request, "Ce numéro est déjà utilisé par un autre compte.")
+                valid = False
+
+            if valid and ville and not is_valid_french_city(ville):
+                messages.error(request, "Ville invalide. Veuillez saisir une commune française reconnue.")
+                valid = False
+
+            current_pwd = (request.POST.get('current_password') or '').strip()
+            if valid and not current_pwd:
+                messages.error(request, "Veuillez saisir votre mot de passe pour confirmer.")
+                valid = False
+            elif valid and not request.user.check_password(current_pwd):
+                messages.error(request, "Mot de passe incorrect. Aucune modification enregistrée.")
+                valid = False
+
+            if valid:
+                request.user.first_name = first_name
+                request.user.last_name = last_name
+                request.user.email = email
                 request.user.save()
                 client_profil.telephone = tel_norm
-                client_profil.ville_naissance = request.POST.get('ville') 
+                client_profil.ville_naissance = ville
                 client_profil.save()
-
                 messages.success(request, "Vos informations ont été mises à jour.")
                 return redirect('profil')
-            except Exception as e:
-                if str(e) not in ["invalid_phone", "duplicate_phone", "invalid_phone_chars", "missing_password", "wrong_password"]:
-                    messages.error(request, f"Une erreur est survenue lors de la mise à jour : {e}")
 
     return render(request, 'scoring/profil.html', {
         'profil': client_profil,
         'comptes': comptes,
         'password_form': password_form,
-        'messages_support': messages_support,
         'unread_notifs': unread_notifs
     })
 

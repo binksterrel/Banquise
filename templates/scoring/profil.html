@@ -109,6 +109,28 @@
             display: none;
         }
     }
+
+    /* Toast notification */
+    .toast-notification {
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: #0f172a;
+        color: #fff;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        z-index: 9999;
+        opacity: 0;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+        pointer-events: none;
+    }
+    .toast-notification.show {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
 </style>
 {% endblock %}
 
@@ -172,9 +194,10 @@
                                 <p class="text-xs text-slate-400 uppercase tracking-wider font-bold">Formule</p>
                                 <p class="font-bold text-ice-300">{{ profil.get_abonnement_display }}</p>
                                 {% if profil.abonnement != 'ESSENTIEL' %}
-                                <form method="post" action="{% url 'changer_abonnement' %}" class="mt-3">{% csrf_token %}
+                                <form method="post" action="{% url 'changer_abonnement' %}" class="subscription-form mt-3">{% csrf_token %}
                                     <input type="hidden" name="plan" value="RESILIER">
-                                    <button type="submit" onclick="return confirm('Résilier et revenir à Essentiel à la fin de la période en cours ?');" class="text-xs font-bold text-red-200 hover:text-red-100">Résilier (fin de période)</button>
+                                    <input type="hidden" name="password" value="">
+                                    <button type="submit" class="text-xs font-bold text-red-200 hover:text-red-100">Résilier (fin de période)</button>
                                 </form>
                                 {% endif %}
                             </div>
@@ -279,7 +302,7 @@
                                         <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">
                                             Solde actuel sur ce compte</p>
                                         <p class="font-display text-xl font-bold text-ice-600">
-                                            {{ compte.solde }} €
+                                            {{ compte.solde|floatformat:2 }} €
                                         </p>
                                     </div>
                                 </div>
@@ -363,45 +386,45 @@
                         <input type="hidden" name="update_info" value="1">
                         <div class="grid md:grid-cols-2 gap-6">
                             <div>
-                                <label class="input-label">Prénom</label>
-                                <input type="text" name="first_name" value="{{ user.first_name }}"
+                                <label for="id_first_name" class="input-label">Prénom</label>
+                                <input type="text" id="id_first_name" name="first_name" value="{{ user.first_name }}"
                                     class="w-full px-4 py-3 rounded-xl input-field font-medium text-slate-700" required>
                             </div>
                             <div>
-                                <label class="input-label">Nom</label>
-                                <input type="text" name="last_name" value="{{ user.last_name }}"
+                                <label for="id_last_name" class="input-label">Nom</label>
+                                <input type="text" id="id_last_name" name="last_name" value="{{ user.last_name }}"
                                     class="w-full px-4 py-3 rounded-xl input-field font-medium text-slate-700" required>
                             </div>
                             <div class="md:col-span-2">
-                                <label class="input-label">Adresse Email</label>
+                                <label for="id_email" class="input-label">Adresse Email</label>
                                 <div class="relative">
                                     <i
                                         class="bi bi-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                                    <input type="email" name="email" value="{{ user.email }}"
+                                    <input type="email" id="id_email" name="email" value="{{ user.email }}"
                                         class="w-full pl-12 pr-4 py-3 rounded-xl input-field font-medium text-slate-700"
                                         required>
                                 </div>
                             </div>
                             <div>
-                                <label class="input-label">Téléphone</label>
-                                <input type="tel" name="telephone" value="{{ profil.telephone|default:'' }}"
+                                <label for="id_telephone" class="input-label">Téléphone</label>
+                                <input type="tel" id="id_telephone" name="telephone" value="{{ profil.telephone|default:'' }}"
                                     placeholder="+33 6..."
                                     class="w-full px-4 py-3 rounded-xl input-field font-medium text-slate-700">
                             </div>
                             <div>
-                                <label class="input-label">Ville</label>
-                                <input type="text" name="ville" value="{{ profil.ville_naissance|default:'' }}"
+                                <label for="id_ville" class="input-label">Ville</label>
+                                <input type="text" id="id_ville" name="ville" value="{{ profil.ville_naissance|default:'' }}"
                                     placeholder="Paris"
                                     class="w-full px-4 py-3 rounded-xl input-field font-medium text-slate-700">
                             </div>
                         </div>
                         <div class="grid md:grid-cols-2 gap-6">
                             <div>
-                                <label class="input-label">Mot de passe (confirmation)</label>
+                                <label for="id_current_password" class="input-label">Mot de passe (confirmation)</label>
                                 <div class="relative">
                                     <i
                                         class="bi bi-lock-fill absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                                    <input type="password" name="current_password" autocomplete="current-password"
+                                    <input type="password" id="id_current_password" name="current_password" autocomplete="current-password"
                                         placeholder="Saisissez votre mot de passe"
                                         class="w-full pl-12 pr-4 py-3 rounded-xl input-field font-medium text-slate-700"
                                         required>
@@ -427,11 +450,11 @@
                         <input type="hidden" name="change_password" value="1">
 
                         <div class="group">
-                            <label class="input-label">Mot de passe actuel</label>
+                            <label for="id_old_password" class="input-label">Mot de passe actuel</label>
                             <div class="relative">
                                 <i
                                     class="bi bi-lock-fill absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors z-10"></i>
-                                <input type="password" name="old_password"
+                                <input type="password" id="id_old_password" name="old_password"
                                     class="w-full pl-12 pr-4 py-3 rounded-xl input-field font-medium text-slate-700 placeholder-slate-400"
                                     placeholder="Votre mot de passe actuel" required>
                             </div>
@@ -447,11 +470,11 @@
                         </div>
 
                         <div class="group">
-                            <label class="input-label">Nouveau mot de passe</label>
+                            <label for="id_new_password1" class="input-label">Nouveau mot de passe</label>
                             <div class="relative">
                                 <i
                                     class="bi bi-key-fill absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors z-10"></i>
-                                <input type="password" name="new_password1"
+                                <input type="password" id="id_new_password1" name="new_password1"
                                     class="w-full pl-12 pr-4 py-3 rounded-xl input-field font-medium text-slate-700 placeholder-slate-400"
                                     placeholder="8 caractères minimum" required>
                             </div>
@@ -471,11 +494,11 @@
                         </div>
 
                         <div class="group">
-                            <label class="input-label">Confirmer le mot de passe</label>
+                            <label for="id_new_password2" class="input-label">Confirmer le mot de passe</label>
                             <div class="relative">
                                 <i
                                     class="bi bi-check-circle-fill absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors z-10"></i>
-                                <input type="password" name="new_password2"
+                                <input type="password" id="id_new_password2" name="new_password2"
                                     class="w-full pl-12 pr-4 py-3 rounded-xl input-field font-medium text-slate-700 placeholder-slate-400"
                                     placeholder="Répétez le mot de passe" required>
                             </div>
@@ -538,15 +561,26 @@
     <a href="#danger" title="Zone danger"><i class="bi bi-exclamation-triangle"></i></a>
 </div>
 
+<!-- Toast notification -->
+<div id="toastNotif" class="toast-notification"></div>
+
 <script>
+    function showToast(message, duration = 2500) {
+        const toast = document.getElementById('toastNotif');
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), duration);
+    }
+
     function copyToClipboard(elementId) {
         const copyText = document.getElementById(elementId).innerText;
         navigator.clipboard.writeText(copyText).then(() => {
-            alert("IBAN copié dans le presse-papier !");
+            showToast("IBAN copié dans le presse-papier !");
         });
     }
 
     // Scroll centré sur les sections du profil
+    const sidebarLinks = document.querySelectorAll('.glass-panel nav a[href^="#"]');
     document.querySelectorAll('a[href^="#"]').forEach(link => {
         link.addEventListener('click', (e) => {
             const targetId = link.getAttribute('href').substring(1);
@@ -558,6 +592,24 @@
             window.scrollTo({ top: y - offset, behavior: 'smooth' });
         });
     });
+
+    // Navigation latérale : état actif au scroll
+    const sections = document.querySelectorAll('[id="bank-info"], [id="subscription"], [id="infos"], [id="security"], [id="danger"]');
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                sidebarLinks.forEach(link => {
+                    const isActive = link.getAttribute('href') === '#' + entry.target.id;
+                    link.classList.toggle('bg-ice-50', isActive);
+                    link.classList.toggle('text-ice-700', isActive);
+                    link.classList.toggle('font-bold', isActive);
+                    link.classList.toggle('text-slate-600', !isActive);
+                    link.classList.toggle('font-medium', !isActive);
+                });
+            }
+        });
+    }, { rootMargin: '-30% 0px -60% 0px' });
+    sections.forEach(s => observer.observe(s));
 
     // Affichage mini nav après scroll
     const miniNav = document.getElementById('profileMiniNav');
@@ -571,8 +623,10 @@
     }
 </script>
 {% endblock %}
+
+{% block extra_js %}
 <script>
-    // Modal mot de passe réutilisé (si non présent depuis le dashboard)
+    // Modal mot de passe pour les actions d'abonnement
     (function () {
         if (document.getElementById('subPwdModal')) return;
         const modal = document.createElement('div');
@@ -584,7 +638,7 @@
             <h3 class="text-xl font-display font-bold text-slate-900 mb-1">Confirmer le changement</h3>
             <p class="text-sm text-slate-500 mb-4">Saisis ton mot de passe pour valider l'action d'abonnement.</p>
             <div class="space-y-2">
-              <label class="text-xs font-bold text-slate-500 uppercase tracking-[0.15em]">Mot de passe</label>
+              <label for="subPwdInput" class="text-xs font-bold text-slate-500 uppercase tracking-[0.15em]">Mot de passe</label>
               <input type="password" id="subPwdInput" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-ice-200 focus:border-ice-400 outline-none" placeholder="••••••••">
             </div>
             <div class="mt-6 flex gap-3 justify-end">
@@ -631,3 +685,4 @@
         });
     })();
 </script>
+{% endblock %}
