@@ -8,7 +8,7 @@
 1. [Fonctionnalités](#1-fonctionnalités)
 2. [Stack technique](#2-stack-technique)
 3. [Installation](#3-installation)
-4. [Arborescence](#4-arborescence)
+4. [Arborescence](#4-arborescence) 
 5. [URLs utiles](#5-urls-utiles)
 6. [Règles métiers](#6-règles-métiers)
 7. [Système de Crédit & IA](#7-système-de-crédit--ia)
