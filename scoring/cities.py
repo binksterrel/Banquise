@@ -39,7 +39,15 @@ def is_valid_french_city(city_name: str) -> bool:
     normalized = _normalize(city_name)
     if not normalized:
         return False
-    return normalized in _load_city_set()
+    valid_cities = _load_city_set()
+    # FALLBACK : Si le fichier n'est pas trouvé ou vide (problème déploiement), on autorise via regex
+    if not valid_cities:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning("CITY_DATA_PATH not found or empty. Using regex fallback for city validation.")
+        return bool(re.match(r"^[a-z\s]+$", normalized))
+    
+    return normalized in valid_cities
 
 
 @lru_cache(maxsize=1)
